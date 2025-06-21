@@ -34,17 +34,63 @@ Tatlock is a modular, brain-inspired conversational AI platform with built-in au
 - **Extensible Tools**: Easily add new tools and skills for the agent to use
 - **Offline Capability**: Material Icons and static assets work without internet connection
 
+## Installation
+
+### Prerequisites
+- Ubuntu/Debian-based system (apt package manager)
+- Python 3.10 or higher
+- Git
+
+### Quick Start
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/postmeridiem/tatlock.git
+   cd tatlock
+   ```
+
+2. Run the installation script:
+   ```bash
+   chmod +x install_tatlock.sh
+   ./install_tatlock.sh
+   ```
+
+   **Note**: The installation script currently only supports apt-based systems (Ubuntu/Debian). For other distributions, manual installation of dependencies may be required.
+
+3. Set up environment variables:
+   ```bash
+   cp .env.example .env
+   # Edit .env with your API keys
+   ```
+
+4. Start the application:
+   ```bash
+   python main.py
+   ```
+
+5. Access the interface:
+   - **Login Page**: `http://localhost:8000/login`
+   - **Admin Dashboard**: `http://localhost:8000/admin/dashboard`
+   - **User Profile**: `http://localhost:8000/profile`
+   - **Debug Console**: `http://localhost:8000/chat`
+   - **API Documentation**: `http://localhost:8000/docs`
+
+### Default Login
+- **Username**: admin
+- **Password**: admin
+- **Role**: admin
+- **Groups**: admins, users
+
 ## LLM Model
 Tatlock uses the **ebdm/gemma3-enhanced:12b** model as its base LLM. During installation, this model is downloaded and copied to `gemma3-cortex:latest` for use by the application. The enhanced version provides improved reasoning capabilities and tool usage for the agentic interactions.
 
 ## Directory Structure
 
 ### Core Files
-- **main.py**: Entry point. Defines the FastAPI app and HTTP endpoints with authentication (ReDoc disabled)
+- **main.py**: Entry point. Defines the FastAPI app and HTTP endpoints with authentication
 - **config.py**: Loads environment variables and API keys
 - **requirements.txt**: Python dependencies
 - **install_tatlock.sh**: Automated installation script for system dependencies, Python packages, and database setup
-- **wakeup.sh**: Startup and auto-commit script
+- **wakeup.sh**: Startup script
 
 ### Core Modules
 - **cortex/**: Core agent logic and API implementation. Orchestrates all subsystems and exposes the FastAPI interface
@@ -71,59 +117,7 @@ Tatlock uses the **ebdm/gemma3-enhanced:12b** model as its base LLM. During inst
 ### Installation & Setup
 - **stem/installation/**: Database setup utilities for system.db and longterm.db initialization
 
-## Authentication & Security
-
-Tatlock includes a comprehensive authentication system:
-
-### User Management
-- **User CRUD Operations**: Create, read, update, and delete users through admin interface
-- **Profile Management**: Users can edit their own profiles and change passwords
-- **Password Security**: PBKDF2 hashing with unique salts for each user
-- **Show/Hide Password**: Toggle buttons for password visibility
-
-### Access Control
-- **Role-Based Access Control**: Users can have multiple roles (user, admin, moderator)
-- **Group Management**: Users can belong to multiple groups (users, admins, moderators)
-- **Admin Protection**: Critical roles and groups cannot be deleted or renamed
-- **Last Admin Protection**: Prevents deletion of the last admin user
-
-### Default Setup
-- **Admin User**: Created during installation with username/password and admin privileges
-- **Default Roles**: user, admin, moderator
-- **Default Groups**: users, admins, moderators
-
-## Web Interface Features
-
-### Admin Dashboard (`/admin/dashboard`)
-- **System Statistics**: Total users, roles, groups, and admin users
-- **User Management**: Complete CRUD operations for users
-- **Role Management**: Create, edit, and delete roles
-- **Group Management**: Create, edit, and delete groups
-- **Real-time Updates**: Automatic refresh of data after changes
-- **Snackbar Notifications**: User-friendly success/error messages
-
-### User Profile (`
-
-### Global Features
-- **Material Icons**: Professional iconography throughout
-- **Dark/Light Mode**: User preference with persistent storage
-- **Chat Sidepane**: Integrated chat interface on all pages
-- **Responsive Navigation**: Collapsible sidebar navigation
-- **User Dropdown**: Profile access, theme toggle, and logout
-- **Favicon Support**: Complete favicon and app icon set
-
-## Conversation Tracking
-
-Tatlock includes comprehensive conversation management:
-
-### Conversation Features
-- **Conversation Metadata**: Track conversation titles, start times, and message counts
-- **Topic Analysis**: Automatic topic detection and tracking within conversations
-- **Conversation Search**: Search conversations by title or content
-- **Conversation Statistics**: Get detailed conversation summaries and statistics
-- **User Isolation**: Each user's conversations are completely isolated
-
-### Available Tools
+## Available Tools
 - **web_search**: Search the web for current information
 - **find_personal_variables**: Look up personal information about the user
 - **get_weather_forecast**: Get weather forecasts for specific cities and dates
@@ -177,20 +171,6 @@ Tatlock includes comprehensive conversation management:
 - `/static/*` - Static file serving (HTML, CSS, JS, fonts)
 - `/favicon.ico` - App favicon
 
-### 4. Access the Interface
-- **Login Page**: `http://localhost:8000/login`
-- **Admin Dashboard**: `http://localhost:8000/admin/dashboard`
-- **User Profile**: `http://localhost:8000/profile`
-- **Debug Console**: `http://localhost:8000/chat`
-- **API Documentation**: `http://localhost:8000/docs`
-- **API Endpoint**: `http://localhost:8000/cortex`
-
-### 5. Default Login
-- **Username**: admin (created during installation)
-- **Password**: admin (created during installation)
-- **Role**: admin
-- **Groups**: admins, users
-
 ## Environment Variables
 Required environment variables (set in `.env` file):
 ```
@@ -198,74 +178,27 @@ OPENWEATHER_API_KEY=your_openweather_api_key
 GOOGLE_API_KEY=your_google_api_key
 GOOGLE_CSE_ID=your_google_cse_id
 OLLAMA_MODEL=gemma3-cortex:latest
-LONGTERM_DB=hippocampus/longterm.db
-SYSTEM_DB=hippocampus/system.db
-STARLETTE_SECRET=your_session_secret_key
 ```
 
-## Getting Started
+## Testing
+The project includes comprehensive test coverage with 244 tests covering all major functionality:
+- API endpoints and authentication
+- Database operations and memory management
+- User management and security
+- Tool system and agent logic
+- Web interface components
 
-### 1. Installation
-Run the automated installer:
+Run tests with:
 ```bash
-bash install_tatlock.sh
+python -m pytest
 ```
-This will:
-- Install system dependencies and Python packages
-- Download and install Ollama
-- Download the LLM model (ebdm/gemma3-enhanced:12b)
-- Initialize databases (system.db and admin longterm.db)
-- Create default admin user with roles and groups
-
-### 2. Environment Setup
-Set up environment variables (see `config.py`):
-```bash
-OPENWEATHER_API_KEY=your_openweather_api_key
-GOOGLE_API_KEY=your_google_api_key
-GOOGLE_CSE_ID=your_google_cse_id
-OLLAMA_MODEL=gemma3-cortex:latest
-LONGTERM_DB=hippocampus/longterm.db
-SYSTEM_DB=hippocampus/system.db
-STARLETTE_SECRET=your_session_secret_key
-```
-
-### 3. Start the Application
-```bash
-python main.py
-```
-
-## Technical Details
-
-### Database Schema
-- **system.db**: User authentication, roles, and groups
-- **{username}_longterm.db**: Per-user conversation memory, topics, and system prompts
-
-### Security Features
-- **Password Hashing**: PBKDF2 with unique salts
-- **Session Management**: Secure cookie-based sessions
-- **Role-Based Access**: Granular permission control
-- **Input Validation**: Pydantic models for all API requests
-- **User Data Isolation**: Complete separation of user data
-
-### Frontend Technologies
-- **HTML5**: Semantic markup
-- **CSS3**: Modern styling with CSS variables for theming
-- **JavaScript**: Modular ES6+ code with async/await
-- **Material Icons**: Professional iconography (offline-capable)
 
 ## Contributing
-Contributions are welcome! Please see the codebase for module-level readmes and follow the modular, brain-inspired structure for new features. All system prompts should be added to the `rise_and_shine` table rather than hardcoded.
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Add tests for new functionality
+5. Submit a pull request
 
-### Development Guidelines
-- Follow the brain-inspired module structure
-- Add comprehensive documentation for new features
-- Include proper error handling and validation
-- Test authentication and authorization thoroughly
-- Maintain consistent styling with Material Design principles
-- Ensure user data isolation and privacy
-
-## Memory Databases
-- Each user has a separate long-term memory database at `hippocampus/longterm/{username}.db`
-- The admin user's memory is stored at `hippocampus/longterm/admin.db`
-- Databases are created automatically when a user is added and deleted when a user is removed
-- Complete user data isolation ensures privacy and security
+## License
+This project is licensed under the MIT License.
