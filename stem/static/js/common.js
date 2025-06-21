@@ -409,7 +409,42 @@ function setupChatSidepane() {
     function addChatMessage(content, sender) {
         const messageDiv = document.createElement('div');
         messageDiv.className = `chat-message ${sender}`;
-        messageDiv.textContent = content;
+        
+        // Create copy button
+        const copyBtn = document.createElement('button');
+        copyBtn.className = 'copy-btn';
+        copyBtn.innerHTML = '<span class="material-icons">content_copy</span>';
+        copyBtn.title = 'Copy message';
+        
+        // Add click handler for copy functionality
+        copyBtn.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            try {
+                await navigator.clipboard.writeText(content);
+                // Show feedback (you could add a toast notification here)
+                copyBtn.innerHTML = '<span class="material-icons">check</span>';
+                setTimeout(() => {
+                    copyBtn.innerHTML = '<span class="material-icons">content_copy</span>';
+                }, 1000);
+            } catch (err) {
+                console.error('Failed to copy message:', err);
+                // Fallback for older browsers
+                const textArea = document.createElement('textarea');
+                textArea.value = content;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                
+                copyBtn.innerHTML = '<span class="material-icons">check</span>';
+                setTimeout(() => {
+                    copyBtn.innerHTML = '<span class="material-icons">content_copy</span>';
+                }, 1000);
+            }
+        });
+        
+        messageDiv.innerHTML = content.replace(/\n/g, '<br>');
+        messageDiv.appendChild(copyBtn);
         chatMessages.appendChild(messageDiv);
         chatMessages.scrollTop = chatMessages.scrollHeight;
     }

@@ -27,8 +27,8 @@ PORT = int(os.getenv("PORT", "8000"))
 
 # --- Error Checking ---
 if not OPENWEATHER_API_KEY:
-    raise ValueError("OPENWEATHER_API_KEY environment variable not set.")
+    print("WARNING: OPENWEATHER_API_KEY environment variable not set. Weather functionality will be disabled.")
 if not GOOGLE_API_KEY:
-    raise ValueError("GOOGLE_API_KEY environment variable not set.")
+    print("WARNING: GOOGLE_API_KEY environment variable not set. Web search functionality will be disabled.")
 if not GOOGLE_CSE_ID:
-    raise ValueError("GOOGLE_CSE_ID environment variable not set.")
+    print("WARNING: GOOGLE_CSE_ID environment variable not set. Web search functionality will be disabled.")

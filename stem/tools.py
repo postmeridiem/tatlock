@@ -275,6 +275,15 @@ def execute_get_weather_forecast(city: str, start_date: str | None = None, end_d
     Returns:
         dict: Status and weather data or error message.
     """
+    print(f"Executing weather query for: {city}, {start_date}, {end_date}")
+    
+    # Check if API key is configured
+    if not OPENWEATHER_API_KEY:
+        return {
+            "status": "error",
+            "message": "Weather forecast is not available. OpenWeather API key is not configured. Please set OPENWEATHER_API_KEY environment variable to enable weather functionality."
+        }
+    
     try:
         today = date.today()
         start_date_obj = date.fromisoformat(start_date) if start_date else today
@@ -324,6 +333,14 @@ def execute_web_search(query: str) -> dict:
         dict: Status and search results or error message.
     """
     print(f"Executing web search for: {query}")
+    
+    # Check if API keys are configured
+    if not GOOGLE_API_KEY or not GOOGLE_CSE_ID:
+        return {
+            "status": "error", 
+            "message": "Web search is not available. Google API keys are not configured. Please set GOOGLE_API_KEY and GOOGLE_CSE_ID environment variables to enable web search functionality."
+        }
+    
     url = "https://www.googleapis.com/customsearch/v1"
     params = {
         'key': GOOGLE_API_KEY,

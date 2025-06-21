@@ -70,8 +70,30 @@ def process_chat_interaction(user_message: str, history: list[dict], username: s
     messages_for_ollama.extend(history)
     messages_for_ollama.append({"role": "user", "content": user_message})
 
-    max_interactions = 5
+    max_interactions = 10
+    tool_failures = []  # Track tool failures for analysis
+    
     for i in range(max_interactions):
+        print(f"Tool Iteration {i+1}")
+        # Check if this is the last iteration and we've had tool failures
+        if i == max_interactions - 1 and tool_failures:
+            # Add system prompt for tool failure analysis
+            failure_analysis_prompt = f"""
+IMPORTANT: You have reached the maximum number of tool call attempts ({max_interactions}). 
+The following tools failed to execute properly:
+{chr(10).join([f"- {failure}" for failure in tool_failures])}
+
+Please provide a comprehensive response that:
+1. Acknowledges the tool failures
+2. Analyzes what went wrong (API issues, invalid parameters, network problems, etc.)
+3. Provides the best possible answer with the information available
+4. Suggests alternative approaches or what information would be needed
+5. Maintains your helpful and professional tone
+
+Do not attempt to call any more tools - provide a final response analyzing the situation.
+"""
+            messages_for_ollama.append({'role': 'system', 'content': failure_analysis_prompt})
+        
         response = ollama.chat(model=OLLAMA_MODEL, messages=messages_for_ollama, tools=TOOLS)
         response_message = dict(response['message'])
 
@@ -94,19 +116,49 @@ def process_chat_interaction(user_message: str, history: list[dict], username: s
 
         if not response_message.get('tool_calls') and "tool_calls" in response_message.get('content', ''):
             content = response_message['content']
-            match = re.search(r"<tool_call>\s*(\{.*?\})\s*</tool_call>", content, re.DOTALL)
+            
+            # Try to parse tool calls from ```tool_calls``` code blocks
+            match = re.search(r"```tool_calls\s*\n(.*?)\n```", content, re.DOTALL)
             if match:
                 try:
-                    tool_json_str = match.group(1).replace('\\"', '"')
-                    parsed_call = json.loads(tool_json_str)
-                    if 'location' in parsed_call.get('parameters', {}):
-                        parsed_call['parameters']['city'] = parsed_call['parameters'].pop('location')
-                    response_message['tool_calls'] = [{"id": f"call_{uuid.uuid4().hex[:8]}",
-                                                       "function": {"name": parsed_call.get("name"),
-                                                                    "arguments": parsed_call.get("parameters", {})}}]
-                    response_message['content'] = ""
+                    tool_json_str = match.group(1).strip()
+                    parsed_calls = json.loads(tool_json_str)
+                    
+                    # Convert the parsed calls to the proper format
+                    clean_tool_calls = []
+                    for parsed_call in parsed_calls:
+                        if isinstance(parsed_call, dict) and 'name' in parsed_call and 'parameters' in parsed_call:
+                            clean_tool_calls.append({
+                                "id": f"call_{uuid.uuid4().hex[:8]}",
+                                "type": "function",
+                                "function": {
+                                    "name": parsed_call.get("name"),
+                                    "arguments": parsed_call.get("parameters", {})
+                                }
+                            })
+                    
+                    if clean_tool_calls:
+                        response_message['tool_calls'] = clean_tool_calls
+                        response_message['content'] = ""
+                        print(f"Successfully parsed {len(clean_tool_calls)} tool calls from content")
                 except (json.JSONDecodeError, AttributeError) as e:
-                    print(f"Failed to parse tool call from content: {e}")
+                    print(f"Failed to parse tool calls from ```tool_calls``` block: {e}")
+            
+            # Fallback to the original <tool_call> parsing
+            if not response_message.get('tool_calls'):
+                match = re.search(r"<tool_call>\s*(\{.*?\})\s*</tool_call>", content, re.DOTALL)
+                if match:
+                    try:
+                        tool_json_str = match.group(1).replace('\\"', '"')
+                        parsed_call = json.loads(tool_json_str)
+                        if 'location' in parsed_call.get('parameters', {}):
+                            parsed_call['parameters']['city'] = parsed_call['parameters'].pop('location')
+                        response_message['tool_calls'] = [{"id": f"call_{uuid.uuid4().hex[:8]}",
+                                                           "function": {"name": parsed_call.get("name"),
+                                                                        "arguments": parsed_call.get("parameters", {})}}]
+                        response_message['content'] = ""
+                    except (json.JSONDecodeError, AttributeError) as e:
+                        print(f"Failed to parse tool call from content: {e}")
 
         messages_for_ollama.append(response_message)
 
@@ -114,12 +166,17 @@ def process_chat_interaction(user_message: str, history: list[dict], username: s
             break
 
         tool_outputs = []
+        failed_tools = []  # Track failures in this iteration
+        
         if response_message.get('tool_calls') and isinstance(response_message['tool_calls'], list):
             for tool_call in response_message['tool_calls']:
                 function_name = tool_call.get('function', {}).get('name')
                 function_args = tool_call.get('function', {}).get('arguments')
                 tool_call_id = tool_call.get('id')
-                if not function_name or not isinstance(function_args, dict): continue
+                if not function_name or not isinstance(function_args, dict): 
+                    failed_tools.append(f"Invalid tool call format for {function_name}")
+                    continue
+                    
                 if function_name in AVAILABLE_TOOLS:
                     tool_function = AVAILABLE_TOOLS[function_name]
                     
@@ -127,18 +184,33 @@ def process_chat_interaction(user_message: str, history: list[dict], username: s
                     if function_name in ['recall_memories', 'recall_memories_with_time', 'find_personal_variables', 'get_conversations_by_topic', 'get_topics_by_conversation', 'get_conversation_summary', 'get_topic_statistics', 'get_user_conversations', 'get_conversation_details', 'search_conversations']:
                         function_args['username'] = username
                     
-                    output = tool_function(**function_args)
-                    tool_outputs.append({"role": "tool", "tool_call_id": tool_call_id, "content": json.dumps(output)})
+                    try:
+                        output = tool_function(**function_args)
+                        tool_outputs.append({"role": "tool", "tool_call_id": tool_call_id, "content": json.dumps(output)})
+                    except Exception as e:
+                        failed_tools.append(f"{function_name}: {str(e)}")
+                        tool_outputs.append({"role": "tool", "tool_call_id": tool_call_id, "content": json.dumps({
+                            "status": "error",
+                            "message": f"Tool {function_name} failed: {str(e)}"
+                        })})
                 else:
+                    failed_tools.append(f"Unknown tool: {function_name}")
                     print(f"Warning: LLM tried to call an unknown tool: {function_name}")
+
+        # Track failures for analysis
+        if failed_tools:
+            tool_failures.extend(failed_tools)
 
         if tool_outputs:
             messages_for_ollama.extend(tool_outputs)
         else:
             if response_message.get('tool_calls'):
-                messages_for_ollama.append({"role": "tool", "content": json.dumps(
-                    {"status": "error",
-                     "message": "Could not execute any of the requested tools or no valid tools were called."})})
+                error_msg = "Could not execute any of the requested tools or no valid tools were called."
+                tool_failures.append(error_msg)
+                messages_for_ollama.append({"role": "tool", "content": json.dumps({
+                    "status": "error",
+                    "message": error_msg
+                })})
 
     final_content = messages_for_ollama[-1]['content'] if messages_for_ollama and messages_for_ollama[-1][
         'role'] == 'assistant' else "I'm sorry, an error occurred or no assistant reply was generated."
