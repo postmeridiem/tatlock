@@ -226,7 +226,9 @@ function showSection(sectionId) {
 // Header/nav bar logic
 async function setupHeaderBar() {
     try {
-        const resp = await fetch('/profile/pageheader');
+        const resp = await fetch('/profile/pageheader', {
+            credentials: 'include'  // Include session cookies
+        });
         if (!resp.ok) {
             console.error('Failed to get page header info:', resp.status);
             // Still set up basic navigation even if auth fails
@@ -365,6 +367,7 @@ function setupChatSidepane() {
         fetch('/cortex', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',  // Include session cookies
             body: JSON.stringify({ 
                 message: message, 
                 history: chatHistory,
@@ -415,12 +418,18 @@ function setupChatSidepane() {
 // Load user info and update dropdown
 async function loadUserInfo() {
     try {
-        const response = await fetch('/profile/pageheader');
+        const response = await fetch('/profile/pageheader', {
+            credentials: 'include'  // Include session cookies
+        });
         if (response.ok) {
             const userInfo = await response.json();
             updateUserDropdown(userInfo);
         } else {
-            console.error('Failed to load user info');
+            console.error('Failed to load user info:', response.status);
+            // If unauthorized, redirect to login
+            if (response.status === 401) {
+                window.location.href = '/login';
+            }
         }
     } catch (error) {
         console.error('Error loading user info:', error);

@@ -28,8 +28,8 @@ async def admin_endpoint(current_user: dict = Depends(require_admin_role)):
             "username": current_user['username'],
             "first_name": current_user['first_name'],
             "last_name": current_user['last_name'],
-            "roles": security_manager.get_user_roles(current_user['id']),
-            "groups": security_manager.get_user_groups(current_user['id'])
+            "roles": security_manager.get_user_roles(current_user['username']),
+            "groups": security_manager.get_user_groups(current_user['username'])
         }
     }
 
@@ -48,8 +48,8 @@ async def get_admin_stats(current_user: dict = Depends(require_admin_role)):
         users_by_group = {}
         
         for user in security_manager.get_all_users():
-            roles = security_manager.get_user_roles(user['id'])
-            groups = security_manager.get_user_groups(user['id'])
+            roles = security_manager.get_user_roles(user['username'])
+            groups = security_manager.get_user_groups(user['username'])
             
             for role in roles:
                 users_by_role[role] = users_by_role.get(role, 0) + 1

@@ -48,7 +48,6 @@ Handles web interface and static file management:
 - **`get_admin_page()`**: Returns the admin dashboard HTML
 - **`get_profile_page()`**: Returns the user profile HTML
 - **`get_chat_page()`**: Returns the debug console HTML
-- **`get_docs_page()`**: Returns the API documentation HTML
 
 ### Data Models (`models.py`)
 Pydantic models for API requests and responses:
@@ -142,41 +141,7 @@ Database setup and initialization utilities:
 - `GET /admin/dashboard` - Admin dashboard page
 - `GET /profile` - User profile page
 - `GET /chat` - Debug console page
-- `GET /docs` - API documentation page
 
 ## Tool Integration
 
-All tools are defined in the `TOOLS` list and can be called by the LLM through the agentic loop. Tools are executed silently without narration unless specified otherwise in the system prompts.
-
-## Security Features
-
-- **Password Hashing**: PBKDF2 with unique salts per user
-- **Role-Based Access**: Granular permission control
-- **Input Validation**: Pydantic models for all API requests
-- **Admin Protection**: Critical roles and groups cannot be deleted
-- **Last Admin Protection**: Prevents deletion of the last admin user
-
-## Dependencies
-
-- **FastAPI**: For API endpoints, static file serving, and web interface
-- **Pydantic**: For data validation and serialization
-- **requests**: For API calls to external services
-- **sqlite3**: For database operations
-- **config**: For API keys and configuration
-
-## Usage
-
-The stem module is primarily used by:
-- **cortex**: For tool execution and agent functionality
-- **main.py**: For static file serving, admin routes, and web interface
-- **hippocampus**: For database utilities and time parsing
-- **hippocampus**: For authentication and user management
-
-## Frontend Features
-
-- **Material Design Icons**: Professional, consistent iconography
-- **Dark/Light Mode**: User preference with persistent storage
-- **Responsive Design**: Works on all device sizes
-- **Snackbar Notifications**: User-friendly success/error messages
-- **Chat Sidepane**: Integrated chat interface on all pages
-- **User Dropdown**: Profile access, theme toggle, and logout
+All tools are defined in the `

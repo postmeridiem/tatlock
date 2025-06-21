@@ -46,7 +46,9 @@ async function loadProfileInfo() {
     const profileInfoContent = document.getElementById('profile-info-content');
     
     try {
-        const response = await fetch('/profile/');
+        const response = await fetch('/profile/', {
+            credentials: 'include'  // Include session cookies
+        });
         if (!response.ok) throw new Error('Failed to load profile');
         
         const profile = await response.json();
@@ -141,6 +143,7 @@ function setupProfileEventListeners() {
                 const response = await fetch('/profile/', {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',  // Include session cookies
                     body: JSON.stringify(formData)
                 });
                 
@@ -180,6 +183,7 @@ function setupProfileEventListeners() {
                 const response = await fetch('/profile/password', {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',  // Include session cookies
                     body: JSON.stringify(formData)
                 });
                 

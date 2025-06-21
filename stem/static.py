@@ -15,21 +15,21 @@ def mount_static_files(app: FastAPI):
     Args:
         app (FastAPI): The FastAPI application instance.
     """
-    app.mount("/static", StaticFiles(directory="static"), name="static")
+    app.mount("/static", StaticFiles(directory="stem/static"), name="static")
+
+def get_login_page():
+    """Get the login HTML page."""
+    with open("stem/static/login.html", "r") as f:
+        return f.read()
 
 def get_chat_page():
     """Get the chat interface HTML page."""
-    with open("static/chat.html", "r") as f:
+    with open("stem/static/chat.html", "r") as f:
         return f.read()
 
 def get_profile_page():
     """Get the user profile HTML page."""
-    with open("static/profile.html", "r") as f:
-        return f.read()
-
-def get_docs_page():
-    """Get the documentation HTML page."""
-    with open("static/docs.html", "r") as f:
+    with open("stem/static/profile.html", "r") as f:
         return f.read()
 
 def get_admin_page() -> HTMLResponse:
@@ -38,7 +38,7 @@ def get_admin_page() -> HTMLResponse:
     Returns:
         HTMLResponse: The admin dashboard page.
     """
-    html_file_path = os.path.join("static", "admin.html")
+    html_file_path = os.path.join("stem", "static", "admin.html")
     
     try:
         with open(html_file_path, 'r', encoding='utf-8') as file:

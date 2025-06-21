@@ -14,7 +14,7 @@ from datetime import datetime
 import sys
 sys.path.append('..')
 from config import SYSTEM_DB_PATH
-from fastapi import HTTPException, Depends, status
+from fastapi import HTTPException, Depends, status, Request
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from hippocampus.user_database import ensure_user_database, delete_user_database
 
@@ -1005,22 +1005,27 @@ class SecurityManager:
 security_manager = SecurityManager()
 
 # FastAPI security dependency functions
-def get_current_user(credentials: HTTPBasicCredentials = Depends(security)):
+def get_current_user(request: Request):
     """
-    Authenticate user and return user data.
+    Authenticate user from session and return user data.
     Args:
-        credentials: HTTP Basic credentials from request
+        request: FastAPI request object
     Returns:
         dict: User data if authentication successful
     Raises:
         HTTPException: If authentication fails
     """
-    user = security_manager.authenticate_user(credentials.username, credentials.password)
-    if user is None:
+    username = request.session.get("user")
+    if not username:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect username or password",
-            headers={"WWW-Authenticate": "Basic"},
+            detail="Not authenticated. Please log in.",
+        )
+    user = security_manager.get_user_by_username(username)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="User not found.",
         )
     return user
 
@@ -1040,6 +1045,34 @@ def require_admin_role(current_user: dict = Depends(get_current_user)):
             detail="Admin role required"
         )
     return current_user
+
+def login_user(request: Request, username: str, password: str) -> dict:
+    """
+    Authenticate user and set session if successful.
+    Args:
+        request: FastAPI request object
+        username: Username to authenticate
+        password: Password to verify
+    Returns:
+        dict: Result with success status and message
+    """
+    user = security_manager.authenticate_user(username, password)
+    if user:
+        request.session["user"] = username
+        return {"success": True, "message": "Login successful"}
+    else:
+        return {"success": False, "message": "Invalid username or password"}
+
+def logout_user(request: Request) -> dict:
+    """
+    Clear user session.
+    Args:
+        request: FastAPI request object
+    Returns:
+        dict: Result with success status
+    """
+    request.session.clear()
+    return {"success": True, "message": "Logout successful"}
 
 def create_initial_admin():
     """Create the initial admin user with specified credentials and roles."""

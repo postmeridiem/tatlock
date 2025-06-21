@@ -22,7 +22,9 @@ async function loadStats() {
     const statsGrid = document.getElementById('stats-grid');
     
     try {
-        const response = await fetch('/admin/stats');
+        const response = await fetch('/admin/stats', {
+            credentials: 'include'  // Include session cookies
+        });
         if (!response.ok) throw new Error('Failed to load stats');
         
         const stats = await response.json();
@@ -60,7 +62,9 @@ async function loadUsers() {
     const usersContent = document.getElementById('users-content');
     
     try {
-        const response = await fetch('/admin/users');
+        const response = await fetch('/admin/users', {
+            credentials: 'include'  // Include session cookies
+        });
         if (!response.ok) throw new Error('Failed to load users');
         
         const users = await response.json();
@@ -104,7 +108,9 @@ async function loadRoles() {
     const rolesContent = document.getElementById('roles-content');
     
     try {
-        const response = await fetch('/admin/roles');
+        const response = await fetch('/admin/roles', {
+            credentials: 'include'  // Include session cookies
+        });
         if (!response.ok) throw new Error('Failed to load roles');
         
         const roles = await response.json();
@@ -142,7 +148,9 @@ async function loadGroups() {
     const groupsContent = document.getElementById('groups-content');
     
     try {
-        const response = await fetch('/admin/groups');
+        const response = await fetch('/admin/groups', {
+            credentials: 'include'  // Include session cookies
+        });
         if (!response.ok) throw new Error('Failed to load groups');
         
         const groups = await response.json();
@@ -202,7 +210,9 @@ function closeUserModal() {
 
 async function loadUserData(username) {
     try {
-        const response = await fetch(`/admin/users/${username}`);
+        const response = await fetch(`/admin/users/${username}`, {
+            credentials: 'include'  // Include session cookies
+        });
         if (!response.ok) throw new Error('Failed to load user data');
         
         const user = await response.json();
@@ -223,13 +233,17 @@ async function loadUserData(username) {
 async function loadRolesAndGroups() {
     try {
         // Load roles for select
-        const rolesResponse = await fetch('/admin/roles');
+        const rolesResponse = await fetch('/admin/roles', {
+            credentials: 'include'  // Include session cookies
+        });
         const roles = await rolesResponse.json();
         const rolesSelect = document.getElementById('roles');
         rolesSelect.innerHTML = roles.map(role => `<option value="${role.role_name}">${role.role_name}</option>`).join('');
         
         // Load groups for select
-        const groupsResponse = await fetch('/admin/groups');
+        const groupsResponse = await fetch('/admin/groups', {
+            credentials: 'include'  // Include session cookies
+        });
         const groups = await groupsResponse.json();
         const groupsSelect = document.getElementById('groups');
         groupsSelect.innerHTML = groups.map(group => `<option value="${group.group_name}">${group.group_name}</option>`).join('');
@@ -306,6 +320,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 const response = await fetch(url, {
                     method: method,
                     headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',  // Include session cookies
                     body: JSON.stringify(formData)
                 });
                 
@@ -336,6 +351,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 const response = await fetch('/admin/roles', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',  // Include session cookies
                     body: JSON.stringify(formData)
                 });
                 
@@ -366,6 +382,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 const response = await fetch('/admin/groups', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',  // Include session cookies
                     body: JSON.stringify(formData)
                 });
                 
@@ -389,7 +406,8 @@ async function deleteUser(username) {
     
     try {
         const response = await fetch(`/admin/users/${username}`, {
-            method: 'DELETE'
+            method: 'DELETE',
+            credentials: 'include'  // Include session cookies
         });
         
         if (!response.ok) throw new Error('Failed to delete user');
@@ -408,7 +426,8 @@ async function deleteRole(roleName) {
     
     try {
         const response = await fetch(`/admin/roles/${roleName}`, {
-            method: 'DELETE'
+            method: 'DELETE',
+            credentials: 'include'  // Include session cookies
         });
         
         if (!response.ok) throw new Error('Failed to delete role');
@@ -427,7 +446,8 @@ async function deleteGroup(groupName) {
     
     try {
         const response = await fetch(`/admin/groups/${groupName}`, {
-            method: 'DELETE'
+            method: 'DELETE',
+            credentials: 'include'  // Include session cookies
         });
         
         if (!response.ok) throw new Error('Failed to delete group');

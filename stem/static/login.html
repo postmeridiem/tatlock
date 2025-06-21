@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html data-theme="dark">
+<head>
+    <title>Tatlock - Login</title>
+    <link rel="stylesheet" href="/static/material-icons.css">
+    <link rel="stylesheet" href="/static/style.css">
+    <link rel="icon" type="image/png" sizes="32x32" href="/static/favicon/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/static/favicon/favicon-16x16.png">
+    <link rel="icon" type="image/x-icon" href="/static/favicon/favicon.ico">
+    <link rel="apple-touch-icon" sizes="180x180" href="/static/favicon/apple-touch-icon.png">
+    <link rel="manifest" href="/static/manifest.json">
+    <meta name="theme-color" content="#000000">
+    <meta name="msapplication-TileColor" content="#000000">
+    <meta name="msapplication-TileImage" content="/static/favicon/mstile-150x150.png">
+    <meta name="apple-mobile-web-app-title" content="Tatlock">
+    <meta name="application-name" content="Tatlock">
+    <style>
+        .login-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: var(--bg-color);
+        }
+        
+        .login-card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 2rem;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+            width: 100%;
+            max-width: 400px;
+            border: 1px solid var(--border-color);
+        }
+        
+        .login-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        
+        .login-logo {
+            font-size: 2rem;
+            font-weight: bold;
+            color: var(--primary-color);
+            margin-bottom: 0.5rem;
+        }
+        
+        .login-subtitle {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+        
+        .login-form {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+        
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        
+        .form-group label {
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+        
+        .form-group input {
+            padding: 0.75rem;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            background: var(--input-bg);
+            color: var(--text-primary);
+            font-size: 1rem;
+        }
+        
+        .form-group input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 2px rgba(var(--primary-rgb), 0.2);
+        }
+        
+        .login-btn {
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 0.75rem;
+            border-radius: 6px;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        
+        .login-btn:hover {
+            background: var(--primary-hover);
+        }
+        
+        .login-btn:disabled {
+            background: var(--disabled-color);
+            cursor: not-allowed;
+        }
+        
+        .error-message {
+            color: var(--error-color);
+            font-size: 0.9rem;
+            text-align: center;
+            margin-top: 1rem;
+            display: none;
+        }
+        
+        .loading {
+            display: none;
+            text-align: center;
+            color: var(--text-secondary);
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-card">
+            <div class="login-header">
+                <div class="login-logo">Tatlock</div>
+                <div class="login-subtitle">Sign in to your account</div>
+            </div>
+            
+            <form class="login-form" id="loginForm">
+                <div class="form-group">
+                    <label for="username">Username</label>
+                    <input type="text" id="username" name="username" required autocomplete="username">
+                </div>
+                
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" name="password" required autocomplete="current-password">
+                </div>
+                
+                <button type="submit" class="login-btn" id="loginBtn">
+                    <span class="btn-text">Sign In</span>
+                    <span class="loading">Signing in...</span>
+                </button>
+            </form>
+            
+            <div class="error-message" id="errorMessage"></div>
+        </div>
+    </div>
+    
+    <script>
+        document.getElementById('loginForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const loginBtn = document.getElementById('loginBtn');
+            const btnText = loginBtn.querySelector('.btn-text');
+            const loading = loginBtn.querySelector('.loading');
+            const errorMessage = document.getElementById('errorMessage');
+            
+            console.log('Login attempt for username:', username);
+            
+            // Show loading state
+            loginBtn.disabled = true;
+            btnText.style.display = 'none';
+            loading.style.display = 'inline';
+            errorMessage.style.display = 'none';
+            
+            try {
+                console.log('Sending request to /login/auth...');
+                // Send credentials to /login/auth as JSON
+                const url = new URL('/login/auth', window.location.origin);
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ username, password })
+                });
+                
+                console.log('Response status:', response.status);
+                console.log('Response headers:', response.headers);
+                
+                if (response.ok) {
+                    console.log('Login successful, redirecting...');
+                    // Login successful, redirect to the original page or default
+                    const urlParams = new URLSearchParams(window.location.search);
+                    const redirectUrl = urlParams.get('redirect') || '/chat';
+                    window.location.href = redirectUrl;
+                } else {
+                    console.log('Login failed with status:', response.status);
+                    // Login failed
+                    errorMessage.textContent = 'Invalid username or password';
+                    errorMessage.style.display = 'block';
+                }
+            } catch (error) {
+                console.error('Network error:', error);
+                errorMessage.textContent = 'Network error. Please try again.';
+                errorMessage.style.display = 'block';
+            } finally {
+                // Reset button state
+                loginBtn.disabled = false;
+                btnText.style.display = 'inline';
+                loading.style.display = 'none';
+            }
+        });
+        
+        // Focus username field on page load
+        document.getElementById('username').focus();
+    </script>
+</body>
+</html> 

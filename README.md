@@ -51,13 +51,13 @@ Tatlock uses the **ebdm/gemma3-enhanced:12b** model as its base LLM. During inst
 - **stem/**: Shared utilities, tool definitions, authentication system, admin dashboard, and static file serving
 
 ### Web Interface
-- **static/**: Web interface files including HTML, CSS, JavaScript, and Material Icons
-  - **static/admin.html**: Admin dashboard with user, role, and group management
-  - **static/profile.html**: User profile management interface
-  - **static/chat.html**: Debug console with JSON logging
-  - **static/style.css**: Consolidated styling with dark/light mode support
-  - **static/js/**: JavaScript modules for each page functionality
-  - **static/fonts/**: Material Icons font files for offline use
+- **stem/static/**: Web interface files including HTML, CSS, JavaScript, and Material Icons
+  - **stem/static/admin.html**: Admin dashboard with user, role, and group management
+  - **stem/static/profile.html**: User profile management interface
+  - **stem/static/chat.html**: Debug console with JSON logging
+  - **stem/static/style.css**: Consolidated styling with dark/light mode support
+  - **stem/static/js/**: JavaScript modules for each page functionality
+  - **stem/static/fonts/**: Material Icons font files for offline use
 
 ### Brain-Inspired Subsystems (Planned)
 - **amygdala/**: Mood and emotional context, based on news and external inputs

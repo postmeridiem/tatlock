@@ -91,7 +91,9 @@ async function loadSystemInfo() {
         
         // Try to get server info
         try {
-            const response = await fetch('/admin/stats');
+            const response = await fetch('/admin/stats', {
+                credentials: 'include'  // Include session cookies
+            });
             if (response.ok) {
                 const stats = await response.json();
                 systemInfo.serverStats = stats;
@@ -176,9 +178,11 @@ function sendSidepaneMessage() {
     fetch('/cortex', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',  // Include session cookies
         body: JSON.stringify({ 
             message: message, 
-            history: sidepaneHistory 
+            history: chatHistory,
+            conversation_id: currentConversationId
         })
     })
     .then(response => response.json())

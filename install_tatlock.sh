@@ -52,8 +52,8 @@ pip3 install -r requirements.txt
 
 # --- Download Material Icons for offline use ---
 echo "[3/6] Downloading Material Icons for offline web interface..."
-mkdir -p static/fonts
-cd static/fonts
+mkdir -p stem/static/fonts
+cd stem/static/fonts
 wget -O material-icons.woff2 "https://fonts.gstatic.com/s/materialicons/v140/flUhRq6tzZclQEJ-Vdg-IuiaDsNcIhQ8tQ.woff2"
 wget -O material-icons.woff "https://cdn.jsdelivr.net/npm/@mdi/font@7.2.96/fonts/materialdesignicons-webfont.woff"
 wget -O material-icons.ttf "https://cdn.jsdelivr.net/npm/@mdi/font@7.2.96/fonts/materialdesignicons-webfont.ttf"

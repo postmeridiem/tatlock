@@ -14,17 +14,29 @@ Features:
 - ReDoc documentation disabled for security
 """
 
-from fastapi import FastAPI, HTTPException, Depends
-from fastapi.responses import HTMLResponse, RedirectResponse
+import os
+from dotenv import load_dotenv
+from fastapi import FastAPI, HTTPException, Depends, Request, Form, status
+from fastapi.responses import HTMLResponse, RedirectResponse, FileResponse
 import uvicorn
 from cortex.agent import process_chat_interaction
-from stem.static import mount_static_files, get_chat_page, get_admin_page, get_profile_page, get_docs_page
-from stem.security import get_current_user, require_admin_role, security_manager
+from stem.static import mount_static_files, get_chat_page, get_admin_page, get_profile_page, get_login_page
+from stem.security import get_current_user, require_admin_role, security_manager, login_user, logout_user
 from stem.models import (
     ChatRequest, ChatResponse
 )
 from stem.admin import admin_router
 from stem.profile import profile_router
+from fastapi.security import HTTPBasicCredentials
+from fastapi.security import HTTPBasic
+from starlette.middleware.sessions import SessionMiddleware
+from fastapi.openapi.utils import get_openapi
+
+# Load environment variables from .env file
+load_dotenv()
+
+# Get secret key from environment variable with fallback
+SECRET_KEY = os.getenv("STARLETTE_SECRET", "change-this-to-a-very-secret-key")
 
 # --- FastAPI App ---
 app = FastAPI(
@@ -34,6 +46,41 @@ app = FastAPI(
     redoc_url=None,  # Disable ReDoc for security
 )
 
+# Configure security schemes for OpenAPI documentation
+app.openapi_schema = None  # Force regeneration
+
+def custom_openapi():
+    if app.openapi_schema:
+        return app.openapi_schema
+    
+    openapi_schema = get_openapi(
+        title=app.title,
+        version=app.version,
+        description=app.description,
+        routes=app.routes,
+    )
+    
+    # Add security schemes
+    openapi_schema["components"]["securitySchemes"] = {
+        "sessionAuth": {
+            "type": "apiKey",
+            "in": "cookie",
+            "name": "session",
+            "description": "Session-based authentication using cookies"
+        }
+    }
+    
+    # Add global security requirement
+    openapi_schema["security"] = [{"sessionAuth": []}]
+    
+    app.openapi_schema = openapi_schema
+    return app.openapi_schema
+
+app.openapi = custom_openapi
+
+# Add session middleware for session-based authentication
+app.add_middleware(SessionMiddleware, secret_key=SECRET_KEY)
+
 # Mount static files directory (HTML, CSS, JS, Material Icons)
 mount_static_files(app)
 
@@ -42,6 +89,74 @@ app.include_router(admin_router)
 
 # Include profile router for user profile management
 app.include_router(profile_router)
+
+# Serve favicon.ico from the new location
+@app.get("/favicon.ico", include_in_schema=False)
+def favicon():
+    return FileResponse("stem/static/favicon/favicon.ico")
+
+@app.post("/login/auth")
+async def login(request: Request):
+    """
+    Session-based login endpoint. Accepts JSON or form data.
+    Sets session on success.
+    """
+    data = await request.json() if request.headers.get("content-type", "").startswith("application/json") else await request.form()
+    username = str(data.get("username", ""))
+    password = str(data.get("password", ""))
+    if not username or not password:
+        return HTMLResponse(content="Missing username or password", status_code=status.HTTP_400_BAD_REQUEST)
+    
+    result = login_user(request, username, password)
+    if result["success"]:
+        return {"success": True}
+    else:
+        return HTMLResponse(content=result["message"], status_code=status.HTTP_401_UNAUTHORIZED)
+
+@app.post("/logout")
+async def logout(request: Request):
+    """
+    Session-based logout endpoint. Clears the session.
+    """
+    result = logout_user(request)
+    return {"success": True}
+
+@app.get("/login", tags=["html"], response_class=HTMLResponse)
+async def login_page():
+    """
+    Login page.
+    No authentication required.
+    """
+    return HTMLResponse(content=get_login_page())
+
+@app.get("/logout", tags=["html"], response_class=HTMLResponse)
+async def logout_page(request: Request):
+    """
+    Logout page. Logs the user out and redirects to root.
+    """
+    # Actually log the user out
+    logout_user(request)
+    
+    # Redirect to root (which will redirect to login since user is now logged out)
+    return RedirectResponse(url="/", status_code=302)
+
+# --- Exception Handlers ---
+@app.exception_handler(HTTPException)
+async def http_exception_handler(request: Request, exc: HTTPException):
+    """
+    Handle HTTP exceptions, redirecting 401 errors to login page.
+    """
+    if exc.status_code == 401:
+        # Redirect to login page with current URL as redirect parameter
+        current_url = str(request.url)
+        login_url = f"/login?redirect={current_url}"
+        return RedirectResponse(url=login_url, status_code=302)
+    
+    # For other HTTP exceptions, return the default response
+    return HTMLResponse(
+        content=f"<h1>Error {exc.status_code}</h1><p>{exc.detail}</p>",
+        status_code=exc.status_code
+    )
 
 # --- API Endpoint Definition ---
 @app.post("/cortex", tags=["api"], response_model=ChatResponse)
@@ -72,12 +187,19 @@ async def chat_endpoint(request: ChatRequest, current_user: dict = Depends(get_c
         raise HTTPException(status_code=500, detail=f"An internal error occurred: {str(e)}")
 
 @app.get("/", tags=["root"])
-async def read_root():
+async def read_root(request: Request):
     """
-    Root endpoint that redirects to the chat interface.
-    No authentication required for redirect.
+    Root endpoint that redirects to the appropriate page based on authentication status.
+    Redirects to /chat if authenticated, /login if not.
     """
-    return RedirectResponse(url="/chat", status_code=302)
+    try:
+        # Try to get current user to check if authenticated
+        current_user = get_current_user(request)
+        # If we get here, user is authenticated
+        return RedirectResponse(url="/chat", status_code=302)
+    except HTTPException:
+        # User is not authenticated, redirect to login
+        return RedirectResponse(url="/login", status_code=302)
 
 @app.get("/chat", tags=["html"],  response_class=HTMLResponse)
 async def chat_page(current_user: dict = Depends(get_current_user)):
@@ -105,15 +227,6 @@ async def profile_page(current_user: dict = Depends(get_current_user)):
     Allows users to view and edit their profile information.
     """
     return HTMLResponse(content=get_profile_page())
-
-@app.get("/docs")
-async def docs_page(current_user: dict = Depends(get_current_user)):
-    """
-    API documentation page.
-    Requires authentication via HTTP Basic Auth.
-    Provides Swagger UI for API exploration.
-    """
-    return HTMLResponse(content=get_docs_page())
 
 # This allows running the app directly with `python main.py`
 if __name__ == "__main__":
