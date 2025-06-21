@@ -35,6 +35,21 @@ Tatlock is a modular, brain-inspired conversational AI platform with built-in au
 - **Offline Capability**: Material Icons and static assets work without internet connection
 - **Service Management**: Optional auto-starting service for production deployments
 
+## Current Implementation Status
+
+### Fully Implemented Modules
+- **cortex**: Core agent logic with tool dispatch and agentic loop
+- **hippocampus**: Complete memory system with user-specific databases
+- **stem**: Authentication, admin dashboard, tools, and utilities
+
+### Planned Modules (Future Development)
+- **amygdala**: Emotional processing and mood awareness
+- **cerebellum**: Procedural memory and task automation
+- **occipital**: Visual processing and image analysis
+- **parietal**: Spatial reasoning and sensory integration
+- **temporal**: Language processing and temporal context
+- **thalamus**: Information routing and coordination
+
 ## Installation
 
 ### Prerequisites
@@ -42,6 +57,7 @@ Tatlock is a modular, brain-inspired conversational AI platform with built-in au
 - **macOS**: Intel or Apple Silicon (M1/M2) with Homebrew
 - Python 3.10 or higher
 - Git
+- Ollama (for local LLM inference)
 
 ### Quick Start
 1. Clone the repository:
@@ -70,7 +86,19 @@ Tatlock is a modular, brain-inspired conversational AI platform with built-in au
 
    The script optionally offers to install Tatlock as an auto-starting service for automatic startup on system boot.
 
-3. Update your API keys:
+3. Install and start Ollama:
+   ```bash
+   # Install Ollama (if not already installed)
+   curl -fsSL https://ollama.ai/install.sh | sh
+   
+   # Start Ollama service
+   ollama serve
+   
+   # Pull the required model (in another terminal)
+   ollama pull gemma3-cortex:latest
+   ```
+
+4. Update your API keys:
    ```bash
    # Edit .env and update the following variables with your actual API keys:
    # OPENWEATHER_API_KEY - Get from https://openweathermap.org/api
@@ -78,7 +106,7 @@ Tatlock is a modular, brain-inspired conversational AI platform with built-in au
    # GOOGLE_CSE_ID - Get from https://programmablesearchengine.google.com/
    ```
 
-4. Start the application:
+5. Start the application:
    ```bash
    # Start the application (automatically activates virtual environment)
    ./wakeup.sh
@@ -86,7 +114,7 @@ Tatlock is a modular, brain-inspired conversational AI platform with built-in au
 
    **Note**: If you installed Tatlock as an auto-starting service, see the [Service Management](#service-management) section below for commands to start, stop, and manage the service.
 
-5. Access the interface:
+6. Access the interface:
    - **Login Page**: `http://localhost:8000/login`
    - **Admin Dashboard**: `http://localhost:8000/admin/dashboard`
    - **User Profile**: `http://localhost:8000/profile`
@@ -195,57 +223,25 @@ tail -f /tmp/tatlock*.log
 - Verify that Ollama is running (required for Tatlock to start)
 - Check that the port specified in `.env` is not already in use
 
-### Troubleshooting
-
-If you encounter installation issues, especially repository-related errors, see the [Installation Troubleshooting Guide](INSTALLATION_TROUBLESHOOTING.md) for detailed solutions.
-
-### Default Login
-- **Username**: admin
-- **Password**: admin
-- **Role**: admin
-- **Groups**: admins, users
-
-## LLM Model
-Tatlock uses the **ebdm/gemma3-enhanced:12b** model as its base LLM. During installation, this model is downloaded and copied to `gemma3-cortex:latest` for use by the application. The enhanced version provides improved reasoning capabilities and tool usage for the agentic interactions.
-
-## Directory Structure
-
-### Core Files
-- **main.py**: Entry point. Defines the FastAPI app and HTTP endpoints with authentication
-- **config.py**: Loads environment variables and API keys
-- **requirements.txt**: Python dependencies
-- **install_tatlock.sh**: Automated installation script for system dependencies, Python packages, and database setup
-- **wakeup.sh**: Startup script that activates the virtual environment and launches the application
+## Architecture Overview
 
 ### Core Modules
-- **cortex/**: Core agent logic and API implementation. Orchestrates all subsystems and exposes the FastAPI interface
-- **hippocampus/**: Persistent memory, database access, and recall logic. All system prompts (except the current date) are stored in the `rise_and_shine` table
-- **stem/**: Shared utilities, tool definitions, authentication system, admin dashboard, and static file serving
 
-### Web Interface
-- **stem/static/**: Web interface files including HTML, CSS, JavaScript, and Material Icons
-  - **stem/static/admin.html**: Admin dashboard with user, role, and group management
-  - **stem/static/profile.html**: User profile management interface
-  - **stem/static/chat.html**: Debug console with JSON logging
-  - **stem/static/style.css**: Consolidated styling with dark/light mode support
-  - **stem/static/js/**: JavaScript modules for each page functionality
-  - **stem/static/fonts/**: Material Icons font files for offline use
+#### cortex
+The central processing unit that orchestrates all interactions. Handles the agentic loop, tool dispatch, and conversation management.
 
-### Brain-Inspired Subsystems (Planned)
-- **amygdala/**: Mood and emotional context, based on news and external inputs
-- **cerebellum/**: Procedural memory, routines, and background tasks
-- **occipital/**: Visual processing and perception
-- **parietal/**: Spatial reasoning and sensory integration
-- **temporal/**: Auditory processing, language, and time context
-- **thalamus/**: Routing, filtering, and relaying information between subsystems
+#### hippocampus  
+The memory system that provides persistent storage for conversations, topics, and user data. Each user has their own isolated database.
 
-### Installation & Setup
-- **stem/installation/**: Database setup utilities for system.db and longterm.db initialization
+#### stem
+The foundational module containing authentication, admin dashboard, tool definitions, and utility functions.
 
-## Available Tools
+### Available Tools
+
+The agent can currently use these tools:
 - **web_search**: Search the web for current information
-- **find_personal_variables**: Look up personal information about the user
 - **get_weather_forecast**: Get weather forecasts for specific cities and dates
+- **find_personal_variables**: Look up personal information about the user
 - **recall_memories**: Search conversation history by keyword
 - **recall_memories_with_time**: Search conversation history with temporal filtering
 - **get_user_conversations**: List all conversations for the current user
@@ -256,82 +252,87 @@ Tatlock uses the **ebdm/gemma3-enhanced:12b** model as its base LLM. During inst
 - **get_conversation_summary**: Get comprehensive conversation summaries
 - **get_topic_statistics**: Get statistics about topics across conversations
 
-## API Endpoints
+## API Usage
 
-### Protected Endpoints (Require Authentication)
-- `GET /` - Root endpoint with automatic redirects based on authentication
-- `POST /cortex` - Main chat API endpoint
-- `GET /chat` - Debug console interface
-- `GET /admin/dashboard` - Admin dashboard (requires admin role)
-- `GET /profile` - User profile management
-- `GET /docs` - API documentation (Swagger UI)
+### Authentication
+All API endpoints require session-based authentication. Users must first log in through the web interface or `/login/auth` endpoint.
 
-### Authentication Endpoints
-- `GET /login` - Login page
-- `POST /login/auth` - Session-based login endpoint
-- `GET /login/test` - Debug endpoint to verify authentication (requires authentication)
-- `GET /logout` - Logout page (clears session and redirects)
-- `POST /logout` - Session-based logout endpoint
-
-### Admin Endpoints (Require Admin Role)
-- `GET /admin/stats` - System statistics
-- `GET /admin/users` - List all users
-- `POST /admin/users` - Create new user
-- `PUT /admin/users/{username}` - Update user
-- `DELETE /admin/users/{username}` - Delete user
-- `GET /admin/roles` - List all roles
-- `POST /admin/roles` - Create new role
-- `PUT /admin/roles/{id}` - Update role
-- `DELETE /admin/roles/{id}` - Delete role
-- `GET /admin/groups` - List all groups
-- `POST /admin/groups` - Create new group
-- `PUT /admin/groups/{id}` - Update group
-- `DELETE /admin/groups/{id}` - Delete group
-
-### Profile Endpoints
-- `GET /profile/` - Get user profile information
-- `PUT /profile/` - Update user profile
-- `PUT /profile/password` - Change user password
-
-### Static Files
-- `/static/*` - Static file serving (HTML, CSS, JS, fonts)
-- `/favicon.ico` - App favicon
-
-## Environment Variables
-Required environment variables (set in `.env` file):
-```
-# API Keys (Required)
-OPENWEATHER_API_KEY=your_openweather_api_key
-GOOGLE_API_KEY=your_google_api_key
-GOOGLE_CSE_ID=your_google_cse_id
-
-# LLM Configuration
-OLLAMA_MODEL=gemma3-cortex:latest
-
-# Database Configuration
-DATABASE_ROOT=hippocampus/
-
-# Server Configuration
-PORT=8000
-
-# Security
-STARLETTE_SECRET=auto_generated_uuid
-```
-
-## Testing
-The project includes comprehensive test coverage with 244 tests covering all major functionality:
-- API endpoints and authentication
-- Database operations and memory management
-- User management and security
-- Tool system and agent logic
-- Web interface components
-
-Run tests with:
+### Chat Endpoint
 ```bash
-python -m pytest
+POST /cortex
+Content-Type: application/json
+
+{
+  "message": "What's the weather like in Amsterdam?",
+  "history": [],
+  "conversation_id": "optional-conversation-id"
+}
+```
+
+### Response Format
+```json
+{
+  "response": "The weather in Amsterdam is...",
+  "topic": "weather",
+  "history": [...],
+  "conversation_id": "2024-01-15-14-30-00"
+}
+```
+
+## Development
+
+### Project Structure
+```
+tatlock/
+├── cortex/           # Core agent logic
+├── hippocampus/      # Memory and database management
+├── stem/            # Authentication, tools, and utilities
+├── amygdala/        # Planned: Emotional processing
+├── cerebellum/      # Planned: Procedural memory
+├── occipital/       # Planned: Visual processing
+├── parietal/        # Planned: Spatial reasoning
+├── temporal/        # Planned: Language processing
+├── thalamus/        # Planned: Information routing
+├── main.py          # FastAPI application entry point
+├── config.py        # Configuration management
+└── requirements.txt # Python dependencies
+```
+
+### Adding New Tools
+1. Define the tool in `stem/tools.py`
+2. Add the tool to the `AVAILABLE_TOOLS` dictionary in `cortex/agent.py`
+3. Update the tool documentation in the relevant README files
+
+### Database Schema
+- **system.db**: Shared authentication and user management
+- **{username}_longterm.db**: Per-user conversation memory and topics
+
+## Troubleshooting
+
+If you encounter installation issues, especially repository-related errors, see the [Installation Troubleshooting Guide](INSTALLATION_TROUBLESHOOTING.md) for detailed solutions.
+
+### Common Issues
+
+**Ollama not running:**
+```bash
+# Start Ollama service
+ollama serve
+```
+
+**Port already in use:**
+```bash
+# Change port in .env file
+PORT=8001
+```
+
+**Database errors:**
+```bash
+# Recreate databases
+python -m stem.installation.database_setup
 ```
 
 ## Contributing
+
 1. Fork the repository
 2. Create a feature branch
 3. Make your changes
@@ -339,4 +340,5 @@ python -m pytest
 5. Submit a pull request
 
 ## License
-This project is licensed under the MIT License.
+
+This project is licensed under the MIT License - see the LICENSE file for details.
