@@ -189,18 +189,21 @@ function showUserModal(username = null) {
     const modalTitle = document.getElementById('modalTitle');
     const form = document.getElementById('userForm');
     
+    modal.style.display = 'block';
+    
     if (username) {
         modalTitle.textContent = 'Edit User';
-        loadUserData(username);
         isEditMode = true;
+        // Load roles and groups first, then load user data
+        loadRolesAndGroups().then(() => {
+            loadUserData(username);
+        });
     } else {
         modalTitle.textContent = 'Add New User';
         form.reset();
         isEditMode = false;
+        loadRolesAndGroups();
     }
-    
-    modal.style.display = 'block';
-    loadRolesAndGroups();
 }
 
 function closeUserModal() {
@@ -223,7 +226,25 @@ async function loadUserData(username) {
         document.getElementById('email').value = user.email || '';
         document.getElementById('password').value = '';
         
-        // Set roles and groups (this would need to be implemented based on your select elements)
+        // Set roles and groups
+        const rolesSelect = document.getElementById('roles');
+        const groupsSelect = document.getElementById('groups');
+        
+        // Clear previous selections
+        Array.from(rolesSelect.options).forEach(option => option.selected = false);
+        Array.from(groupsSelect.options).forEach(option => option.selected = false);
+        
+        // Set selected roles
+        user.roles.forEach(role => {
+            const option = rolesSelect.querySelector(`option[value="${role}"]`);
+            if (option) option.selected = true;
+        });
+        
+        // Set selected groups
+        user.groups.forEach(group => {
+            const option = groupsSelect.querySelector(`option[value="${group}"]`);
+            if (option) option.selected = true;
+        });
         
     } catch (error) {
         alert('Error loading user data: ' + error.message);
@@ -236,6 +257,11 @@ async function loadRolesAndGroups() {
         const rolesResponse = await fetch('/admin/roles', {
             credentials: 'include'  // Include session cookies
         });
+        
+        if (!rolesResponse.ok) {
+            throw new Error(`Failed to load roles: ${rolesResponse.status}`);
+        }
+        
         const roles = await rolesResponse.json();
         const rolesSelect = document.getElementById('roles');
         rolesSelect.innerHTML = roles.map(role => `<option value="${role.role_name}">${role.role_name}</option>`).join('');
@@ -244,6 +270,11 @@ async function loadRolesAndGroups() {
         const groupsResponse = await fetch('/admin/groups', {
             credentials: 'include'  // Include session cookies
         });
+        
+        if (!groupsResponse.ok) {
+            throw new Error(`Failed to load groups: ${groupsResponse.status}`);
+        }
+        
         const groups = await groupsResponse.json();
         const groupsSelect = document.getElementById('groups');
         groupsSelect.innerHTML = groups.map(group => `<option value="${group.group_name}">${group.group_name}</option>`).join('');
@@ -310,8 +341,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 first_name: document.getElementById('firstName').value,
                 last_name: document.getElementById('lastName').value,
                 email: document.getElementById('email').value,
-                password: document.getElementById('password').value
+                password: document.getElementById('password').value,
+                roles: Array.from(document.getElementById('roles').selectedOptions).map(option => option.value),
+                groups: Array.from(document.getElementById('groups').selectedOptions).map(option => option.value)
             };
+            
+            console.log('Sending user data:', formData);
             
             try {
                 const url = isEditMode ? `/admin/users/${formData.username}` : '/admin/users';
@@ -324,13 +359,23 @@ document.addEventListener('DOMContentLoaded', function() {
                     body: JSON.stringify(formData)
                 });
                 
-                if (!response.ok) throw new Error('Failed to save user');
+                console.log('Response status:', response.status);
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error('Error response:', errorText);
+                    throw new Error(`Failed to save user: ${response.status} - ${errorText}`);
+                }
+                
+                const responseData = await response.json();
+                console.log('Response data:', responseData);
                 
                 snackbar.success(isEditMode ? 'User updated successfully!' : 'User created successfully!');
                 closeUserModal();
                 loadUsers();
                 
             } catch (error) {
+                console.error('Error saving user:', error);
                 snackbar.error('Error saving user: ' + error.message);
             }
         });
@@ -343,7 +388,7 @@ document.addEventListener('DOMContentLoaded', function() {
             e.preventDefault();
             
             const formData = {
-                name: document.getElementById('roleName').value,
+                role_name: document.getElementById('roleName').value,
                 description: document.getElementById('roleDescription').value
             };
             
@@ -374,7 +419,7 @@ document.addEventListener('DOMContentLoaded', function() {
             e.preventDefault();
             
             const formData = {
-                name: document.getElementById('groupName').value,
+                group_name: document.getElementById('groupName').value,
                 description: document.getElementById('groupDescription').value
             };
             
