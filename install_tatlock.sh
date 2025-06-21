@@ -12,10 +12,11 @@ echo "This script will:"
 echo "1. Install required system packages (Python 3, pip, sqlite3, build tools)"
 echo "2. Install and configure Ollama with the Gemma3-enhanced model"
 echo "3. Install Python dependencies from requirements.txt"
-echo "4. Download Material Icons for offline web interface"
-echo "5. Initialize system.db and longterm.db with authentication and memory tables"
-echo "6. Create default roles, groups, and system prompts"
-echo "7. Optionally create a new admin account if one does not exist yet"
+echo "4. Create .env configuration file with auto-generated secret key (safely handles existing files)"
+echo "5. Download Material Icons for offline web interface"
+echo "6. Initialize system.db and longterm.db with authentication and memory tables"
+echo "7. Create default roles, groups, and system prompts"
+echo "8. Optionally create a new admin account if one does not exist yet"
 echo ""
 
 # --- Detect system and package manager ---
@@ -106,7 +107,7 @@ check_package_manager() {
 check_package_manager
 
 # --- Install system dependencies ---
-echo "[1/4] Installing system dependencies..."
+echo "[1/7] Installing system dependencies..."
 
 install_system_dependencies() {
     case $PACKAGE_MANAGER in
@@ -246,7 +247,7 @@ else
     ollama rm ebdm/gemma3-enhanced:12b
 fi
 
-echo "[2/4] Installing Python dependencies..."
+echo "[2/7] Installing Python dependencies..."
 
 # Use the appropriate pip command
 if command -v pip3 &> /dev/null; then
@@ -264,8 +265,64 @@ if ! $PIP_CMD install -r requirements.txt; then
     exit 1
 fi
 
+# --- Create .env file with configuration ---
+echo "[3/7] Creating environment configuration file..."
+
+# Check if .env file already exists
+if [ -f ".env" ]; then
+    echo "A .env file already exists in the root directory."
+    read -p "Do you want to overwrite it? (y/N): " overwrite_env
+    if [[ ! "$overwrite_env" =~ ^[Yy]$ ]]; then
+        echo "Skipping .env file creation. Using existing .env file."
+    else
+        echo "Overwriting existing .env file..."
+        # Continue with .env creation
+    fi
+else
+    echo "Creating new .env file..."
+fi
+
+# Only create .env if it doesn't exist or user chose to overwrite
+if [ ! -f ".env" ] || [[ "$overwrite_env" =~ ^[Yy]$ ]]; then
+    # Generate a random UUID for STARLETTE_SECRET
+    if command -v python3 &> /dev/null; then
+        STARLETTE_SECRET=$(python3 -c "import uuid; print(str(uuid.uuid4()))")
+    elif command -v python &> /dev/null; then
+        STARLETTE_SECRET=$(python -c "import uuid; print(str(uuid.uuid4()))")
+    else
+        echo "Error: Python not found for generating secret key."
+        exit 1
+    fi
+
+    # Create .env file with all required variables
+    cat > .env << EOF
+# Tatlock Environment Configuration
+# Generated automatically during installation
+
+# API Keys (Required - Please update these with your actual API keys)
+OPENWEATHER_API_KEY=your_openweather_api_key_here
+GOOGLE_API_KEY=your_google_api_key_here
+GOOGLE_CSE_ID=your_google_cse_id_here
+
+# LLM Configuration
+OLLAMA_MODEL=gemma3-cortex:latest
+
+# Database Configuration
+DATABASE_ROOT=hippocampus/
+
+# Security
+STARLETTE_SECRET=$STARLETTE_SECRET
+EOF
+
+    echo "- .env file created in root directory"
+    echo "- STARLETTE_SECRET generated automatically"
+    echo "- Please update OPENWEATHER_API_KEY, GOOGLE_API_KEY, and GOOGLE_CSE_ID with your actual API keys"
+else
+    echo "- Using existing .env file"
+fi
+
 # --- Download Material Icons for offline use ---
-echo "[3/6] Downloading Material Icons for offline web interface..."
+echo "[4/7] Downloading Material Icons for offline web interface..."
 mkdir -p stem/static/fonts
 cd stem/static/fonts
 if ! wget -O material-icons.woff2 "https://fonts.gstatic.com/s/materialicons/v140/flUhRq6tzZclQEJ-Vdg-IuiaDsNcIhQ8tQ.woff2"; then
@@ -280,7 +337,7 @@ fi
 cd ../..
 
 # --- Initialize databases ---
-echo "[4/6] Initializing databases..."
+echo "[5/7] Initializing databases..."
 if ! PYTHONPATH=. python3 -c "from stem.installation.database_setup import create_system_db_tables; create_system_db_tables('hippocampus/system.db')"; then
     echo "Error: Failed to initialize databases."
     exit 1
@@ -289,7 +346,7 @@ fi
 echo "- system.db is ready in the hippocampus/ directory. User memory databases will be created automatically when users are added."
 
 # --- Create admin user if not exists ---
-echo "[5/6] Checking for admin account..."
+echo "[6/7] Checking for admin account..."
         # Check if admin user already exists
         admin_exists=$(PYTHONPATH=. python3 -c "from stem.security import security_manager; print('yes' if security_manager.authenticate_user('admin', 'breaker') else 'no')")
 if [ "$admin_exists" = "no" ]; then
@@ -332,9 +389,15 @@ fi
 echo ""
 echo "Tatlock installation complete!"
 echo "- Ollama with Gemma3-enhanced model is ready"
+echo "- .env configuration file created with auto-generated secret key"
 echo "- Material Icons downloaded for offline web interface"
 echo "- system.db and longterm.db are ready in the hippocampus/ directory"
 echo "- Default roles, groups, and system prompts are configured"
 echo "- You can now run the application as described in the README"
+echo ""
+echo "IMPORTANT: Please update the API keys in your .env file before running the application:"
+echo "- OPENWEATHER_API_KEY: Get from https://openweathermap.org/api"
+echo "- GOOGLE_API_KEY: Get from https://console.cloud.google.com/"
+echo "- GOOGLE_CSE_ID: Get from https://programmablesearchengine.google.com/"
 echo ""
 echo "If you need to re-run this script, it is safe to do so (tables will not be duplicated)." 

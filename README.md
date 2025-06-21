@@ -57,10 +57,16 @@ Tatlock is a modular, brain-inspired conversational AI platform with built-in au
 
    **Note**: The installation script supports apt-based systems (Ubuntu/Debian), yum-based systems (CentOS/RHEL/Fedora), macOS (Intel/Apple Silicon), and Arch Linux. For other distributions, manual installation of dependencies may be required.
 
-3. Set up environment variables:
+   The script will automatically create a `.env` file with all required environment variables and generate a secure `STARLETTE_SECRET` key.
+
+   **Note**: If a `.env` file already exists, the script will ask if you want to overwrite it or keep the existing configuration.
+
+3. Update your API keys:
    ```bash
-   cp .env.example .env
-   # Edit .env with your API keys
+   # Edit .env and update the following variables with your actual API keys:
+   # OPENWEATHER_API_KEY - Get from https://openweathermap.org/api
+   # GOOGLE_API_KEY - Get from https://console.cloud.google.com/
+   # GOOGLE_CSE_ID - Get from https://programmablesearchengine.google.com/
    ```
 
 4. Start the application:
@@ -179,10 +185,19 @@ Tatlock uses the **ebdm/gemma3-enhanced:12b** model as its base LLM. During inst
 ## Environment Variables
 Required environment variables (set in `.env` file):
 ```
+# API Keys (Required)
 OPENWEATHER_API_KEY=your_openweather_api_key
 GOOGLE_API_KEY=your_google_api_key
 GOOGLE_CSE_ID=your_google_cse_id
+
+# LLM Configuration
 OLLAMA_MODEL=gemma3-cortex:latest
+
+# Database Configuration
+DATABASE_ROOT=hippocampus/
+
+# Security
+STARLETTE_SECRET=auto_generated_uuid
 ```
 
 ## Testing
