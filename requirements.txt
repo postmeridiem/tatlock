@@ -11,3 +11,4 @@ python-dateutil==2.9.0
 python-multipart==0.0.20
 ollama==0.1.7
 requests==2.31.0
+itsdangerous==2.2.0
