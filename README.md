@@ -12,12 +12,13 @@ Tatlock is a modular, brain-inspired conversational AI platform with built-in au
 - **Topic Classification**: Automatic categorization of conversations for better memory organization
 
 ### Authentication & Security
+- **Session-Based Authentication**: Modern session management with secure cookies
 - **Comprehensive User Management**: Create, authenticate, and manage users with roles and groups
 - **Password Security**: PBKDF2 hashing with unique salts for each user
 - **Role-Based Access Control**: Users can have multiple roles (user, admin, moderator)
 - **Group Management**: Users can belong to multiple groups (users, admins, moderators)
-- **HTTP Basic Authentication**: All API endpoints require authentication
 - **Admin Endpoints**: Special endpoints requiring admin privileges
+- **User Data Isolation**: Each user has their own memory database for complete privacy
 
 ### Web Interface
 - **Modern Admin Dashboard**: Complete user, role, and group management interface
@@ -101,17 +102,7 @@ Tatlock includes a comprehensive authentication system:
 - **Real-time Updates**: Automatic refresh of data after changes
 - **Snackbar Notifications**: User-friendly success/error messages
 
-### User Profile (`/profile`)
-- **Profile Information**: Display user details, roles, and groups
-- **Profile Editing**: Update personal information
-- **Password Management**: Change password with current password verification
-- **Responsive Design**: Works on all device sizes
-
-### Debug Console (`/chat`)
-- **JSON Logging**: Real-time display of all server interactions
-- **System Information**: Display system status and configuration
-- **Export Functionality**: Export logs for analysis
-- **Auto-scroll**: Automatic scrolling to latest entries
+### User Profile (`
 
 ### Global Features
 - **Material Icons**: Professional iconography throughout
@@ -119,33 +110,55 @@ Tatlock includes a comprehensive authentication system:
 - **Chat Sidepane**: Integrated chat interface on all pages
 - **Responsive Navigation**: Collapsible sidebar navigation
 - **User Dropdown**: Profile access, theme toggle, and logout
+- **Favicon Support**: Complete favicon and app icon set
 
-## System Prompts
-All system prompts (base instructions) for the LLM should be stored as records in the `rise_and_shine` table in the hippocampus database, except for the current date, which is injected dynamically.
+## Conversation Tracking
 
-## Available Tools
+Tatlock includes comprehensive conversation management:
+
+### Conversation Features
+- **Conversation Metadata**: Track conversation titles, start times, and message counts
+- **Topic Analysis**: Automatic topic detection and tracking within conversations
+- **Conversation Search**: Search conversations by title or content
+- **Conversation Statistics**: Get detailed conversation summaries and statistics
+- **User Isolation**: Each user's conversations are completely isolated
+
+### Available Tools
 - **web_search**: Search the web for current information
 - **find_personal_variables**: Look up personal information about the user
 - **get_weather_forecast**: Get weather forecasts for specific cities and dates
 - **recall_memories**: Search conversation history by keyword
 - **recall_memories_with_time**: Search conversation history with temporal filtering
+- **get_user_conversations**: List all conversations for the current user
+- **get_conversation_details**: Get detailed information about a specific conversation
+- **search_conversations**: Search conversations by title or content
+- **get_conversations_by_topic**: Find conversations containing specific topics
+- **get_topics_by_conversation**: Get all topics in a specific conversation
+- **get_conversation_summary**: Get comprehensive conversation summaries
+- **get_topic_statistics**: Get statistics about topics across conversations
 
 ## API Endpoints
 
 ### Protected Endpoints (Require Authentication)
-- `GET /` - Root endpoint with user information
+- `GET /` - Root endpoint with automatic redirects based on authentication
 - `POST /cortex` - Main chat API endpoint
 - `GET /chat` - Debug console interface
 - `GET /admin/dashboard` - Admin dashboard (requires admin role)
 - `GET /profile` - User profile management
 - `GET /docs` - API documentation (Swagger UI)
 
+### Authentication Endpoints
+- `GET /login` - Login page
+- `POST /login/auth` - Session-based login endpoint
+- `GET /logout` - Logout page (clears session and redirects)
+- `POST /logout` - Session-based logout endpoint
+
 ### Admin Endpoints (Require Admin Role)
 - `GET /admin/stats` - System statistics
 - `GET /admin/users` - List all users
 - `POST /admin/users` - Create new user
-- `PUT /admin/users/{id}` - Update user
-- `DELETE /admin/users/{id}` - Delete user
+- `PUT /admin/users/{username}` - Update user
+- `DELETE /admin/users/{username}` - Delete user
 - `GET /admin/roles` - List all roles
 - `POST /admin/roles` - Create new role
 - `PUT /admin/roles/{id}` - Update role
@@ -162,38 +175,10 @@ All system prompts (base instructions) for the LLM should be stored as records i
 
 ### Static Files
 - `/static/*` - Static file serving (HTML, CSS, JS, fonts)
-
-## Getting Started
-
-### 1. Installation
-Run the automated installer:
-```bash
-bash install_tatlock.sh
-```
-This will:
-- Install system dependencies and Python packages
-- Download and install Ollama
-- Download the LLM model (ebdm/gemma3-enhanced:12b)
-- Initialize databases (system.db and longterm.db)
-- Create default admin user with roles and groups
-
-### 2. Environment Setup
-Set up environment variables (see `config.py`):
-```bash
-OPENWEATHER_API_KEY=your_openweather_api_key
-GOOGLE_API_KEY=your_google_api_key
-GOOGLE_CSE_ID=your_google_cse_id
-OLLAMA_MODEL=gemma3-cortex:latest
-LONGTERM_DB=hippocampus/longterm.db
-SYSTEM_DB=hippocampus/system.db
-```
-
-### 3. Start the Application
-```bash
-python main.py
-```
+- `/favicon.ico` - App favicon
 
 ### 4. Access the Interface
+- **Login Page**: `http://localhost:8000/login`
 - **Admin Dashboard**: `http://localhost:8000/admin/dashboard`
 - **User Profile**: `http://localhost:8000/profile`
 - **Debug Console**: `http://localhost:8000/chat`
@@ -215,19 +200,52 @@ GOOGLE_CSE_ID=your_google_cse_id
 OLLAMA_MODEL=gemma3-cortex:latest
 LONGTERM_DB=hippocampus/longterm.db
 SYSTEM_DB=hippocampus/system.db
+STARLETTE_SECRET=your_session_secret_key
+```
+
+## Getting Started
+
+### 1. Installation
+Run the automated installer:
+```bash
+bash install_tatlock.sh
+```
+This will:
+- Install system dependencies and Python packages
+- Download and install Ollama
+- Download the LLM model (ebdm/gemma3-enhanced:12b)
+- Initialize databases (system.db and admin longterm.db)
+- Create default admin user with roles and groups
+
+### 2. Environment Setup
+Set up environment variables (see `config.py`):
+```bash
+OPENWEATHER_API_KEY=your_openweather_api_key
+GOOGLE_API_KEY=your_google_api_key
+GOOGLE_CSE_ID=your_google_cse_id
+OLLAMA_MODEL=gemma3-cortex:latest
+LONGTERM_DB=hippocampus/longterm.db
+SYSTEM_DB=hippocampus/system.db
+STARLETTE_SECRET=your_session_secret_key
+```
+
+### 3. Start the Application
+```bash
+python main.py
 ```
 
 ## Technical Details
 
 ### Database Schema
 - **system.db**: User authentication, roles, and groups
-- **longterm.db**: Conversation memory, topics, and system prompts
+- **{username}_longterm.db**: Per-user conversation memory, topics, and system prompts
 
 ### Security Features
 - **Password Hashing**: PBKDF2 with unique salts
-- **Session Management**: HTTP Basic Authentication
+- **Session Management**: Secure cookie-based sessions
 - **Role-Based Access**: Granular permission control
 - **Input Validation**: Pydantic models for all API requests
+- **User Data Isolation**: Complete separation of user data
 
 ### Frontend Technologies
 - **HTML5**: Semantic markup
@@ -243,9 +261,11 @@ Contributions are welcome! Please see the codebase for module-level readmes and 
 - Add comprehensive documentation for new features
 - Include proper error handling and validation
 - Test authentication and authorization thoroughly
-- Maintain consistent styling with Material Design principles 
+- Maintain consistent styling with Material Design principles
+- Ensure user data isolation and privacy
 
-# Memory Databases
-- Each user now has a separate long-term memory database at `hippocampus/longterm/<username>.db`.
-- The admin user's memory is stored at `hippocampus/longterm/admin.db`.
-- Databases are created automatically when a user is added and deleted when a user is removed. 
+## Memory Databases
+- Each user has a separate long-term memory database at `hippocampus/longterm/{username}.db`
+- The admin user's memory is stored at `hippocampus/longterm/admin.db`
+- Databases are created automatically when a user is added and deleted when a user is removed
+- Complete user data isolation ensures privacy and security
