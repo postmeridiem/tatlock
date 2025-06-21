@@ -155,6 +155,7 @@ Database setup and initialization utilities:
 ### Authentication Endpoints
 - `GET /login` - Login page
 - `POST /login/auth` - Session-based login endpoint
+- `GET /login/test` - Debug endpoint to verify authentication (requires authentication)
 - `GET /logout` - Logout page (clears session and redirects)
 - `POST /logout` - Session-based logout endpoint
 
