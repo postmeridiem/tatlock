@@ -175,9 +175,9 @@ chmod +x wakeup.sh
 
 ### Model Download
 ```bash
-ollama pull ebdm/gemma3-enhanced:12b
-ollama cp ebdm/gemma3-enhanced:12b gemma3-cortex:latest
-ollama rm ebdm/gemma3-enhanced:12b
+ollama pull "ebdm/gemma3-enhanced:12b"
+ollama cp "ebdm/gemma3-enhanced:12b" "gemma3-cortex:latest"
+ollama rm "ebdm/gemma3-enhanced:12b"
 ```
 
 ### Environment Configuration
@@ -406,32 +406,6 @@ python3 -c "from stem.installation.database_setup import create_system_db_tables
 - Python path issues after directory changes
 - Missing __init__.py files in the stem directory
 
-### Ollama Service Issues
-
-**Linux:**
-```bash
-# Check Ollama status
-sudo systemctl status ollama
-
-# Restart Ollama service
-sudo systemctl restart ollama
-
-# Check Ollama logs
-sudo journalctl -u ollama -f
-```
-
-**macOS:**
-```bash
-# Check if Ollama is running
-ps aux | grep ollama
-
-# Start Ollama manually
-ollama serve &
-
-# Check Ollama logs
-ollama logs
-```
-
 ### Tatlock Service Management
 
 **Linux (systemd):**
@@ -556,25 +530,6 @@ launchctl load ~/Library/LaunchAgents/com.tatlock.plist
 - Ensure you're using the Homebrew Python: `/usr/local/bin/python3`
 - Check that Homebrew is properly installed
 
-### Ollama CUDA Library Permission Errors
-
-If you see an error like:
-
-    llama runner process has terminated: error:status: Permission denied [/usr/local/lib/ollama/cuda_v11/libggml-cuda.so]
-
-This means the CUDA library files installed by Ollama are not readable by your user (they may be owned by root with restrictive permissions).
-
-**Solution:**
-
-The Tatlock installer now automatically fixes these permissions after installing Ollama and its models. If you installed Ollama manually or still encounter this error, run:
-
-```bash
-sudo find /usr/local/lib/ollama/cuda_v11 -type f -name '*.so' -exec chmod 755 {} \;
-sudo chmod 755 /usr/local/lib/ollama/cuda_v11
-```
-
-This will ensure all users can read and execute the required GPU libraries, preventing permission denied errors when running Tatlock with Ollama and CUDA acceleration.
-
 ### Yum/DNF Issues
 
 **Package conflicts:**
@@ -632,3 +587,84 @@ cp .env.backup .env
 - **RAM**: 8GB minimum, 16GB recommended
 - **Storage**: 10GB free space
 - **Network**: Internet connection for initial setup 
+
+### Ollama Service Issues
+
+**Linux:**
+```bash
+# Check Ollama status
+sudo systemctl status ollama
+
+# Restart Ollama service
+sudo systemctl restart ollama
+
+# Check Ollama logs
+sudo journalctl -u ollama -f
+```
+
+**macOS:**
+```bash
+# Check if Ollama is running
+ps aux | grep ollama
+
+# Start Ollama manually
+ollama serve &
+
+# Check Ollama logs
+ollama logs
+```
+
+### Ollama Model Issues
+
+**"command not found" errors with model names:**
+If you see errors like `3-enhanced:12b: command not found`, this is a shell parsing issue with colons in model names.
+
+**Solution:**
+Always quote model names when using Ollama commands:
+```bash
+# Correct way (with quotes)
+ollama pull "ebdm/gemma3-enhanced:12b"
+ollama cp "ebdm/gemma3-enhanced:12b" "gemma3-cortex:latest"
+ollama rm "ebdm/gemma3-enhanced:12b"
+
+# Wrong way (without quotes - causes shell parsing issues)
+ollama pull ebdm/gemma3-enhanced:12b
+ollama cp ebdm/gemma3-enhanced:12b gemma3-cortex:latest
+ollama rm ebdm/gemma3-enhanced:12b
+```
+
+**Model download failures:**
+```bash
+# Check available models
+ollama list
+
+# Check if model exists
+ollama show "ebdm/gemma3-enhanced:12b"
+
+# Try downloading with verbose output
+ollama pull "ebdm/gemma3-enhanced:12b" --verbose
+
+# Check Ollama server status
+curl http://localhost:11434/api/tags
+```
+
+**Model not found errors:**
+- Verify the model name is correct
+- Check that Ollama is running (`ollama serve`)
+- Ensure you have sufficient disk space for the model
+- Try pulling the model manually first
+
+**Model copying issues:**
+```bash
+# Check if source model exists
+ollama list | grep "ebdm/gemma3-enhanced"
+
+# Check if destination model already exists
+ollama list | grep "gemma3-cortex"
+
+# Remove existing destination model if needed
+ollama rm "gemma3-cortex:latest"
+
+# Try copying again
+ollama cp "ebdm/gemma3-enhanced:12b" "gemma3-cortex:latest"
+``` 

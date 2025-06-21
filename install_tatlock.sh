@@ -306,22 +306,14 @@ fi
 if ollama list | grep -q "gemma3-cortex:latest"; then
     echo "Gemma3 model is already installed, skipping download."
 else
-    echo "Downloading and setting up Gemma3 model..."
-    if ! ollama pull ebdm/gemma3-enhanced:12b; then
+    echo "Downloading and setting up ebdm/gemma3-enhanced:12b model..."
+    if ! ollama pull "ebdm/gemma3-enhanced:12b"; then
         echo "Error: Failed to download Gemma3 model."
         echo "Please check your internet connection and try again."
         exit 1
     fi
-    ollama cp ebdm/gemma3-enhanced:12b gemma3-cortex:latest
-    ollama rm ebdm/gemma3-enhanced:12b
-fi
-
-# --- Fix Ollama CUDA library permissions (prevents permission denied errors) ---
-if [ -d "/usr/local/lib/ollama/cuda_v11" ]; then
-    echo "Fixing permissions for Ollama CUDA libraries..."
-    sudo find /usr/local/lib/ollama/cuda_v11 -type f -name '*.so' -exec chmod 755 {} \;
-    sudo chmod 755 /usr/local/lib/ollama/cuda_v11
-    echo "- Permissions for Ollama CUDA libraries set to 755"
+    ollama cp "ebdm/gemma3-enhanced:12b" "gemma3-cortex:latest"
+    ollama rm "ebdm/gemma3-enhanced:12b"
 fi
 
 echo "[4/10] Installing Python dependencies..."
