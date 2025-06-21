@@ -188,12 +188,17 @@ function showUserModal(username = null) {
     const modal = document.getElementById('userModal');
     const modalTitle = document.getElementById('modalTitle');
     const form = document.getElementById('userForm');
+    const passwordField = document.getElementById('password');
+    const passwordRequired = document.getElementById('password-required');
     
     modal.style.display = 'block';
     
     if (username) {
         modalTitle.textContent = 'Edit User';
         isEditMode = true;
+        // Make password optional when editing
+        passwordField.required = false;
+        passwordRequired.textContent = '(leave blank to keep current password)';
         // Load roles and groups first, then load user data
         loadRolesAndGroups().then(() => {
             loadUserData(username);
@@ -202,6 +207,9 @@ function showUserModal(username = null) {
         modalTitle.textContent = 'Add New User';
         form.reset();
         isEditMode = false;
+        // Make password required when adding new user
+        passwordField.required = true;
+        passwordRequired.textContent = '*';
         loadRolesAndGroups();
     }
 }
@@ -341,10 +349,15 @@ document.addEventListener('DOMContentLoaded', function() {
                 first_name: document.getElementById('firstName').value,
                 last_name: document.getElementById('lastName').value,
                 email: document.getElementById('email').value,
-                password: document.getElementById('password').value,
                 roles: Array.from(document.getElementById('roles').selectedOptions).map(option => option.value),
                 groups: Array.from(document.getElementById('groups').selectedOptions).map(option => option.value)
             };
+            
+            // Only include password if it's not empty (for new users) or if it's provided (for editing)
+            const password = document.getElementById('password').value;
+            if (!isEditMode || password.trim() !== '') {
+                formData.password = password;
+            }
             
             console.log('Sending user data:', formData);
             
