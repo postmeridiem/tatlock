@@ -610,7 +610,11 @@ class SecurityManager:
                     print("Cannot delete the last admin user")
                     return False
             
-            # Delete user (cascading will handle user_roles and user_groups)
+            # Explicitly delete user roles and groups
+            cursor.execute("DELETE FROM user_roles WHERE username = ?", (username,))
+            cursor.execute("DELETE FROM user_groups WHERE username = ?", (username,))
+            
+            # Delete user (cascading will handle user_roles and user_groups if set)
             cursor.execute("DELETE FROM users WHERE username = ?", (username,))
             
             conn.commit()
