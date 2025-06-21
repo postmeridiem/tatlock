@@ -6,13 +6,14 @@ This guide helps resolve common issues encountered during Tatlock installation.
 
 The automated installation script performs the following steps:
 1. Installs system dependencies (Python, pip, sqlite3, build tools)
-2. Installs and configures Ollama with the Gemma3-enhanced model
-3. Installs Python dependencies from requirements.txt
-4. Creates a `.env` configuration file with auto-generated secret key (safely handles existing files)
-5. Downloads Material Icons for offline web interface
-6. Initializes system.db and longterm.db with authentication and memory tables
-7. Creates default roles, groups, and system prompts
-8. Optionally creates a new admin account
+2. Creates and activates Python virtual environment (.venv)
+3. Installs and configures Ollama with the Gemma3-enhanced model
+4. Installs Python dependencies from requirements.txt
+5. Creates a `.env` configuration file with auto-generated secret key (safely handles existing files)
+6. Downloads Material Icons for offline web interface
+7. Initializes system.db and longterm.db with authentication and memory tables
+8. Creates default roles, groups, and system prompts
+9. Optionally creates a new admin account
 
 ## Supported Systems
 
@@ -153,6 +154,18 @@ ollama serve &
 pip3 install -r requirements.txt
 ```
 
+### Virtual Environment Setup
+```bash
+# Create virtual environment
+python3 -m venv .venv
+
+# Activate virtual environment
+source .venv/bin/activate
+
+# Install dependencies in virtual environment
+pip install -r requirements.txt
+```
+
 ### Model Download
 ```bash
 ollama pull ebdm/gemma3-enhanced:12b
@@ -208,6 +221,86 @@ EOF
 - Check that all dependencies are installed
 - Verify the PYTHONPATH is set correctly
 
+### Virtual Environment Issues
+
+**Virtual environment not created:**
+```bash
+# Check if python3-venv is installed
+python3 -m venv --help
+
+# Install python3-venv if missing
+# Ubuntu/Debian:
+sudo apt install python3-venv
+
+# CentOS/RHEL/Fedora:
+sudo yum install python3-venv
+
+# Arch Linux:
+sudo pacman -S python-venv
+```
+
+**Virtual environment not activated:**
+```bash
+# Activate manually
+source .venv/bin/activate
+
+# Verify activation
+echo $VIRTUAL_ENV
+which python
+```
+
+**Permission denied on .venv:**
+```bash
+# Check permissions
+ls -la .venv/
+
+# Fix permissions if needed
+chmod -R 755 .venv/
+```
+
+**Virtual environment corrupted:**
+The installation script automatically detects corrupted virtual environments and will offer to recreate them. If you need to manually fix:
+
+```bash
+# Remove and recreate
+rm -rf .venv
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+```
+
+**When does the script ask to recreate the virtual environment?**
+- **Valid existing .venv**: Script asks "Do you want to recreate it? (y/N)" - default is No
+- **Corrupted/incomplete .venv**: Script asks "Do you want to recreate it? (Y/n)" - default is Yes
+- **No .venv**: Script creates a new one automatically
+
+### Directory and Path Issues
+
+**Module import errors:**
+- Ensure you're running the installation script from the project root directory
+- Check that all required `__init__.py` files exist in the module directories
+- Verify the project structure is intact
+
+**Running from wrong directory:**
+```bash
+# Always run the installation script from the project root
+cd /path/to/tatlock
+./install_tatlock.sh
+```
+
+**Missing __init__.py files:**
+```bash
+# Check if __init__.py files exist
+ls -la stem/__init__.py
+ls -la hippocampus/__init__.py
+ls -la cortex/__init__.py
+
+# Create missing __init__.py files if needed
+touch stem/__init__.py
+touch hippocampus/__init__.py
+touch cortex/__init__.py
+```
+
 ### Database Errors
 - Ensure sqlite3 is installed
 - Check write permissions in the hippocampus/ directory
@@ -246,6 +339,25 @@ chmod 600 .env
 - Ensure the `.env` file is in the root directory of the project
 - Check that the variable names match exactly (case-sensitive)
 - Verify there are no extra spaces or special characters
+
+**"No module named 'stem'" error during database initialization:**
+This error occurs when Python can't find the stem module. The installation script now handles this automatically, but if you encounter it:
+
+```bash
+# Ensure you're in the project root directory
+cd /path/to/tatlock
+
+# Set PYTHONPATH manually
+export PYTHONPATH=$(pwd)
+
+# Try the database initialization manually
+python3 -c "from stem.installation.database_setup import create_system_db_tables; create_system_db_tables('hippocampus/system.db')"
+```
+
+**Common causes:**
+- Running the script from the wrong directory
+- Python path issues after directory changes
+- Missing __init__.py files in the stem directory
 
 ### Ollama Service Issues
 

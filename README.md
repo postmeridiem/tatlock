@@ -61,6 +61,10 @@ Tatlock is a modular, brain-inspired conversational AI platform with built-in au
 
    **Note**: If a `.env` file already exists, the script will ask if you want to overwrite it or keep the existing configuration.
 
+   The script also creates a Python virtual environment in the `.venv` directory for isolated dependency management.
+
+   **Note**: The script safely handles existing virtual environments and will only recreate them if explicitly requested or if they appear to be corrupted.
+
 3. Update your API keys:
    ```bash
    # Edit .env and update the following variables with your actual API keys:
@@ -71,6 +75,10 @@ Tatlock is a modular, brain-inspired conversational AI platform with built-in au
 
 4. Start the application:
    ```bash
+   # Activate the virtual environment
+   source .venv/bin/activate
+   
+   # Start the application
    python main.py
    ```
 

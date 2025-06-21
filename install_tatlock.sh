@@ -5,18 +5,26 @@
 
 set -e
 
+# --- Check if we're in the correct directory ---
+if [ ! -f "main.py" ] || [ ! -d "stem" ] || [ ! -d "hippocampus" ]; then
+    echo "Error: This script must be run from the Tatlock project root directory."
+    echo "Please ensure you're in the directory containing main.py, stem/, and hippocampus/ folders."
+    exit 1
+fi
+
 # --- Instructions ---
 echo "Tatlock Installation Script"
 echo "--------------------------"
 echo "This script will:"
 echo "1. Install required system packages (Python 3, pip, sqlite3, build tools)"
-echo "2. Install and configure Ollama with the Gemma3-enhanced model"
-echo "3. Install Python dependencies from requirements.txt"
-echo "4. Create .env configuration file with auto-generated secret key (safely handles existing files)"
-echo "5. Download Material Icons for offline web interface"
-echo "6. Initialize system.db and longterm.db with authentication and memory tables"
-echo "7. Create default roles, groups, and system prompts"
-echo "8. Optionally create a new admin account if one does not exist yet"
+echo "2. Create and activate Python virtual environment (.venv) (safely handles existing environments)"
+echo "3. Install and configure Ollama with the Gemma3-enhanced model"
+echo "4. Install Python dependencies from requirements.txt"
+echo "5. Create .env configuration file with auto-generated secret key (safely handles existing files)"
+echo "6. Download Material Icons for offline web interface"
+echo "7. Initialize system.db and longterm.db with authentication and memory tables"
+echo "8. Create default roles, groups, and system prompts"
+echo "9. Optionally create a new admin account if one does not exist yet"
 echo ""
 
 # --- Detect system and package manager ---
@@ -107,7 +115,7 @@ check_package_manager() {
 check_package_manager
 
 # --- Install system dependencies ---
-echo "[1/7] Installing system dependencies..."
+echo "[1/9] Installing system dependencies..."
 
 install_system_dependencies() {
     case $PACKAGE_MANAGER in
@@ -148,7 +156,7 @@ install_system_dependencies() {
             
             # Install packages
             echo "Installing required packages..."
-            if ! sudo yum install -y python3 python3-pip sqlite gcc gcc-c++ make curl wget; then
+            if ! sudo yum install -y python3 python3-pip python3-venv sqlite gcc gcc-c++ make curl wget; then
                 echo "Error: Failed to install required packages."
                 echo "Please check your package manager configuration and try again."
                 exit 1
@@ -194,7 +202,7 @@ install_system_dependencies() {
             
             # Install packages
             echo "Installing required packages..."
-            if ! sudo pacman -S --noconfirm python python-pip sqlite base-devel curl wget; then
+            if ! sudo pacman -S --noconfirm python python-pip python-venv sqlite base-devel curl wget; then
                 echo "Error: Failed to install required packages."
                 echo "Please check your package manager configuration and try again."
                 exit 1
@@ -205,11 +213,62 @@ install_system_dependencies() {
 
 install_system_dependencies
 
+# --- Create and activate Python virtual environment ---
+echo "[2/9] Creating Python virtual environment..."
+
+# Check if virtual environment already exists
+if [ -d ".venv" ]; then
+    echo "Virtual environment already exists in .venv directory."
+    
+    # Check if the existing virtual environment is valid
+    if [ -f ".venv/bin/activate" ] && [ -f ".venv/bin/python" ]; then
+        echo "Existing virtual environment appears to be valid."
+        read -p "Do you want to recreate it? (y/N): " recreate_venv
+        if [[ "$recreate_venv" =~ ^[Yy]$ ]]; then
+            echo "Removing existing virtual environment..."
+            rm -rf .venv
+        else
+            echo "Using existing virtual environment."
+        fi
+    else
+        echo "Existing virtual environment appears to be corrupted or incomplete."
+        read -p "Do you want to recreate it? (Y/n): " recreate_venv
+        if [[ ! "$recreate_venv" =~ ^[Nn]$ ]]; then
+            echo "Removing corrupted virtual environment..."
+            rm -rf .venv
+        else
+            echo "Keeping existing virtual environment (may cause issues)."
+        fi
+    fi
+fi
+
+# Create virtual environment if it doesn't exist or user chose to recreate
+if [ ! -d ".venv" ]; then
+    echo "Creating new virtual environment in .venv directory..."
+    if ! python3 -m venv .venv; then
+        echo "Error: Failed to create virtual environment."
+        echo "Please ensure python3-venv is installed."
+        exit 1
+    fi
+fi
+
+# Activate virtual environment
+echo "Activating virtual environment..."
+source .venv/bin/activate
+
+# Verify virtual environment is active
+if [ -z "$VIRTUAL_ENV" ]; then
+    echo "Error: Failed to activate virtual environment."
+    exit 1
+fi
+
+echo "- Virtual environment created and activated: $VIRTUAL_ENV"
+
 # Check if Ollama is already installed
 if command -v ollama &> /dev/null; then
     echo "Ollama is already installed, skipping installation."
 else
-    echo "Installing Ollama..."
+    echo "[3/9] Installing Ollama..."
     if ! curl -fsSL https://ollama.ai/install.sh | sh; then
         echo "Error: Failed to install Ollama."
         echo "Please check your internet connection and try again."
@@ -247,7 +306,7 @@ else
     ollama rm ebdm/gemma3-enhanced:12b
 fi
 
-echo "[2/7] Installing Python dependencies..."
+echo "[4/9] Installing Python dependencies..."
 
 # Use the appropriate pip command
 if command -v pip3 &> /dev/null; then
@@ -266,7 +325,7 @@ if ! $PIP_CMD install -r requirements.txt; then
 fi
 
 # --- Create .env file with configuration ---
-echo "[3/7] Creating environment configuration file..."
+echo "[5/9] Creating environment configuration file..."
 
 # Check if .env file already exists
 if [ -f ".env" ]; then
@@ -322,7 +381,11 @@ else
 fi
 
 # --- Download Material Icons for offline use ---
-echo "[4/7] Downloading Material Icons for offline web interface..."
+echo "[6/9] Downloading Material Icons for offline web interface..."
+
+# Store the project root directory
+PROJECT_ROOT=$(pwd)
+
 mkdir -p stem/static/fonts
 cd stem/static/fonts
 if ! wget -O material-icons.woff2 "https://fonts.gstatic.com/s/materialicons/v140/flUhRq6tzZclQEJ-Vdg-IuiaDsNcIhQ8tQ.woff2"; then
@@ -334,21 +397,25 @@ fi
 if ! wget -O material-icons.ttf "https://cdn.jsdelivr.net/npm/@mdi/font@7.2.96/fonts/materialdesignicons-webfont.ttf"; then
     echo "Warning: Failed to download Material Icons TTF. Continuing without it."
 fi
-cd ../..
+
+# Return to project root directory
+cd "$PROJECT_ROOT"
 
 # --- Initialize databases ---
-echo "[5/7] Initializing databases..."
-if ! PYTHONPATH=. python3 -c "from stem.installation.database_setup import create_system_db_tables; create_system_db_tables('hippocampus/system.db')"; then
+echo "[7/9] Initializing databases..."
+if ! PYTHONPATH="$PROJECT_ROOT" python3 -c "from stem.installation.database_setup import create_system_db_tables; create_system_db_tables('hippocampus/system.db')"; then
     echo "Error: Failed to initialize databases."
+    echo "Current directory: $(pwd)"
+    echo "PYTHONPATH: $PYTHONPATH"
     exit 1
 fi
 
 echo "- system.db is ready in the hippocampus/ directory. User memory databases will be created automatically when users are added."
 
 # --- Create admin user if not exists ---
-echo "[6/7] Checking for admin account..."
+echo "[8/9] Checking for admin account..."
         # Check if admin user already exists
-        admin_exists=$(PYTHONPATH=. python3 -c "from stem.security import security_manager; print('yes' if security_manager.authenticate_user('admin', 'breaker') else 'no')")
+        admin_exists=$(PYTHONPATH="$PROJECT_ROOT" python3 -c "from stem.security import security_manager; print('yes' if security_manager.authenticate_user('admin', 'breaker') else 'no')")
 if [ "$admin_exists" = "no" ]; then
     echo "No admin account found. Let's create one."
     read -p "Enter admin username [admin]: " admin_user
@@ -367,7 +434,7 @@ if [ "$admin_exists" = "no" ]; then
         echo "Passwords do not match. Exiting."
         exit 1
     fi
-    if ! PYTHONPATH=. python3 -c "
+    if ! PYTHONPATH="$PROJECT_ROOT" python3 -c "
 from stem.security import security_manager
 if security_manager.create_user('$admin_user', '$admin_first', '$admin_last', '$admin_pass', '$admin_email'):
     security_manager.add_user_to_role('$admin_user', 'user')
@@ -388,6 +455,7 @@ fi
 
 echo ""
 echo "Tatlock installation complete!"
+echo "- Python virtual environment created in .venv directory"
 echo "- Ollama with Gemma3-enhanced model is ready"
 echo "- .env configuration file created with auto-generated secret key"
 echo "- Material Icons downloaded for offline web interface"
@@ -399,5 +467,9 @@ echo "IMPORTANT: Please update the API keys in your .env file before running the
 echo "- OPENWEATHER_API_KEY: Get from https://openweathermap.org/api"
 echo "- GOOGLE_API_KEY: Get from https://console.cloud.google.com/"
 echo "- GOOGLE_CSE_ID: Get from https://programmablesearchengine.google.com/"
+echo ""
+echo "To activate the virtual environment and run the application:"
+echo "  source .venv/bin/activate"
+echo "  python main.py"
 echo ""
 echo "If you need to re-run this script, it is safe to do so (tables will not be duplicated)." 
