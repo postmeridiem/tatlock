@@ -65,6 +65,10 @@ Tatlock is a modular, brain-inspired conversational AI platform with built-in au
 
    **Note**: The script safely handles existing virtual environments and will only recreate them if explicitly requested or if they appear to be corrupted.
 
+   The script also makes `wakeup.sh` executable for easy application startup.
+
+   The script optionally offers to install Tatlock as an auto-starting service for automatic startup on system boot.
+
 3. Update your API keys:
    ```bash
    # Edit .env and update the following variables with your actual API keys:
@@ -75,11 +79,8 @@ Tatlock is a modular, brain-inspired conversational AI platform with built-in au
 
 4. Start the application:
    ```bash
-   # Activate the virtual environment
-   source .venv/bin/activate
-   
-   # Start the application
-   python main.py
+   # Start the application (automatically activates virtual environment)
+   ./wakeup.sh
    ```
 
 5. Access the interface:
@@ -109,7 +110,7 @@ Tatlock uses the **ebdm/gemma3-enhanced:12b** model as its base LLM. During inst
 - **config.py**: Loads environment variables and API keys
 - **requirements.txt**: Python dependencies
 - **install_tatlock.sh**: Automated installation script for system dependencies, Python packages, and database setup
-- **wakeup.sh**: Startup script
+- **wakeup.sh**: Startup script that activates the virtual environment and launches the application
 
 ### Core Modules
 - **cortex/**: Core agent logic and API implementation. Orchestrates all subsystems and exposes the FastAPI interface
@@ -203,6 +204,9 @@ OLLAMA_MODEL=gemma3-cortex:latest
 
 # Database Configuration
 DATABASE_ROOT=hippocampus/
+
+# Server Configuration
+PORT=8000
 
 # Security
 STARLETTE_SECRET=auto_generated_uuid

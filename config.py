@@ -22,6 +22,9 @@ GOOGLE_CSE_ID = os.getenv("GOOGLE_CSE_ID")  # CSE stands for Custom Search Engin
 # --- Database Paths ---
 SYSTEM_DB_PATH = os.getenv("SYSTEM_DB", "hippocampus/system.db")     # Authentication database
 
+# --- Server Configuration ---
+PORT = int(os.getenv("PORT", "8000"))
+
 # --- Error Checking ---
 if not OPENWEATHER_API_KEY:
     raise ValueError("OPENWEATHER_API_KEY environment variable not set.")

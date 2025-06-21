@@ -14,6 +14,7 @@ The automated installation script performs the following steps:
 7. Initializes system.db and longterm.db with authentication and memory tables
 8. Creates default roles, groups, and system prompts
 9. Optionally creates a new admin account
+10. Optionally installs Tatlock as an auto-starting service
 
 ## Supported Systems
 
@@ -164,6 +165,12 @@ source .venv/bin/activate
 
 # Install dependencies in virtual environment
 pip install -r requirements.txt
+
+# Make wakeup.sh executable
+chmod +x wakeup.sh
+
+# Start the application (recommended)
+./wakeup.sh
 ```
 
 ### Model Download
@@ -194,6 +201,9 @@ OLLAMA_MODEL=gemma3-cortex:latest
 
 # Database Configuration
 DATABASE_ROOT=hippocampus/
+
+# Server Configuration
+PORT=8000
 
 # Security
 STARLETTE_SECRET=$STARLETTE_SECRET
@@ -247,6 +257,9 @@ source .venv/bin/activate
 # Verify activation
 echo $VIRTUAL_ENV
 which python
+
+# Or use the wakeup script (recommended)
+./wakeup.sh
 ```
 
 **Permission denied on .venv:**
@@ -267,6 +280,15 @@ rm -rf .venv
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
+```
+
+**wakeup.sh not executable:**
+```bash
+# Make wakeup.sh executable
+chmod +x wakeup.sh
+
+# Verify it's executable
+ls -la wakeup.sh
 ```
 
 **When does the script ask to recreate the virtual environment?**
@@ -383,6 +405,119 @@ ollama serve &
 
 # Check Ollama logs
 ollama logs
+```
+
+### Tatlock Service Management
+
+**Linux (systemd):**
+```bash
+# Check Tatlock service status
+sudo systemctl status tatlock
+
+# Start Tatlock service
+sudo systemctl start tatlock
+
+# Stop Tatlock service
+sudo systemctl stop tatlock
+
+# Enable auto-start on boot
+sudo systemctl enable tatlock
+
+# Disable auto-start on boot
+sudo systemctl disable tatlock
+
+# View service logs
+sudo journalctl -u tatlock -f
+```
+
+**macOS (launchd):**
+```bash
+# Check if Tatlock service is loaded
+launchctl list | grep tatlock
+
+# Load Tatlock service
+launchctl load ~/Library/LaunchAgents/com.tatlock.plist
+
+# Unload Tatlock service
+launchctl unload ~/Library/LaunchAgents/com.tatlock.plist
+
+# View service logs
+tail -f /tmp/tatlock.log
+tail -f /tmp/tatlock.error.log
+```
+
+**Manual service installation:**
+If the automatic service installation fails, you can install it manually:
+
+**Linux:**
+```bash
+# Create service file manually
+sudo tee /etc/systemd/system/tatlock.service > /dev/null << EOF
+[Unit]
+Description=Tatlock Conversational AI Platform
+After=network.target ollama.service
+Wants=ollama.service
+
+[Service]
+Type=simple
+User=$USER
+WorkingDirectory=$(pwd)
+Environment=PATH=$(pwd)/.venv/bin:/usr/local/bin:/usr/bin:/bin
+Environment=PORT=8000
+ExecStart=$(pwd)/.venv/bin/python $(pwd)/main.py
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+# Enable and start service
+sudo systemctl daemon-reload
+sudo systemctl enable tatlock.service
+sudo systemctl start tatlock.service
+```
+
+**macOS:**
+```bash
+# Create plist file manually
+cat > ~/Library/LaunchAgents/com.tatlock.plist << EOF
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.tatlock</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>$(pwd)/.venv/bin/python</string>
+        <string>$(pwd)/main.py</string>
+    </array>
+    <key>WorkingDirectory</key>
+    <string>$(pwd)</string>
+    <key>RunAtLoad</key>
+    <true/>
+    <key>KeepAlive</key>
+    <true/>
+    <key>StandardOutPath</key>
+    <string>/tmp/tatlock.log</string>
+    <key>StandardErrorPath</key>
+    <string>/tmp/tatlock.error.log</string>
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>$(pwd)/.venv/bin:/usr/local/bin:/usr/bin:/bin</string>
+        <key>PORT</key>
+        <string>8000</string>
+    </dict>
+</dict>
+</plist>
+EOF
+
+# Load the service
+launchctl load ~/Library/LaunchAgents/com.tatlock.plist
 ```
 
 ### macOS-Specific Issues

@@ -25,6 +25,7 @@ echo "6. Download Material Icons for offline web interface"
 echo "7. Initialize system.db and longterm.db with authentication and memory tables"
 echo "8. Create default roles, groups, and system prompts"
 echo "9. Optionally create a new admin account if one does not exist yet"
+echo "10. Optionally install Tatlock as an auto-starting service"
 echo ""
 
 # --- Detect system and package manager ---
@@ -115,7 +116,7 @@ check_package_manager() {
 check_package_manager
 
 # --- Install system dependencies ---
-echo "[1/9] Installing system dependencies..."
+echo "[1/10] Installing system dependencies..."
 
 install_system_dependencies() {
     case $PACKAGE_MANAGER in
@@ -214,7 +215,7 @@ install_system_dependencies() {
 install_system_dependencies
 
 # --- Create and activate Python virtual environment ---
-echo "[2/9] Creating Python virtual environment..."
+echo "[2/10] Creating Python virtual environment..."
 
 # Check if virtual environment already exists
 if [ -d ".venv" ]; then
@@ -264,11 +265,20 @@ fi
 
 echo "- Virtual environment created and activated: $VIRTUAL_ENV"
 
+# Make wakeup.sh executable
+echo "Making wakeup.sh executable..."
+if [ -f "wakeup.sh" ]; then
+    chmod +x wakeup.sh
+    echo "- wakeup.sh is now executable"
+else
+    echo "Warning: wakeup.sh not found. Please ensure it exists in the project root."
+fi
+
 # Check if Ollama is already installed
 if command -v ollama &> /dev/null; then
     echo "Ollama is already installed, skipping installation."
 else
-    echo "[3/9] Installing Ollama..."
+    echo "[3/10] Installing Ollama..."
     if ! curl -fsSL https://ollama.ai/install.sh | sh; then
         echo "Error: Failed to install Ollama."
         echo "Please check your internet connection and try again."
@@ -306,7 +316,7 @@ else
     ollama rm ebdm/gemma3-enhanced:12b
 fi
 
-echo "[4/9] Installing Python dependencies..."
+echo "[4/10] Installing Python dependencies..."
 
 # Use the appropriate pip command
 if command -v pip3 &> /dev/null; then
@@ -325,7 +335,7 @@ if ! $PIP_CMD install -r requirements.txt; then
 fi
 
 # --- Create .env file with configuration ---
-echo "[5/9] Creating environment configuration file..."
+echo "[5/10] Creating environment configuration file..."
 
 # Check if .env file already exists
 if [ -f ".env" ]; then
@@ -369,6 +379,9 @@ OLLAMA_MODEL=gemma3-cortex:latest
 # Database Configuration
 DATABASE_ROOT=hippocampus/
 
+# Server Configuration
+PORT=8000
+
 # Security
 STARLETTE_SECRET=$STARLETTE_SECRET
 EOF
@@ -381,7 +394,7 @@ else
 fi
 
 # --- Download Material Icons for offline use ---
-echo "[6/9] Downloading Material Icons for offline web interface..."
+echo "[6/10] Downloading Material Icons for offline web interface..."
 
 # Store the project root directory
 PROJECT_ROOT=$(pwd)
@@ -402,7 +415,7 @@ fi
 cd "$PROJECT_ROOT"
 
 # --- Initialize databases ---
-echo "[7/9] Initializing databases..."
+echo "[7/10] Initializing databases..."
 if ! PYTHONPATH="$PROJECT_ROOT" python3 -c "from stem.installation.database_setup import create_system_db_tables; create_system_db_tables('hippocampus/system.db')"; then
     echo "Error: Failed to initialize databases."
     echo "Current directory: $(pwd)"
@@ -413,7 +426,7 @@ fi
 echo "- system.db is ready in the hippocampus/ directory. User memory databases will be created automatically when users are added."
 
 # --- Create admin user if not exists ---
-echo "[8/9] Checking for admin account..."
+echo "[8/10] Checking for admin account..."
         # Check if admin user already exists
         admin_exists=$(PYTHONPATH="$PROJECT_ROOT" python3 -c "from stem.security import security_manager; print('yes' if security_manager.authenticate_user('admin', 'breaker') else 'no')")
 if [ "$admin_exists" = "no" ]; then
@@ -453,6 +466,129 @@ else
     echo "Admin account already exists."
 fi
 
+# --- Install as auto-starting service ---
+echo "[9/10] Service installation..."
+
+echo "Would you like to install Tatlock as an auto-starting service?"
+echo "This will make Tatlock start automatically when the system boots."
+read -p "Install as service? (y/N): " install_service
+
+if [[ "$install_service" =~ ^[Yy]$ ]]; then
+    echo "Installing Tatlock as auto-starting service..."
+    
+    # Get the absolute path to the project directory
+    SERVICE_DIR=$(pwd)
+    
+    case $SYSTEM in
+        "debian"|"rhel"|"arch")
+            # Linux - Create systemd service
+            echo "Creating systemd service for Linux..."
+            
+            # Create service file
+            cat > tatlock.service << EOF
+[Unit]
+Description=Tatlock Conversational AI Platform
+After=network.target ollama.service
+Wants=ollama.service
+
+[Service]
+Type=simple
+User=$USER
+WorkingDirectory=$SERVICE_DIR
+Environment=PATH=$SERVICE_DIR/.venv/bin:/usr/local/bin:/usr/bin:/bin
+Environment=PORT=8000
+ExecStart=$SERVICE_DIR/.venv/bin/python $SERVICE_DIR/main.py
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+            # Install the service
+            if command -v systemctl &> /dev/null; then
+                sudo cp tatlock.service /etc/systemd/system/
+                sudo systemctl daemon-reload
+                sudo systemctl enable tatlock.service
+                sudo systemctl start tatlock.service
+                
+                echo "- Tatlock service installed and started"
+                echo "- Service will auto-start on boot"
+                echo "- Use 'sudo systemctl status tatlock' to check status"
+                echo "- Use 'sudo systemctl stop tatlock' to stop the service"
+                echo "- Use 'sudo systemctl start tatlock' to start the service"
+                
+                # Clean up temporary file
+                rm tatlock.service
+            else
+                echo "Error: systemctl not found. Cannot install systemd service."
+                echo "Please install systemd or run Tatlock manually."
+            fi
+            ;;
+            
+        "macos_arm"|"macos_intel")
+            # macOS - Create launchd service
+            echo "Creating launchd service for macOS..."
+            
+            # Create plist file
+            cat > com.tatlock.plist << EOF
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.tatlock</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>$SERVICE_DIR/.venv/bin/python</string>
+        <string>$SERVICE_DIR/main.py</string>
+    </array>
+    <key>WorkingDirectory</key>
+    <string>$SERVICE_DIR</string>
+    <key>RunAtLoad</key>
+    <true/>
+    <key>KeepAlive</key>
+    <true/>
+    <key>StandardOutPath</key>
+    <string>/tmp/tatlock.log</string>
+    <key>StandardErrorPath</key>
+    <string>/tmp/tatlock.error.log</string>
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>$SERVICE_DIR/.venv/bin:/usr/local/bin:/usr/bin:/bin</string>
+        <key>PORT</key>
+        <string>8000</string>
+    </dict>
+</dict>
+</plist>
+EOF
+
+            # Install the service
+            cp com.tatlock.plist ~/Library/LaunchAgents/
+            launchctl load ~/Library/LaunchAgents/com.tatlock.plist
+            
+            echo "- Tatlock service installed and started"
+            echo "- Service will auto-start on login"
+            echo "- Use 'launchctl list | grep tatlock' to check status"
+            echo "- Use 'launchctl unload ~/Library/LaunchAgents/com.tatlock.plist' to stop"
+            echo "- Use 'launchctl load ~/Library/LaunchAgents/com.tatlock.plist' to start"
+            
+            # Clean up temporary file
+            rm com.tatlock.plist
+            ;;
+            
+        *)
+            echo "Warning: Auto-starting service not supported on this system."
+            echo "Please run Tatlock manually using './wakeup.sh'"
+            ;;
+    esac
+else
+    echo "Skipping service installation. You can run Tatlock manually using './wakeup.sh'"
+fi
+
 echo ""
 echo "Tatlock installation complete!"
 echo "- Python virtual environment created in .venv directory"
@@ -468,8 +604,7 @@ echo "- OPENWEATHER_API_KEY: Get from https://openweathermap.org/api"
 echo "- GOOGLE_API_KEY: Get from https://console.cloud.google.com/"
 echo "- GOOGLE_CSE_ID: Get from https://programmablesearchengine.google.com/"
 echo ""
-echo "To activate the virtual environment and run the application:"
-echo "  source .venv/bin/activate"
-echo "  python main.py"
+echo "To start the application:"
+echo "  ./wakeup.sh"
 echo ""
 echo "If you need to re-run this script, it is safe to do so (tables will not be duplicated)." 

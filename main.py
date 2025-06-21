@@ -33,6 +33,10 @@ from fastapi.security import HTTPBasicCredentials
 from fastapi.security import HTTPBasic
 from starlette.middleware.sessions import SessionMiddleware
 from fastapi.openapi.utils import get_openapi
+from config import (
+    OPENWEATHER_API_KEY, GOOGLE_API_KEY, GOOGLE_CSE_ID, 
+    OLLAMA_MODEL, SYSTEM_DB_PATH, PORT
+)
 
 # Load environment variables from .env file
 load_dotenv()
@@ -223,4 +227,4 @@ async def profile_page(current_user: dict = Depends(get_current_user)):
 
 # This allows running the app directly with `python main.py`
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host="0.0.0.0", port=PORT)
