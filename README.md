@@ -33,6 +33,7 @@ Tatlock is a modular, brain-inspired conversational AI platform with built-in au
 - **Brain-Inspired Design**: Codebase organized into modules inspired by brain regions
 - **Extensible Tools**: Easily add new tools and skills for the agent to use
 - **Offline Capability**: Material Icons and static assets work without internet connection
+- **Service Management**: Optional auto-starting service for production deployments
 
 ## Installation
 
@@ -83,6 +84,8 @@ Tatlock is a modular, brain-inspired conversational AI platform with built-in au
    ./wakeup.sh
    ```
 
+   **Note**: If you installed Tatlock as an auto-starting service, see the [Service Management](#service-management) section below for commands to start, stop, and manage the service.
+
 5. Access the interface:
    - **Login Page**: `http://localhost:8000/login`
    - **Admin Dashboard**: `http://localhost:8000/admin/dashboard`
@@ -91,6 +94,106 @@ Tatlock is a modular, brain-inspired conversational AI platform with built-in au
    - **API Documentation**: `http://localhost:8000/docs`
 
    **Note**: The default port is 8000. You can change this by modifying the `PORT` variable in your `.env` file.
+
+### Service Management
+
+If you installed Tatlock as an auto-starting service during installation, you can manage it using the following commands:
+
+#### Linux (systemd)
+
+**Check service status:**
+```bash
+sudo systemctl status tatlock
+```
+
+**Start the service:**
+```bash
+sudo systemctl start tatlock
+```
+
+**Stop the service:**
+```bash
+sudo systemctl stop tatlock
+```
+
+**Restart the service:**
+```bash
+sudo systemctl restart tatlock
+```
+
+**Enable auto-start on boot:**
+```bash
+sudo systemctl enable tatlock
+```
+
+**Disable auto-start on boot:**
+```bash
+sudo systemctl disable tatlock
+```
+
+**View service logs:**
+```bash
+# View recent logs
+sudo journalctl -u tatlock
+
+# Follow logs in real-time
+sudo journalctl -u tatlock -f
+
+# View logs from today
+sudo journalctl -u tatlock --since today
+```
+
+#### macOS (launchd)
+
+**Check if service is loaded:**
+```bash
+launchctl list | grep tatlock
+```
+
+**Load (start) the service:**
+```bash
+launchctl load ~/Library/LaunchAgents/com.tatlock.plist
+```
+
+**Unload (stop) the service:**
+```bash
+launchctl unload ~/Library/LaunchAgents/com.tatlock.plist
+```
+
+**View service logs:**
+```bash
+# View standard output logs
+tail -f /tmp/tatlock.log
+
+# View error logs
+tail -f /tmp/tatlock.error.log
+
+# View both logs
+tail -f /tmp/tatlock*.log
+```
+
+#### Manual vs Service Mode
+
+**Running manually (development):**
+```bash
+./wakeup.sh
+```
+
+**Running as service (production):**
+- Service starts automatically on boot/login
+- Runs in the background
+- Automatically restarts if it crashes
+- Logs are written to system logs or files
+
+**Switching between modes:**
+- To stop the service and run manually: Stop the service first, then run `./wakeup.sh`
+- To switch back to service mode: Stop manual process, then start the service
+
+**Troubleshooting service issues:**
+- If the service won't start, check the logs for error messages
+- Ensure the `.env` file exists and has valid API keys
+- Verify that Ollama is running (required for Tatlock to start)
+- Check that the port specified in `.env` is not already in use
 
 ### Troubleshooting
 
