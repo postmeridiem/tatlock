@@ -9,7 +9,7 @@ set -e
 echo "Tatlock Installation Script"
 echo "--------------------------"
 echo "This script will:"
-echo "1. Install required system packages via apt (Python 3, pip, sqlite3, build tools)"
+echo "1. Install required system packages (Python 3, pip, sqlite3, build tools)"
 echo "2. Install and configure Ollama with the Gemma3-enhanced model"
 echo "3. Install Python dependencies from requirements.txt"
 echo "4. Download Material Icons for offline web interface"
@@ -17,54 +17,192 @@ echo "5. Initialize system.db and longterm.db with authentication and memory tab
 echo "6. Create default roles, groups, and system prompts"
 echo "7. Optionally create a new admin account if one does not exist yet"
 echo ""
-echo "Note: This script currently supports apt-based systems (Ubuntu/Debian)."
-echo "For other distributions, manual installation of dependencies may be required."
-echo ""
-echo "You may be prompted for your password to install system packages."
+
+# --- Detect system and package manager ---
+detect_system() {
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        # macOS
+        if [[ $(uname -m) == "arm64" ]]; then
+            SYSTEM="macos_arm"
+            PACKAGE_MANAGER="brew"
+        else
+            SYSTEM="macos_intel"
+            PACKAGE_MANAGER="brew"
+        fi
+    elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
+        # Linux
+        if [ -f /etc/os-release ]; then
+            . /etc/os-release
+            case $ID in
+                "ubuntu"|"debian"|"linuxmint"|"zorin")
+                    SYSTEM="debian"
+                    PACKAGE_MANAGER="apt"
+                    ;;
+                "centos"|"rhel"|"fedora"|"rocky"|"almalinux")
+                    SYSTEM="rhel"
+                    PACKAGE_MANAGER="yum"
+                    ;;
+                "arch"|"manjaro")
+                    SYSTEM="arch"
+                    PACKAGE_MANAGER="pacman"
+                    ;;
+                *)
+                    SYSTEM="unknown"
+                    PACKAGE_MANAGER="unknown"
+                    ;;
+            esac
+        else
+            SYSTEM="unknown"
+            PACKAGE_MANAGER="unknown"
+        fi
+    else
+        SYSTEM="unknown"
+        PACKAGE_MANAGER="unknown"
+    fi
+}
+
+detect_system
+
+echo "Detected system: $SYSTEM"
+echo "Package manager: $PACKAGE_MANAGER"
 echo ""
 
-# --- Detect distribution ---
-if [ -f /etc/os-release ]; then
-    . /etc/os-release
-    echo "Detected distribution: $NAME $VERSION"
-    if [[ "$ID" != "ubuntu" && "$ID" != "debian" ]]; then
-        echo "Warning: This script is primarily tested on Ubuntu/Debian systems."
-        echo "You may encounter issues on $NAME."
-        read -p "Continue anyway? (y/N): " -n 1 -r
-        echo
-        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-            echo "Installation cancelled."
+# --- Check if package manager is available ---
+check_package_manager() {
+    case $PACKAGE_MANAGER in
+        "apt")
+            if ! command -v apt &> /dev/null; then
+                echo "Error: apt package manager not found."
+                exit 1
+            fi
+            ;;
+        "yum")
+            if ! command -v yum &> /dev/null; then
+                echo "Error: yum package manager not found."
+                exit 1
+            fi
+            ;;
+        "brew")
+            if ! command -v brew &> /dev/null; then
+                echo "Error: Homebrew not found. Please install Homebrew first:"
+                echo "  /bin/bash -c \"\$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)\""
+                exit 1
+            fi
+            ;;
+        "pacman")
+            if ! command -v pacman &> /dev/null; then
+                echo "Error: pacman package manager not found."
+                exit 1
+            fi
+            ;;
+        *)
+            echo "Error: Unsupported system or package manager not detected."
+            echo "Please install dependencies manually or use a supported system."
             exit 1
-        fi
-    fi
-else
-    echo "Warning: Could not detect distribution. Proceeding with Ubuntu/Debian defaults."
-fi
+            ;;
+    esac
+}
+
+check_package_manager
 
 # --- Install system dependencies ---
-echo "[1/4] Installing system dependencies via apt..."
+echo "[1/4] Installing system dependencies..."
 
-# Clean up any problematic repositories first
-echo "Cleaning up package lists..."
-sudo apt clean
-sudo rm -f /var/lib/apt/lists/lock
-sudo rm -f /var/cache/apt/archives/lock
-sudo rm -f /var/lib/dpkg/lock*
+install_system_dependencies() {
+    case $PACKAGE_MANAGER in
+        "apt")
+            echo "Using apt package manager..."
+            
+            # Clean up any problematic repositories first
+            echo "Cleaning up package lists..."
+            sudo apt clean
+            sudo rm -f /var/lib/apt/lists/lock
+            sudo rm -f /var/cache/apt/archives/lock
+            sudo rm -f /var/lib/dpkg/lock*
+            
+            # Update package lists with error handling
+            echo "Updating package lists..."
+            if ! sudo apt update; then
+                echo "Warning: Package list update failed. This might be due to repository issues."
+                echo "Attempting to continue with existing package lists..."
+            fi
+            
+            # Install packages with error handling
+            echo "Installing required packages..."
+            if ! sudo apt install -y python3 python3-pip python3-venv sqlite3 build-essential curl wget; then
+                echo "Error: Failed to install required packages."
+                echo "Please check your package manager configuration and try again."
+                exit 1
+            fi
+            ;;
+            
+        "yum")
+            echo "Using yum package manager..."
+            
+            # Update package lists
+            echo "Updating package lists..."
+            if ! sudo yum update -y; then
+                echo "Warning: Package list update failed. Attempting to continue..."
+            fi
+            
+            # Install packages
+            echo "Installing required packages..."
+            if ! sudo yum install -y python3 python3-pip sqlite gcc gcc-c++ make curl wget; then
+                echo "Error: Failed to install required packages."
+                echo "Please check your package manager configuration and try again."
+                exit 1
+            fi
+            ;;
+            
+        "brew")
+            echo "Using Homebrew package manager..."
+            
+            # Update Homebrew
+            echo "Updating Homebrew..."
+            if ! brew update; then
+                echo "Warning: Homebrew update failed. Attempting to continue..."
+            fi
+            
+            # Install packages
+            echo "Installing required packages..."
+            if ! brew install python sqlite curl wget; then
+                echo "Error: Failed to install required packages."
+                echo "Please check your Homebrew installation and try again."
+                exit 1
+            fi
+            
+            # On macOS, we need to ensure we're using the Homebrew Python
+            if [[ "$SYSTEM" == "macos_arm" ]]; then
+                echo "Setting up Python for Apple Silicon..."
+                # Add Homebrew Python to PATH if not already there
+                if ! command -v python3 &> /dev/null; then
+                    echo 'export PATH="/opt/homebrew/bin:$PATH"' >> ~/.zshrc
+                    export PATH="/opt/homebrew/bin:$PATH"
+                fi
+            fi
+            ;;
+            
+        "pacman")
+            echo "Using pacman package manager..."
+            
+            # Update package lists
+            echo "Updating package lists..."
+            if ! sudo pacman -Sy; then
+                echo "Warning: Package list update failed. Attempting to continue..."
+            fi
+            
+            # Install packages
+            echo "Installing required packages..."
+            if ! sudo pacman -S --noconfirm python python-pip sqlite base-devel curl wget; then
+                echo "Error: Failed to install required packages."
+                echo "Please check your package manager configuration and try again."
+                exit 1
+            fi
+            ;;
+    esac
+}
 
-# Update package lists with error handling
-echo "Updating package lists..."
-if ! sudo apt update; then
-    echo "Warning: Package list update failed. This might be due to repository issues."
-    echo "Attempting to continue with existing package lists..."
-fi
-
-# Install packages with error handling
-echo "Installing required packages..."
-if ! sudo apt install -y python3 python3-pip python3-venv sqlite3 build-essential curl wget; then
-    echo "Error: Failed to install required packages."
-    echo "Please check your package manager configuration and try again."
-    exit 1
-fi
+install_system_dependencies
 
 # Check if Ollama is already installed
 if command -v ollama &> /dev/null; then
@@ -78,9 +216,21 @@ else
     fi
 fi
 
+# Start Ollama service (different for different systems)
 echo "Starting Ollama service..."
-sudo systemctl enable ollama
-sudo systemctl start ollama
+if [[ "$SYSTEM" == "macos_arm" || "$SYSTEM" == "macos_intel" ]]; then
+    # On macOS, Ollama runs as a user service
+    ollama serve &> /dev/null &
+    echo "Ollama service started in background on macOS."
+else
+    # On Linux, use systemctl
+    if command -v systemctl &> /dev/null; then
+        sudo systemctl enable ollama
+        sudo systemctl start ollama
+    else
+        echo "Warning: systemctl not found. Ollama may need to be started manually."
+    fi
+fi
 
 # Check if the model is already installed
 if ollama list | grep -q "gemma3-cortex:latest"; then
@@ -97,7 +247,18 @@ else
 fi
 
 echo "[2/4] Installing Python dependencies..."
-if ! pip3 install -r requirements.txt; then
+
+# Use the appropriate pip command
+if command -v pip3 &> /dev/null; then
+    PIP_CMD="pip3"
+elif command -v pip &> /dev/null; then
+    PIP_CMD="pip"
+else
+    echo "Error: pip not found. Please install Python and pip first."
+    exit 1
+fi
+
+if ! $PIP_CMD install -r requirements.txt; then
     echo "Error: Failed to install Python dependencies."
     echo "Please check your internet connection and try again."
     exit 1

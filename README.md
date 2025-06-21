@@ -37,7 +37,8 @@ Tatlock is a modular, brain-inspired conversational AI platform with built-in au
 ## Installation
 
 ### Prerequisites
-- Ubuntu/Debian-based system (apt package manager)
+- **Linux**: Ubuntu/Debian-based system (apt), CentOS/RHEL/Fedora (yum), or Arch Linux (pacman)
+- **macOS**: Intel or Apple Silicon (M1/M2) with Homebrew
 - Python 3.10 or higher
 - Git
 
@@ -54,7 +55,7 @@ Tatlock is a modular, brain-inspired conversational AI platform with built-in au
    ./install_tatlock.sh
    ```
 
-   **Note**: The installation script currently only supports apt-based systems (Ubuntu/Debian). For other distributions, manual installation of dependencies may be required.
+   **Note**: The installation script supports apt-based systems (Ubuntu/Debian), yum-based systems (CentOS/RHEL/Fedora), macOS (Intel/Apple Silicon), and Arch Linux. For other distributions, manual installation of dependencies may be required.
 
 3. Set up environment variables:
    ```bash
