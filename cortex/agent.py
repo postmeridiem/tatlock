@@ -72,7 +72,6 @@ def process_chat_interaction(user_message: str, history: list[dict], username: s
 
     max_interactions = 5
     for i in range(max_interactions):
-        print(f"\n--- Agent Loop: Iteration {i + 1} ---")
         response = ollama.chat(model=OLLAMA_MODEL, messages=messages_for_ollama, tools=TOOLS)
         response_message = dict(response['message'])
 
@@ -94,7 +93,6 @@ def process_chat_interaction(user_message: str, history: list[dict], username: s
             response_message['tool_calls'] = None
 
         if not response_message.get('tool_calls') and "tool_calls" in response_message.get('content', ''):
-            print("Workaround: Parsing tool call from text content...")
             content = response_message['content']
             match = re.search(r"<tool_call>\s*(\{.*?\})\s*</tool_call>", content, re.DOTALL)
             if match:
@@ -107,14 +105,12 @@ def process_chat_interaction(user_message: str, history: list[dict], username: s
                                                        "function": {"name": parsed_call.get("name"),
                                                                     "arguments": parsed_call.get("parameters", {})}}]
                     response_message['content'] = ""
-                    print("Normalization successful.")
                 except (json.JSONDecodeError, AttributeError) as e:
                     print(f"Failed to parse tool call from content: {e}")
 
         messages_for_ollama.append(response_message)
 
         if not response_message.get('tool_calls'):
-            print("LLM provided a final answer. Stopping loop.")
             break
 
         tool_outputs = []
@@ -126,7 +122,6 @@ def process_chat_interaction(user_message: str, history: list[dict], username: s
                 if not function_name or not isinstance(function_args, dict): continue
                 if function_name in AVAILABLE_TOOLS:
                     tool_function = AVAILABLE_TOOLS[function_name]
-                    print(f"LLM wants to call tool: {function_name} with args: {function_args}")
                     
                     # Add username to memory-related tools
                     if function_name in ['recall_memories', 'recall_memories_with_time', 'find_personal_variables', 'get_conversations_by_topic', 'get_topics_by_conversation', 'get_conversation_summary', 'get_topic_statistics', 'get_user_conversations', 'get_conversation_details', 'search_conversations']:
@@ -165,13 +160,11 @@ def process_chat_interaction(user_message: str, history: list[dict], username: s
                 {'role': 'user', 'content': history_for_summary}
             ]
             try:
-                print(f"Generating topic with stringified history using model: {OLLAMA_MODEL}")
                 topic_response = ollama.chat(model=OLLAMA_MODEL, messages=messages_for_summary)
                 topic_str = topic_response['message']['content'].strip().lower().replace(" ", "_")
 
                 if not topic_str:
                     topic_str = "general"
-                print(f"Generated topic: {topic_str}")
             except Exception as e:
                 print(f"Could not generate topic: {e}")
 

@@ -140,10 +140,6 @@ async def create_user(request: CreateUserRequest, current_user: dict = Depends(r
     Requires admin role.
     """
     try:
-        print(f"Creating user: {request.username}")
-        print(f"Roles: {request.roles}")
-        print(f"Groups: {request.groups}")
-        
         # Create the user
         success = security_manager.create_user(
             username=request.username,
@@ -158,15 +154,11 @@ async def create_user(request: CreateUserRequest, current_user: dict = Depends(r
         
         # Assign roles
         for role in request.roles:
-            print(f"Adding role {role} to user {request.username}")
-            role_success = security_manager.add_user_to_role(request.username, role)
-            print(f"Role {role} added successfully: {role_success}")
+            security_manager.add_user_to_role(request.username, role)
         
         # Assign groups
         for group in request.groups:
-            print(f"Adding group {group} to user {request.username}")
-            group_success = security_manager.add_user_to_group(request.username, group)
-            print(f"Group {group} added successfully: {group_success}")
+            security_manager.add_user_to_group(request.username, group)
         
         # Get updated user info
         user_info = security_manager.get_user_by_username(request.username)
@@ -175,9 +167,6 @@ async def create_user(request: CreateUserRequest, current_user: dict = Depends(r
         
         roles = security_manager.get_user_roles(request.username)
         groups = security_manager.get_user_groups(request.username)
-        
-        print(f"Final roles: {roles}")
-        print(f"Final groups: {groups}")
         
         return UserResponse(
             username=user_info['username'],

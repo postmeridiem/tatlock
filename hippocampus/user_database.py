@@ -101,7 +101,6 @@ def execute_user_query(username: str, query: str, params: tuple = ()) -> list[di
     results = []
     try:
         cursor = conn.cursor()
-        print(f"Executing SQL for user '{username}': {query} with params {params}")
         cursor.execute(query, params)
         rows = cursor.fetchall()
         results = [dict(row) for row in rows]

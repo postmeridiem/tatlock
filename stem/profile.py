@@ -85,16 +85,11 @@ async def change_password(request: PasswordChangeRequest, current_user: dict = D
     Requires authentication and current password verification.
     """
     try:
-        print(f"Password change attempt for user: {current_user['username']}")
-        print(f"Request data: current_password length={len(request.current_password)}, new_password length={len(request.new_password)}")
-        
         # Verify current password
         user = security_manager.authenticate_user(current_user['username'], request.current_password)
         if not user:
             print(f"Password verification failed for user: {current_user['username']}")
             raise HTTPException(status_code=400, detail="Current password is incorrect")
-        
-        print(f"Password verification successful for user: {current_user['username']}")
         
         # Update password
         success = security_manager.update_user(
@@ -106,13 +101,12 @@ async def change_password(request: PasswordChangeRequest, current_user: dict = D
             print(f"Password update failed for user: {current_user['username']}")
             raise HTTPException(status_code=500, detail="Failed to update password")
         
-        print(f"Password updated successfully for user: {current_user['username']}")
         return {"message": "Password updated successfully"}
     except HTTPException:
         raise
     except Exception as e:
         print(f"Unexpected error in password change: {e}")
-        raise HTTPException(status_code=500, detail=f"Error changing password: {str(e)}") 
+        raise HTTPException(status_code=500, detail=f"Error changing password: {str(e)}")
 
 @profile_router.get("/pageheader")
 async def get_page_header(current_user: dict = Depends(get_current_user)):

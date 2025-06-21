@@ -1088,8 +1088,6 @@ def create_initial_admin():
         password="breaker",
         email="admin@tatlock.local"
     ):
-        print("Admin user created successfully")
-        
         # Add roles
         security_manager.add_user_to_role("admin", "user")
         security_manager.add_user_to_role("admin", "admin")
@@ -1097,8 +1095,6 @@ def create_initial_admin():
         # Add groups
         security_manager.add_user_to_group("admin", "users")
         security_manager.add_user_to_group("admin", "admins")
-        
-        print(f"Admin user configured with roles and groups")
     else:
         print("Admin user already exists or creation failed")
 

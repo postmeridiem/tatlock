@@ -102,6 +102,24 @@ CREATE TABLE IF NOT EXISTS rise_and_shine (
     enabled INTEGER DEFAULT 1,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE TABLE IF NOT EXISTS personal_variables_keys (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    key TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS personal_variables (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    value TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS personal_variables_join (
+    key_id INTEGER,
+    variable_id INTEGER,
+    PRIMARY KEY (key_id, variable_id),
+    FOREIGN KEY (key_id) REFERENCES personal_variables_keys (id) ON DELETE CASCADE,
+    FOREIGN KEY (variable_id) REFERENCES personal_variables (id) ON DELETE CASCADE
+);
 """
 
 def create_default_roles(cursor):
@@ -137,7 +155,14 @@ def create_default_rise_and_shine(cursor):
     instructions = [
         "You are a helpful personal assistant named Tatlock. You speak formally like a British butler, calling me sir.  You are not too apologetic and a little snarky at times. Your responses should be concise and to the point, unless asked for details. You should reveal you are AI when asked. If you see an opportunity to make pun or a joke, grab it.",
         "If you need to use a tool, always call the tool directly and silently. Do not narrate, announce, or ask for permission to use a tool, unless the tool definition or system instructions specify otherwise.",
-        "if there are any discussions on how to improve your functionality, suggest to a new global prompt to your initialization prompts that sit in the the rise and shine table to capture the improvement"
+        "if there are any discussions on how to improve your functionality, suggest to a new global prompt to your initialization prompts that sit in the the rise and shine table to capture the improvement",
+        "You have access to personal information about the user through the find_personal_variables tool. When the user asks about themselves, their location, name, or other personal details, use this tool to retrieve accurate information before responding. This helps provide personalized and accurate responses.",
+        "You have access to conversation memory tools. Use recall_memories to search past conversations when users ask about previous discussions or want to reference something you've talked about before. Use recall_memories_with_time when they specify a date range.",
+        "You can analyze conversation topics and patterns. Use get_conversations_by_topic when users want to see all conversations about a specific subject. Use get_topics_by_conversation to see what topics were discussed in a particular conversation.",
+        "You can provide conversation summaries and statistics. Use get_conversation_summary when users want a detailed overview of a specific conversation. Use get_topic_statistics to show overall conversation patterns and topic frequency.",
+        "You can help users find and search through their conversation history. Use get_user_conversations to show recent conversations, get_conversation_details for specific conversation info, and search_conversations when users want to find conversations by keywords.",
+        "You have access to weather forecast information. When users ask about weather, weather forecasts, or planning activities based on weather, use the get_weather_forecast tool to provide accurate, up-to-date weather information for any city.",
+        "You have access to web search capabilities. When users ask about current events, recent information, or topics that require up-to-date knowledge beyond your training data, use the web_search tool to find the most current information available."
     ]
     
     for instruction in instructions:
@@ -145,6 +170,47 @@ def create_default_rise_and_shine(cursor):
             "INSERT OR IGNORE INTO rise_and_shine (instruction, enabled) VALUES (?, ?)",
             (instruction, 1)
         )
+
+def create_default_personal_variables(cursor):
+    """Create default personal variables for testing and demonstration."""
+    # Sample personal variables - users can add their own
+    personal_vars = [
+        ("nickname", "User"),
+        ("location", "Rotterdam"),
+        ("timezone", "Europe/Amsterdam"),
+        ("language", "English")
+    ]
+    
+    for key, value in personal_vars:
+        # Insert the key first (let SQLite autoincrement id)
+        cursor.execute(
+            "INSERT OR IGNORE INTO personal_variables_keys (key) VALUES (?)",
+            (key,)
+        )
+        
+        # Get the key_id for this key
+        cursor.execute("SELECT id FROM personal_variables_keys WHERE key = ?", (key,))
+        result = cursor.fetchone()
+        
+        if result:
+            key_id = result[0]
+            # Insert the value
+            cursor.execute(
+                "INSERT OR IGNORE INTO personal_variables (value) VALUES (?)",
+                (value,)
+            )
+            
+            # Get the variable_id for this value
+            cursor.execute("SELECT id FROM personal_variables WHERE value = ?", (value,))
+            result = cursor.fetchone()
+            
+            if result:
+                variable_id = result[0]
+                # Create the many-to-many relationship
+                cursor.execute(
+                    "INSERT OR IGNORE INTO personal_variables_join (key_id, variable_id) VALUES (?, ?)",
+                    (key_id, variable_id)
+                )
 
 def create_system_db_tables(db_path: str):
     """
@@ -179,6 +245,9 @@ def create_longterm_db_tables(db_path: str):
     
     # Create default rise_and_shine instructions
     create_default_rise_and_shine(cursor)
+    
+    # Create default personal variables
+    create_default_personal_variables(cursor)
     
     conn.commit()
     conn.close() 

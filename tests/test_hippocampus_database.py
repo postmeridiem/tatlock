@@ -32,27 +32,41 @@ def test_query_personal_variables():
     
     try:
         # Create tables first (they may not exist in the default schema)
-        cursor.execute("CREATE TABLE IF NOT EXISTS personal_variables_keys (entity_id INTEGER PRIMARY KEY, key TEXT)")
-        cursor.execute("CREATE TABLE IF NOT EXISTS personal_variables (entity_id INTEGER, value TEXT)")
+        cursor.execute("CREATE TABLE IF NOT EXISTS personal_variables_keys (id INTEGER PRIMARY KEY AUTOINCREMENT, key TEXT)")
+        cursor.execute("CREATE TABLE IF NOT EXISTS personal_variables (id INTEGER PRIMARY KEY AUTOINCREMENT, value TEXT)")
+        cursor.execute("CREATE TABLE IF NOT EXISTS personal_variables_join (key_id INTEGER, variable_id INTEGER, PRIMARY KEY (key_id, variable_id), FOREIGN KEY (key_id) REFERENCES personal_variables_keys (id) ON DELETE CASCADE, FOREIGN KEY (variable_id) REFERENCES personal_variables (id) ON DELETE CASCADE)")
         
         # Clear any existing data
+        cursor.execute("DELETE FROM personal_variables_join")
         cursor.execute("DELETE FROM personal_variables_keys")
         cursor.execute("DELETE FROM personal_variables")
         
         # Insert test data
-        cursor.execute("INSERT INTO personal_variables_keys (entity_id, key) VALUES (?, ?)", (1, "nickname"))
-        cursor.execute("INSERT INTO personal_variables (entity_id, value) VALUES (?, ?)", (1, "TatlockBot"))
+        cursor.execute("INSERT INTO personal_variables_keys (key) VALUES (?)", ("nickname",))
+        cursor.execute("INSERT INTO personal_variables (value) VALUES (?)", ("TatlockBot",))
+        
+        # Get the IDs for the join
+        cursor.execute("SELECT id FROM personal_variables_keys WHERE key = ?", ("nickname",))
+        key_id = cursor.fetchone()[0]
+        cursor.execute("SELECT id FROM personal_variables WHERE value = ?", ("TatlockBot",))
+        variable_id = cursor.fetchone()[0]
+        
+        # Create the join relationship
+        cursor.execute("INSERT INTO personal_variables_join (key_id, variable_id) VALUES (?, ?)", (key_id, variable_id))
         
         # Commit the changes
         conn.commit()
         
         # Debug: check each table individually
-        cursor.execute("SELECT entity_id, key FROM personal_variables_keys")
+        cursor.execute("SELECT id, key FROM personal_variables_keys")
         keys_data = [dict(row) for row in cursor.fetchall()]
-        cursor.execute("SELECT entity_id, value FROM personal_variables")
+        cursor.execute("SELECT id, value FROM personal_variables")
         values_data = [dict(row) for row in cursor.fetchall()]
+        cursor.execute("SELECT key_id, variable_id FROM personal_variables_join")
+        join_data = [dict(row) for row in cursor.fetchall()]
         print(f"DEBUG: Keys table: {keys_data}")
         print(f"DEBUG: Values table: {values_data}")
+        print(f"DEBUG: Join table: {join_data}")
         
         # Test the query_personal_variables function
         results = query_personal_variables("nickname", username)

@@ -10,7 +10,7 @@ import os
 from hippocampus.user_database import execute_user_query, get_database_connection
 
 
-def get_base_instructions(username: str = "admin") -> list[str]:
+def get_base_instructions(username: str = "") -> list[str]:
     """
     Queries the database to get all enabled base instructions for the system prompt.
     Args:
@@ -18,15 +18,16 @@ def get_base_instructions(username: str = "admin") -> list[str]:
     Returns:
         list[str]: Enabled instructions in order.
     """
+    if username == "":
+        raise ValueError("Username is required")
     query = "SELECT instruction FROM rise_and_shine WHERE enabled = 1 ORDER BY id;"
     
     results = execute_user_query(username, query)
     instructions = [row['instruction'] for row in results]
-    print(f"Loaded {len(instructions)} enabled base instructions from database for user '{username}'.")
     return instructions
 
 
-def query_personal_variables(searchkey: str, username: str = "admin") -> list[dict]:
+def query_personal_variables(searchkey: str, username: str = "") -> list[dict]:
     """
     Finds a personal variable by its alias/key.
     Args:
@@ -35,7 +36,10 @@ def query_personal_variables(searchkey: str, username: str = "admin") -> list[di
     Returns:
         list[dict]: Matching personal variable values.
     """
+    if username == "":
+        raise ValueError("Username is required")
     query = ("SELECT pv.value FROM personal_variables AS pv "
-             "JOIN personal_variables_keys AS pvk ON pv.entity_id = pvk.entity_id "
+             "JOIN personal_variables_join AS pvj ON pv.id = pvj.variable_id "
+             "JOIN personal_variables_keys AS pvk ON pvj.key_id = pvk.id "
              "WHERE pvk.key = ?;")
     return execute_user_query(username, query, (searchkey,))

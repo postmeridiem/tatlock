@@ -78,8 +78,6 @@ def save_interaction(user_prompt: str, llm_reply: str, full_llm_history: list[di
         """
         cursor.execute(query, (interaction_id, conversation_id, timestamp, user_prompt, llm_reply, history_json))
 
-        print(f"Interaction {interaction_id} saved to memories for user '{username}' in conversation '{conversation_id}'.")
-
         # Step 2: Get or Create the Topic
         topic_id = get_or_create_topic(conn, topic)
         if not topic_id:
@@ -90,8 +88,6 @@ def save_interaction(user_prompt: str, llm_reply: str, full_llm_history: list[di
         # Step 3: Link Memory and Topic
         cursor.execute("INSERT OR IGNORE INTO memory_topics (interaction_id, topic_id) VALUES (?, ?)",
                        (interaction_id, topic_id))
-
-        print(f"Linked memory {interaction_id} to topic '{topic}' (ID: {topic_id}) for user '{username}'.")
 
         # Step 4: Update conversation_topics relationship
         update_conversation_topics(conn, conversation_id, topic_id, timestamp)
@@ -141,16 +137,12 @@ def update_conversation_topics(conn: sqlite3.Connection, conversation_id: str, t
                 SET first_occurrence = ?, last_occurrence = ?, topic_count = ?
                 WHERE conversation_id = ? AND topic_id = ?
             """, (first_occurrence, last_occurrence, topic_count, conversation_id, topic_id))
-            
-            print(f"Updated conversation_topics: conversation '{conversation_id}' topic {topic_id} (count: {topic_count})")
         else:
             # Create new relationship
             cursor.execute("""
                 INSERT INTO conversation_topics (conversation_id, topic_id, first_occurrence, last_occurrence, topic_count)
                 VALUES (?, ?, ?, ?, 1)
             """, (conversation_id, topic_id, timestamp, timestamp))
-            
-            print(f"Created new conversation_topics: conversation '{conversation_id}' topic {topic_id}")
             
     except sqlite3.Error as e:
         print(f"Error updating conversation_topics: {e}")
@@ -182,7 +174,6 @@ def create_or_update_conversation(conversation_id: str, username: str, title: st
         
         conn.commit()
         conn.close()
-        print(f"Updated longterm.db conversation record: {conversation_id} for user {username}")
         
         return True
         
