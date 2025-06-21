@@ -129,10 +129,10 @@ check_python_version() {
             local major=$(echo "$version" | cut -d. -f1)
             local minor=$(echo "$version" | cut -d. -f2)
             if [ "$major" -eq 3 ] && [ "$minor" -ge 10 ]; then
-                echo "✓ Found Python $version (meets requirement: 3.10+)"
+                echo "[OK] Found Python $version (meets requirement: 3.10+)" >&2
                 return 0
             else
-                echo "✗ Found Python $version (requires 3.10+)"
+                echo "[ERROR] Found Python $version (requires 3.10+)" >&2
                 return 1
             fi
         fi
@@ -147,7 +147,7 @@ check_python_version() {
                 local major=$(echo "$version" | cut -d. -f1)
                 local minor=$(echo "$version" | cut -d. -f2)
                 if [ "$major" -eq 3 ] && [ "$minor" -ge 10 ]; then
-                    echo "✓ Found Python $version at $path (meets requirement: 3.10+)"
+                    echo "[OK] Found Python $version at $path (meets requirement: 3.10+)" >&2
                     return 0
                 fi
             fi
@@ -303,17 +303,41 @@ install_python310() {
 install_system_dependencies() {
     # First, check if we have Python 3.10+ available
     echo "Checking Python version..."
-    if check_python_version "python3" || check_python_version "python3.10" || check_python_version "python"; then
-        echo "✓ Python 3.10+ is available"
+    
+    # Quick check - if python3 --version shows 3.10+, we can skip installation
+    if command -v python3 &> /dev/null; then
+        PYTHON_VERSION=$(python3 -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')" 2>/dev/null)
+        if [ $? -eq 0 ]; then
+            MAJOR=$(echo "$PYTHON_VERSION" | cut -d. -f1)
+            MINOR=$(echo "$PYTHON_VERSION" | cut -d. -f2)
+            if [ "$MAJOR" -eq 3 ] && [ "$MINOR" -ge 10 ]; then
+                echo "[OK] Found Python $PYTHON_VERSION - meets requirements" >&2
+                echo "Skipping Python installation since Python 3.10+ is already available."
+                PYTHON_AVAILABLE=true
+            else
+                echo "[ERROR] Found Python $PYTHON_VERSION - requires 3.10+" >&2
+                PYTHON_AVAILABLE=false
+            fi
+        else
+            echo "[ERROR] Could not determine Python version"
+            PYTHON_AVAILABLE=false
+        fi
     else
-        echo "✗ Python 3.10+ not found. Installing..."
+        echo "[ERROR] python3 command not found"
+        PYTHON_AVAILABLE=false
+    fi
+    
+    # Only install Python if not available
+    if [ "$PYTHON_AVAILABLE" != "true" ]; then
+        echo "Installing Python 3.10+..."
         install_python310
         
         # Verify installation
         if check_python_version "python3" || check_python_version "python3.10" || check_python_version "python"; then
-            echo "✓ Python 3.10+ successfully installed"
+            echo "[OK] Python 3.10+ successfully installed" >&2
+            PYTHON_AVAILABLE=true
         else
-            echo "✗ Failed to install Python 3.10+. Please install manually."
+            echo "[ERROR] Failed to install Python 3.10+. Please install manually." >&2
             exit 1
         fi
     fi
@@ -435,14 +459,30 @@ find_python_executable() {
         fi
     done
     
+    # Debug: Show what Python versions are available
+    echo "Debug: Available Python versions:" >&2
+    which python3.10 2>/dev/null || echo "python3.10 not found" >&2
+    which python3 2>/dev/null || echo "python3 not found" >&2
+    which python 2>/dev/null || echo "python not found" >&2
+    
     return 1
 }
 
 # Find the correct Python executable
 PYTHON_CMD=$(find_python_executable)
-if [ $? -ne 0 ]; then
+if [ $? -ne 0 ] || [ -z "$PYTHON_CMD" ]; then
     echo "Error: No suitable Python 3.10+ executable found."
     echo "Please ensure Python 3.10+ is installed and available in PATH."
+    echo ""
+    echo "To install Python 3.10+ on Ubuntu/Debian:"
+    echo "  sudo apt update"
+    echo "  sudo apt install python3.10 python3.10-venv python3.10-pip"
+    echo ""
+    echo "To install Python 3.10+ on CentOS/RHEL/Fedora:"
+    echo "  sudo dnf install python3.10 python3.10-pip python3.10-devel"
+    echo ""
+    echo "To install Python 3.10+ on macOS:"
+    echo "  brew install python@3.10"
     exit 1
 fi
 
