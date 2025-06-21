@@ -556,6 +556,25 @@ launchctl load ~/Library/LaunchAgents/com.tatlock.plist
 - Ensure you're using the Homebrew Python: `/usr/local/bin/python3`
 - Check that Homebrew is properly installed
 
+### Ollama CUDA Library Permission Errors
+
+If you see an error like:
+
+    llama runner process has terminated: error:status: Permission denied [/usr/local/lib/ollama/cuda_v11/libggml-cuda.so]
+
+This means the CUDA library files installed by Ollama are not readable by your user (they may be owned by root with restrictive permissions).
+
+**Solution:**
+
+The Tatlock installer now automatically fixes these permissions after installing Ollama and its models. If you installed Ollama manually or still encounter this error, run:
+
+```bash
+sudo find /usr/local/lib/ollama/cuda_v11 -type f -name '*.so' -exec chmod 755 {} \;
+sudo chmod 755 /usr/local/lib/ollama/cuda_v11
+```
+
+This will ensure all users can read and execute the required GPU libraries, preventing permission denied errors when running Tatlock with Ollama and CUDA acceleration.
+
 ### Yum/DNF Issues
 
 **Package conflicts:**

@@ -316,6 +316,14 @@ else
     ollama rm ebdm/gemma3-enhanced:12b
 fi
 
+# --- Fix Ollama CUDA library permissions (prevents permission denied errors) ---
+if [ -d "/usr/local/lib/ollama/cuda_v11" ]; then
+    echo "Fixing permissions for Ollama CUDA libraries..."
+    sudo find /usr/local/lib/ollama/cuda_v11 -type f -name '*.so' -exec chmod 755 {} \;
+    sudo chmod 755 /usr/local/lib/ollama/cuda_v11
+    echo "- Permissions for Ollama CUDA libraries set to 755"
+fi
+
 echo "[4/10] Installing Python dependencies..."
 
 # Use the appropriate pip command

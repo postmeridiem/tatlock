@@ -60,6 +60,13 @@ Tatlock is a modular, brain-inspired conversational AI platform with built-in au
 
    The script will automatically create a `.env` file with all required environment variables and generate a secure `STARLETTE_SECRET` key.
 
+   **Ollama CUDA Permissions**: If you are using GPU acceleration with Ollama, the installer will automatically fix permissions on CUDA library files (e.g., `/usr/local/lib/ollama/cuda_v11/*.so`) to prevent "Permission denied" errors. If you ever see such an error, you can manually run:
+   ```bash
+   sudo find /usr/local/lib/ollama/cuda_v11 -type f -name '*.so' -exec chmod 755 {} \;
+   sudo chmod 755 /usr/local/lib/ollama/cuda_v11
+   ```
+   This ensures all users can access the required GPU libraries.
+
    **Note**: If a `.env` file already exists, the script will ask if you want to overwrite it or keep the existing configuration.
 
    The script also creates a Python virtual environment in the `.venv` directory for isolated dependency management.
