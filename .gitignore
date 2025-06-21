@@ -5,9 +5,14 @@ hippocampus/longterm/*.db
 
 # Python cache files
 __pycache__/
-.pytest_cache/
+tests/.pytest_cache/
 *.py[cod]
 *$py.class
+
+# Test coverage and output files
+tests/.coverage
+tests/test_output.txt
+tests/test_cookies.txt
 
 # IDE files
 .vscode/
