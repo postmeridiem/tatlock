@@ -88,6 +88,14 @@ CREATE TABLE IF NOT EXISTS conversation_topics (
     FOREIGN KEY (topic_id) REFERENCES topics (topic_id) ON DELETE CASCADE
 );
 
+CREATE TABLE IF NOT EXISTS conversations (
+    conversation_id TEXT PRIMARY KEY,
+    title TEXT,
+    started_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    last_activity TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    message_count INTEGER DEFAULT 0
+);
+
 CREATE TABLE IF NOT EXISTS rise_and_shine (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     instruction TEXT NOT NULL,

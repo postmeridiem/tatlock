@@ -23,7 +23,10 @@ from stem.tools import (
     execute_get_conversations_by_topic,
     execute_get_topics_by_conversation,
     execute_get_conversation_summary,
-    execute_get_topic_statistics
+    execute_get_topic_statistics,
+    execute_get_user_conversations,
+    execute_get_conversation_details,
+    execute_search_conversations
 )
 from hippocampus.remember import save_interaction
 
@@ -38,6 +41,9 @@ AVAILABLE_TOOLS = {
     "get_topics_by_conversation": execute_get_topics_by_conversation,
     "get_conversation_summary": execute_get_conversation_summary,
     "get_topic_statistics": execute_get_topic_statistics,
+    "get_user_conversations": execute_get_user_conversations,
+    "get_conversation_details": execute_get_conversation_details,
+    "search_conversations": execute_search_conversations,
 }
 
 
@@ -123,7 +129,7 @@ def process_chat_interaction(user_message: str, history: list[dict], username: s
                     print(f"LLM wants to call tool: {function_name} with args: {function_args}")
                     
                     # Add username to memory-related tools
-                    if function_name in ['recall_memories', 'recall_memories_with_time', 'find_personal_variables', 'get_conversations_by_topic', 'get_topics_by_conversation', 'get_conversation_summary', 'get_topic_statistics']:
+                    if function_name in ['recall_memories', 'recall_memories_with_time', 'find_personal_variables', 'get_conversations_by_topic', 'get_topics_by_conversation', 'get_conversation_summary', 'get_topic_statistics', 'get_user_conversations', 'get_conversation_details', 'search_conversations']:
                         function_args['username'] = username
                     
                     output = tool_function(**function_args)

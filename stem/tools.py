@@ -17,7 +17,10 @@ from hippocampus.recall import (
     get_conversations_by_topic,
     get_topics_by_conversation,
     get_conversation_summary,
-    get_topic_statistics
+    get_topic_statistics,
+    get_user_conversations,
+    get_conversation_details,
+    search_conversations
 )
 
 # ... (The TOOLS list and other execute functions remain the same) ...
@@ -127,6 +130,61 @@ TOOLS = [
                 "type": "object",
                 "properties": {},
                 "required": [],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_user_conversations",
+            "description": "Get all conversations for the current user, ordered by most recent activity.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "limit": {
+                        "type": "integer",
+                        "description": "Maximum number of conversations to return. Defaults to 50."
+                    }
+                },
+                "required": [],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_conversation_details",
+            "description": "Get detailed information about a specific conversation including its topics and metadata.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "conversation_id": {
+                        "type": "string",
+                        "description": "The conversation ID to get details for."
+                    }
+                },
+                "required": ["conversation_id"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "search_conversations",
+            "description": "Search conversations by title or conversation ID for the current user.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "query": {
+                        "type": "string",
+                        "description": "The search query to match against conversation titles or IDs."
+                    },
+                    "limit": {
+                        "type": "integer",
+                        "description": "Maximum number of results to return. Defaults to 20."
+                    }
+                },
+                "required": ["query"],
             },
         },
     },
@@ -393,3 +451,66 @@ def execute_get_topic_statistics(username: str = "admin") -> dict:
     if not results:
         return {"status": "success", "data": [], "message": "No topic statistics available."}
     return {"status": "success", "data": results}
+
+
+def execute_get_user_conversations(username: str = "admin", limit: int = 50) -> dict:
+    """
+    Get all conversations for a user.
+    Args:
+        username (str): The username whose database to search. Defaults to "admin".
+        limit (int): Maximum number of conversations to return. Defaults to 50.
+    Returns:
+        dict: Status and conversation list or message.
+    """
+    results = get_user_conversations(username, limit)
+    if not results:
+        return {"status": "success", "data": [], "message": "No conversations found."}
+    return {"status": "success", "data": results}
+
+
+def execute_get_conversation_details(conversation_id: str, username: str = "admin") -> dict:
+    """
+    Get detailed information about a specific conversation.
+    Args:
+        conversation_id (str): The conversation ID to get details for.
+        username (str): The username whose database to search. Defaults to "admin".
+    Returns:
+        dict: Status and conversation details or message.
+    """
+    details = get_conversation_details(conversation_id, username)
+    if not details:
+        return {"status": "success", "data": {}, "message": f"Conversation '{conversation_id}' not found."}
+    return {"status": "success", "data": details}
+
+
+def execute_search_conversations(query: str, username: str = "admin", limit: int = 20) -> dict:
+    """
+    Search conversations by title or conversation ID.
+    Args:
+        query (str): The search query.
+        username (str): The username whose database to search. Defaults to "admin".
+        limit (int): Maximum number of results to return. Defaults to 20.
+    Returns:
+        dict: Status and search results or message.
+    """
+    results = search_conversations(username, query, limit)
+    if not results:
+        return {"status": "success", "data": [], "message": f"No conversations found matching '{query}'."}
+    return {"status": "success", "data": results}
+
+
+# --- Tool Dispatcher ---
+AVAILABLE_TOOLS = {
+    "web_search": execute_web_search,
+    "find_personal_variables": execute_find_personal_variables,
+    "get_weather_forecast": execute_get_weather_forecast,
+    "recall_memories": execute_recall_memories,
+    "recall_memories_with_time": execute_recall_memories_with_time,
+    "get_conversations_by_topic": execute_get_conversations_by_topic,
+    "get_topics_by_conversation": execute_get_topics_by_conversation,
+    "get_conversation_summary": execute_get_conversation_summary,
+    "get_topic_statistics": execute_get_topic_statistics,
+    "get_user_conversations": execute_get_user_conversations,
+    "get_conversation_details": execute_get_conversation_details,
+    "search_conversations": execute_search_conversations,
+}

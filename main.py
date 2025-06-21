@@ -2,16 +2,18 @@
 main.py
 
 Entry point for the Tatlock conversational AI API using FastAPI.
-Defines the API contract and HTTP endpoints with comprehensive authentication,
+Defines the API contract and HTTP endpoints with comprehensive session-based authentication,
 user management, admin dashboard, and web interface.
 
 Features:
-- FastAPI-based HTTP interface with authentication
-- Admin dashboard for user, role, and group management
+- FastAPI-based HTTP interface with session-based authentication
+- Admin dashboard for user, role, and group management (moved to stem/admin.py)
 - User profile management and password changes
 - Debug console with JSON logging
 - Material Design web interface with dark/light mode
 - ReDoc documentation disabled for security
+- Session-based login/logout with proper redirects
+- Conversation tracking and user data isolation
 """
 
 import os
@@ -20,7 +22,7 @@ from fastapi import FastAPI, HTTPException, Depends, Request, Form, status
 from fastapi.responses import HTMLResponse, RedirectResponse, FileResponse
 import uvicorn
 from cortex.agent import process_chat_interaction
-from stem.static import mount_static_files, get_chat_page, get_admin_page, get_profile_page, get_login_page
+from stem.static import mount_static_files, get_chat_page, get_profile_page, get_login_page
 from stem.security import get_current_user, require_admin_role, security_manager, login_user, logout_user
 from stem.models import (
     ChatRequest, ChatResponse
@@ -36,7 +38,7 @@ from fastapi.openapi.utils import get_openapi
 load_dotenv()
 
 # Get secret key from environment variable with fallback
-SECRET_KEY = os.getenv("STARLETTE_SECRET", "change-this-to-a-very-secret-key")
+SECRET_KEY = os.getenv("STARLETTE_SECRET", "this-is-not-a-secret-key")
 
 # --- FastAPI App ---
 app = FastAPI(
@@ -164,7 +166,7 @@ async def chat_endpoint(request: ChatRequest, current_user: dict = Depends(get_c
     """
     HTTP entrypoint for chat interactions.
     Validates the request and calls the backend agent logic.
-    Requires authentication via HTTP Basic Auth.
+    Requires authentication via session-based authentication.
     Returns AI response with topic classification and updated history.
     """
     try:
@@ -205,25 +207,16 @@ async def read_root(request: Request):
 async def chat_page(current_user: dict = Depends(get_current_user)):
     """
     Debug console interface page.
-    Requires authentication via HTTP Basic Auth.
+    Requires authentication via session-based authentication.
     Provides real-time JSON logging of server interactions.
     """
     return get_chat_page()
-
-@app.get("/admin/dashboard", tags=["html"], response_class=HTMLResponse)
-async def admin_page(current_user: dict = Depends(require_admin_role)):
-    """
-    Admin dashboard page.
-    Requires admin role via HTTP Basic Auth.
-    Provides user, role, and group management interface.
-    """
-    return get_admin_page()
 
 @app.get("/profile")
 async def profile_page(current_user: dict = Depends(get_current_user)):
     """
     User profile management page.
-    Requires authentication via HTTP Basic Auth.
+    Requires authentication via session-based authentication.
     Allows users to view and edit their profile information.
     """
     return HTMLResponse(content=get_profile_page())

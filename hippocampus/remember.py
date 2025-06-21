@@ -11,6 +11,7 @@ from datetime import datetime
 import uuid
 import os
 from hippocampus.user_database import get_database_connection, ensure_user_database
+from config import SYSTEM_DB_PATH
 
 
 def get_or_create_topic(conn: sqlite3.Connection, topic_name: str) -> int | None:
@@ -56,6 +57,9 @@ def save_interaction(user_prompt: str, llm_reply: str, full_llm_history: list[di
     # Generate conversation_id if not provided
     if conversation_id is None:
         conversation_id = datetime.now().strftime('%Y-%m-%d-%H-%M-%S')
+    
+    # Create or update conversation record
+    create_or_update_conversation(conversation_id, username, title=f"Conversation about {topic}")
     
     conn = None
 
@@ -151,3 +155,37 @@ def update_conversation_topics(conn: sqlite3.Connection, conversation_id: str, t
     except sqlite3.Error as e:
         print(f"Error updating conversation_topics: {e}")
         raise
+
+
+def create_or_update_conversation(conversation_id: str, username: str, title: str | None = None) -> bool:
+    """
+    Create or update a conversation record in the user's longterm database.
+    Args:
+        conversation_id (str): The conversation ID.
+        username (str): The username.
+        title (str | None): Optional conversation title.
+    Returns:
+        bool: True if successful, False otherwise.
+    """
+    try:
+        # Update user's longterm.db conversations table
+        db_path = ensure_user_database(username)
+        conn = sqlite3.connect(db_path)
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            INSERT OR REPLACE INTO conversations 
+            (conversation_id, title, started_at, last_activity, message_count)
+            VALUES (?, ?, COALESCE((SELECT started_at FROM conversations WHERE conversation_id = ?), CURRENT_TIMESTAMP), CURRENT_TIMESTAMP,
+                   COALESCE((SELECT message_count FROM conversations WHERE conversation_id = ?), 0) + 1)
+        """, (conversation_id, title, conversation_id, conversation_id))
+        
+        conn.commit()
+        conn.close()
+        print(f"Updated longterm.db conversation record: {conversation_id} for user {username}")
+        
+        return True
+        
+    except sqlite3.Error as e:
+        print(f"Error updating longterm.db conversation record: {e}")
+        return False

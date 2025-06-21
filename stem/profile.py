@@ -10,7 +10,7 @@ from stem.security import get_current_user, security_manager
 from stem.models import UpdateUserRequest, UserResponse, PasswordChangeRequest
 
 # Create profile router
-profile_router = APIRouter(prefix="/profile", tags=["Profile"])
+profile_router = APIRouter(prefix="/profile", tags=["profile"])
 
 @profile_router.get("/", response_model=UserResponse)
 async def get_profile(current_user: dict = Depends(get_current_user)):

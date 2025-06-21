@@ -7,9 +7,11 @@ Now supports user-specific databases and conversation-topic relationships.
 
 import sqlite3
 import os
-from hippocampus.user_database import execute_user_query, get_database_connection
+from hippocampus.user_database import execute_user_query, get_database_connection, ensure_user_database
 from datetime import datetime
+from config import SYSTEM_DB_PATH
 # Import any date helpers from stem.timeawareness if needed
+
 
 def recall_memories(keyword: str | None = None, username: str = "admin") -> list[dict]:
     """
@@ -41,6 +43,7 @@ def recall_memories(keyword: str | None = None, username: str = "admin") -> list
     results = execute_user_query(username, query, (like_kw, like_kw, like_kw))
     
     return results
+
 
 def recall_memories_with_time(keyword: str | None = None, username: str = "admin", start_date: str | None = None, end_date: str | None = None) -> list[dict]:
     """
@@ -86,6 +89,7 @@ def recall_memories_with_time(keyword: str | None = None, username: str = "admin
     results = execute_user_query(username, query, tuple(params))
     return results
 
+
 def get_conversations_by_topic(topic_name: str, username: str = "admin") -> list[dict]:
     """
     Get all conversations that contain a specific topic.
@@ -115,6 +119,7 @@ def get_conversations_by_topic(topic_name: str, username: str = "admin") -> list
     results = execute_user_query(username, query, (like_topic,))
     return results
 
+
 def get_topics_by_conversation(conversation_id: str, username: str = "admin") -> list[dict]:
     """
     Get all topics that appear in a specific conversation.
@@ -138,6 +143,7 @@ def get_topics_by_conversation(conversation_id: str, username: str = "admin") ->
     
     results = execute_user_query(username, query, (conversation_id,))
     return results
+
 
 def get_conversation_summary(conversation_id: str, username: str = "admin") -> dict:
     """
@@ -194,6 +200,7 @@ def get_conversation_summary(conversation_id: str, username: str = "admin") -> d
     
     return summary
 
+
 def get_topic_statistics(username: str = "admin") -> list[dict]:
     """
     Get statistics about topics across all conversations.
@@ -217,3 +224,150 @@ def get_topic_statistics(username: str = "admin") -> list[dict]:
     
     results = execute_user_query(username, query)
     return results
+
+
+# New conversation management functions
+def get_user_conversations(username: str, limit: int = 50) -> list[dict]:
+    """
+    Get all conversations for a user from their longterm database.
+    Args:
+        username (str): The username.
+        limit (int): Maximum number of conversations to return.
+    Returns:
+        list[dict]: List of conversation records.
+    """
+    try:
+        db_path = ensure_user_database(username)
+        conn = sqlite3.connect(db_path)
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            SELECT conversation_id, title, started_at, last_activity, message_count
+            FROM conversations 
+            ORDER BY last_activity DESC
+            LIMIT ?
+        """, (limit,))
+        
+        rows = cursor.fetchall()
+        conversations = []
+        
+        for row in rows:
+            conversations.append({
+                'conversation_id': row[0],
+                'title': row[1],
+                'started_at': row[2],
+                'last_activity': row[3],
+                'message_count': row[4]
+            })
+        
+        conn.close()
+        return conversations
+        
+    except sqlite3.Error as e:
+        print(f"Error getting conversations for user '{username}': {e}")
+        return []
+
+
+def get_conversation_details(conversation_id: str, username: str) -> dict | None:
+    """
+    Get detailed information about a specific conversation.
+    Args:
+        conversation_id (str): The conversation ID.
+        username (str): The username.
+    Returns:
+        dict | None: Conversation details or None if not found.
+    """
+    try:
+        # Get from user's longterm database
+        db_path = ensure_user_database(username)
+        conn = sqlite3.connect(db_path)
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            SELECT conversation_id, title, started_at, last_activity, message_count
+            FROM conversations 
+            WHERE conversation_id = ?
+        """, (conversation_id,))
+        
+        row = cursor.fetchone()
+        
+        if not row:
+            conn.close()
+            return None
+        
+        # Get conversation topics from the same database
+        cursor.execute("""
+            SELECT t.topic_name, ct.topic_count, ct.first_occurrence, ct.last_occurrence
+            FROM conversation_topics ct
+            JOIN topics t ON ct.topic_id = t.topic_id
+            WHERE ct.conversation_id = ?
+            ORDER BY ct.topic_count DESC
+        """, (conversation_id,))
+        
+        topics = []
+        for topic_row in cursor.fetchall():
+            topics.append({
+                'topic_name': topic_row[0],
+                'count': topic_row[1],
+                'first_occurrence': topic_row[2],
+                'last_occurrence': topic_row[3]
+            })
+        
+        conn.close()
+        
+        return {
+            'conversation_id': row[0],
+            'title': row[1],
+            'started_at': row[2],
+            'last_activity': row[3],
+            'message_count': row[4],
+            'topics': topics
+        }
+        
+    except sqlite3.Error as e:
+        print(f"Error getting conversation details for '{conversation_id}': {e}")
+        return None
+
+
+def search_conversations(username: str, query: str, limit: int = 20) -> list[dict]:
+    """
+    Search conversations by title or content.
+    Args:
+        username (str): The username.
+        query (str): Search query.
+        limit (int): Maximum number of results.
+    Returns:
+        list[dict]: List of matching conversations.
+    """
+    try:
+        # Search in user's longterm database by title
+        db_path = ensure_user_database(username)
+        conn = sqlite3.connect(db_path)
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            SELECT conversation_id, title, started_at, last_activity, message_count
+            FROM conversations 
+            WHERE (title LIKE ? OR conversation_id LIKE ?)
+            ORDER BY last_activity DESC
+            LIMIT ?
+        """, (f'%{query}%', f'%{query}%', limit))
+        
+        rows = cursor.fetchall()
+        conversations = []
+        
+        for row in rows:
+            conversations.append({
+                'conversation_id': row[0],
+                'title': row[1],
+                'started_at': row[2],
+                'last_activity': row[3],
+                'message_count': row[4]
+            })
+        
+        conn.close()
+        return conversations
+        
+    except sqlite3.Error as e:
+        print(f"Error searching conversations for user '{username}': {e}")
+        return []
