@@ -90,6 +90,8 @@ Tatlock is a modular, brain-inspired conversational AI platform with built-in au
    - **Debug Console**: `http://localhost:8000/chat`
    - **API Documentation**: `http://localhost:8000/docs`
 
+   **Note**: The default port is 8000. You can change this by modifying the `PORT` variable in your `.env` file.
+
 ### Troubleshooting
 
 If you encounter installation issues, especially repository-related errors, see the [Installation Troubleshooting Guide](INSTALLATION_TROUBLESHOOTING.md) for detailed solutions.

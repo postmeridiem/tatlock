@@ -362,6 +362,31 @@ chmod 600 .env
 - Check that the variable names match exactly (case-sensitive)
 - Verify there are no extra spaces or special characters
 
+**Port configuration issues:**
+```bash
+# Check current port setting
+grep PORT .env
+
+# Change port in .env file
+sed -i 's/PORT=8000/PORT=8080/' .env
+
+# Verify port change
+grep PORT .env
+```
+
+**Port already in use:**
+```bash
+# Check what's using the port
+sudo netstat -tlnp | grep :8000
+sudo lsof -i :8000
+
+# Kill process using the port (replace PID with actual process ID)
+sudo kill -9 PID
+
+# Or change to a different port in .env
+echo "PORT=8080" >> .env
+```
+
 **"No module named 'stem'" error during database initialization:**
 This error occurs when Python can't find the stem module. The installation script now handles this automatically, but if you encounter it:
 
