@@ -1,22 +1,26 @@
 """
-security.py
+stem/security.py
 
-Authentication and authorization system for Tatlock.
-Handles user management, password hashing, and role-based access control.
+Security and authentication management for Tatlock.
+Provides user authentication, authorization, and security utilities.
 """
 
+import logging
 import sqlite3
 import hashlib
 import os
 import secrets
 from typing import Optional, Dict, Any, List
-from datetime import datetime
+from datetime import datetime, timedelta
 import sys
 sys.path.append('..')
 from config import SYSTEM_DB_PATH
 from fastapi import HTTPException, Depends, status, Request
-from fastapi.security import HTTPBasic, HTTPBasicCredentials
+from fastapi.security import HTTPBasic, HTTPBasicCredentials, HTTPBearer, HTTPAuthorizationCredentials
 from hippocampus.user_database import ensure_user_database, delete_user_database
+
+# Set up logging for this module
+logger = logging.getLogger(__name__)
 
 # Security setup
 security = HTTPBasic()
@@ -93,17 +97,17 @@ class SecurityManager:
             # Create user's longterm database
             try:
                 ensure_user_database(username)
-                print(f"Created longterm database for user '{username}'")
+                logger.info(f"Created longterm database for user '{username}'")
             except Exception as e:
-                print(f"Warning: Failed to create longterm database for user '{username}': {e}")
+                logger.warning(f"Warning: Failed to create longterm database for user '{username}': {e}")
             
             return True
             
         except sqlite3.IntegrityError:
-            print(f"User '{username}' already exists")
+            logger.info(f"User '{username}' already exists")
             return False
         except Exception as e:
-            print(f"Error creating user: {e}")
+            logger.error(f"Error creating user: {e}")
             return False
     
     def authenticate_user(self, username: str, password: str) -> Optional[Dict[str, Any]]:
@@ -165,7 +169,7 @@ class SecurityManager:
             return roles
             
         except Exception as e:
-            print(f"Error getting user roles: {e}")
+            logger.error(f"Error getting user roles: {e}")
             return []
     
     def get_user_groups(self, username: str) -> List[str]:
@@ -192,7 +196,7 @@ class SecurityManager:
             return groups
             
         except Exception as e:
-            print(f"Error getting user groups: {e}")
+            logger.error(f"Error getting user groups: {e}")
             return []
     
     def add_user_to_role(self, username: str, role_name: str) -> bool:
@@ -213,7 +217,7 @@ class SecurityManager:
             role_row = cursor.fetchone()
             
             if not role_row:
-                print(f"Role '{role_name}' not found")
+                logger.warning(f"Role '{role_name}' not found")
                 return False
             
             # Add user to role
@@ -227,7 +231,7 @@ class SecurityManager:
             return True
             
         except Exception as e:
-            print(f"Error adding user to role: {e}")
+            logger.error(f"Error adding user to role: {e}")
             return False
     
     def add_user_to_group(self, username: str, group_name: str) -> bool:
@@ -248,7 +252,7 @@ class SecurityManager:
             group_row = cursor.fetchone()
             
             if not group_row:
-                print(f"Group '{group_name}' not found")
+                logger.warning(f"Group '{group_name}' not found")
                 return False
             
             # Add user to group
@@ -262,7 +266,7 @@ class SecurityManager:
             return True
             
         except Exception as e:
-            print(f"Error adding user to group: {e}")
+            logger.error(f"Error adding user to group: {e}")
             return False
     
     def user_has_role(self, username: str, role_name: str) -> bool:
@@ -320,7 +324,7 @@ class SecurityManager:
             return None
             
         except Exception as e:
-            print(f"Error getting user by ID: {e}")
+            logger.error(f"Error getting user by ID: {e}")
             return None
 
     def get_user_by_username(self, username: str) -> Optional[Dict[str, Any]]:
@@ -354,7 +358,7 @@ class SecurityManager:
             return None
             
         except Exception as e:
-            print(f"Error getting user by username: {e}")
+            logger.error(f"Error getting user by username: {e}")
             return None
 
     def get_all_users(self) -> List[Dict[str, Any]]:
@@ -388,7 +392,7 @@ class SecurityManager:
             return users
             
         except Exception as e:
-            print(f"Error getting all users: {e}")
+            logger.error(f"Error getting all users: {e}")
             return []
 
     def get_all_roles(self) -> List[Dict[str, Any]]:
@@ -421,7 +425,7 @@ class SecurityManager:
             return roles
             
         except Exception as e:
-            print(f"Error getting all roles: {e}")
+            logger.error(f"Error getting all roles: {e}")
             return []
 
     def get_all_groups(self) -> List[Dict[str, Any]]:
@@ -454,7 +458,7 @@ class SecurityManager:
             return groups
             
         except Exception as e:
-            print(f"Error getting all groups: {e}")
+            logger.error(f"Error getting all groups: {e}")
             return []
 
     def update_user(self, username: str, first_name: Optional[str] = None, 
@@ -512,7 +516,7 @@ class SecurityManager:
             return True
             
         except Exception as e:
-            print(f"Error updating user: {e}")
+            logger.error(f"Error updating user: {e}")
             return False
 
     def set_user_roles(self, username: str, roles: List[str]) -> bool:
@@ -547,7 +551,7 @@ class SecurityManager:
             return True
             
         except Exception as e:
-            print(f"Error setting user roles: {e}")
+            logger.error(f"Error setting user roles: {e}")
             return False
 
     def set_user_groups(self, username: str, groups: List[str]) -> bool:
@@ -582,7 +586,7 @@ class SecurityManager:
             return True
             
         except Exception as e:
-            print(f"Error setting user groups: {e}")
+            logger.error(f"Error setting user groups: {e}")
             return False
 
     def delete_user(self, username: str) -> bool:
@@ -600,14 +604,14 @@ class SecurityManager:
             # Check if user exists
             cursor.execute("SELECT username FROM users WHERE username = ?", (username,))
             if not cursor.fetchone():
-                print(f"User '{username}' not found")
+                logger.warning(f"User '{username}' not found")
                 return False
             
             # Check if this is the last admin user
             if self.user_has_role(username, "admin"):
                 admin_users = [user for user in self.get_all_users() if "admin" in self.get_user_roles(user['username'])]
                 if len(admin_users) <= 1:
-                    print("Cannot delete the last admin user")
+                    logger.warning("Cannot delete the last admin user")
                     return False
             
             # Explicitly delete user roles and groups
@@ -622,7 +626,7 @@ class SecurityManager:
             return True
             
         except Exception as e:
-            print(f"Error deleting user: {e}")
+            logger.error(f"Error deleting user: {e}")
             return False
 
     # Role CRUD Operations
@@ -649,10 +653,10 @@ class SecurityManager:
             return True
             
         except sqlite3.IntegrityError:
-            print(f"Role '{role_name}' already exists")
+            logger.info(f"Role '{role_name}' already exists")
             return False
         except Exception as e:
-            print(f"Error creating role: {e}")
+            logger.error(f"Error creating role: {e}")
             return False
 
     def get_role_by_id(self, role_id: int) -> Optional[Dict[str, Any]]:
@@ -686,7 +690,7 @@ class SecurityManager:
             return None
             
         except Exception as e:
-            print(f"Error getting role by ID: {e}")
+            logger.error(f"Error getting role by ID: {e}")
             return None
 
     def get_role_by_name(self, role_name: str) -> Optional[Dict[str, Any]]:
@@ -720,7 +724,7 @@ class SecurityManager:
             return None
             
         except Exception as e:
-            print(f"Error getting role by name: {e}")
+            logger.error(f"Error getting role by name: {e}")
             return None
 
     def update_role(self, role_id: int, role_name: Optional[str] = None, 
@@ -762,10 +766,10 @@ class SecurityManager:
             return True
             
         except sqlite3.IntegrityError:
-            print(f"Role name already exists")
+            logger.info(f"Role name already exists")
             return False
         except Exception as e:
-            print(f"Error updating role: {e}")
+            logger.error(f"Error updating role: {e}")
             return False
 
     def delete_role(self, role_id: int) -> bool:
@@ -788,7 +792,7 @@ class SecurityManager:
             return True
             
         except Exception as e:
-            print(f"Error deleting role: {e}")
+            logger.error(f"Error deleting role: {e}")
             return False
 
     def get_role_user_count(self, role_id: int) -> int:
@@ -812,7 +816,7 @@ class SecurityManager:
             return count
             
         except Exception as e:
-            print(f"Error getting role user count: {e}")
+            logger.error(f"Error getting role user count: {e}")
             return 0
 
     # Group CRUD Operations
@@ -839,10 +843,10 @@ class SecurityManager:
             return True
             
         except sqlite3.IntegrityError:
-            print(f"Group '{group_name}' already exists")
+            logger.info(f"Group '{group_name}' already exists")
             return False
         except Exception as e:
-            print(f"Error creating group: {e}")
+            logger.error(f"Error creating group: {e}")
             return False
 
     def get_group_by_id(self, group_id: int) -> Optional[Dict[str, Any]]:
@@ -876,7 +880,7 @@ class SecurityManager:
             return None
             
         except Exception as e:
-            print(f"Error getting group by ID: {e}")
+            logger.error(f"Error getting group by ID: {e}")
             return None
 
     def get_group_by_name(self, group_name: str) -> Optional[Dict[str, Any]]:
@@ -910,7 +914,7 @@ class SecurityManager:
             return None
             
         except Exception as e:
-            print(f"Error getting group by name: {e}")
+            logger.error(f"Error getting group by name: {e}")
             return None
 
     def update_group(self, group_id: int, group_name: Optional[str] = None, 
@@ -952,10 +956,10 @@ class SecurityManager:
             return True
             
         except sqlite3.IntegrityError:
-            print(f"Group name already exists")
+            logger.info(f"Group name already exists")
             return False
         except Exception as e:
-            print(f"Error updating group: {e}")
+            logger.error(f"Error updating group: {e}")
             return False
 
     def delete_group(self, group_id: int) -> bool:
@@ -978,7 +982,7 @@ class SecurityManager:
             return True
             
         except Exception as e:
-            print(f"Error deleting group: {e}")
+            logger.error(f"Error deleting group: {e}")
             return False
 
     def get_group_user_count(self, group_id: int) -> int:
@@ -1002,7 +1006,7 @@ class SecurityManager:
             return count
             
         except Exception as e:
-            print(f"Error getting group user count: {e}")
+            logger.error(f"Error getting group user count: {e}")
             return 0
 
 # Global security manager instance
@@ -1096,7 +1100,7 @@ def create_initial_admin():
         security_manager.add_user_to_group("admin", "users")
         security_manager.add_user_to_group("admin", "admins")
     else:
-        print("Admin user already exists or creation failed")
+        logger.info("Admin user already exists or creation failed")
 
 if __name__ == "__main__":
     # Create initial admin user when script is run directly

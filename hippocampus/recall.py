@@ -7,10 +7,15 @@ Now supports user-specific databases and conversation-topic relationships.
 
 import sqlite3
 import os
+import logging
 from hippocampus.user_database import execute_user_query, get_database_connection, ensure_user_database
-from datetime import datetime
+from datetime import datetime, timedelta
 from config import SYSTEM_DB_PATH
+from stem.timeawareness import parse_natural_date_range
 # Import any date helpers from stem.timeawareness if needed
+
+# Set up logging for this module
+logger = logging.getLogger(__name__)
 
 
 def recall_memories(keyword: str | None = None, username: str = "admin") -> list[dict]:
@@ -264,7 +269,7 @@ def get_user_conversations(username: str, limit: int = 50) -> list[dict]:
         return conversations
         
     except sqlite3.Error as e:
-        print(f"Error getting conversations for user '{username}': {e}")
+        logger.error(f"Error getting conversations for user '{username}': {e}")
         return []
 
 
@@ -325,7 +330,7 @@ def get_conversation_details(conversation_id: str, username: str) -> dict | None
         }
         
     except sqlite3.Error as e:
-        print(f"Error getting conversation details for '{conversation_id}': {e}")
+        logger.error(f"Error getting conversation details for '{conversation_id}': {e}")
         return None
 
 
@@ -369,5 +374,5 @@ def search_conversations(username: str, query: str, limit: int = 20) -> list[dic
         return conversations
         
     except sqlite3.Error as e:
-        print(f"Error searching conversations for user '{username}': {e}")
+        logger.error(f"Error searching conversations for user '{username}': {e}")
         return []

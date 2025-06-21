@@ -7,11 +7,15 @@ Now supports user-specific databases and conversation IDs.
 
 import sqlite3
 import json
+import logging
 from datetime import datetime
 import uuid
 import os
-from hippocampus.user_database import get_database_connection, ensure_user_database
+from hippocampus.user_database import get_database_connection, ensure_user_database, execute_user_query
 from config import SYSTEM_DB_PATH
+
+# Set up logging for this module
+logger = logging.getLogger(__name__)
 
 
 def get_or_create_topic(conn: sqlite3.Connection, topic_name: str) -> int | None:
@@ -34,7 +38,7 @@ def get_or_create_topic(conn: sqlite3.Connection, topic_name: str) -> int | None
 
         return row[0] if row else None
     except sqlite3.Error as e:
-        print(f"Error getting or creating topic '{topic_name}': {e}")
+        logger.error(f"Error getting or creating topic '{topic_name}': {e}")
         return None
 
 
@@ -81,7 +85,7 @@ def save_interaction(user_prompt: str, llm_reply: str, full_llm_history: list[di
         # Step 2: Get or Create the Topic
         topic_id = get_or_create_topic(conn, topic)
         if not topic_id:
-            print(f"Warning: Could not get or create topic ID for '{topic}' in user '{username}' database.")
+            logger.warning(f"Warning: Could not get or create topic ID for '{topic}' in user '{username}' database.")
             conn.commit()
             return interaction_id
 
@@ -97,7 +101,7 @@ def save_interaction(user_prompt: str, llm_reply: str, full_llm_history: list[di
 
     except sqlite3.Error as e:
         # This will now catch errors if the tables are missing
-        print(f"Error during save_interaction for user '{username}': {e}")
+        logger.error(f"Error during save_interaction for user '{username}': {e}")
         if conn:
             conn.rollback()
         return None
@@ -145,7 +149,7 @@ def update_conversation_topics(conn: sqlite3.Connection, conversation_id: str, t
             """, (conversation_id, topic_id, timestamp, timestamp))
             
     except sqlite3.Error as e:
-        print(f"Error updating conversation_topics: {e}")
+        logger.error(f"Error updating conversation_topics: {e}")
         raise
 
 
@@ -178,5 +182,5 @@ def create_or_update_conversation(conversation_id: str, username: str, title: st
         return True
         
     except sqlite3.Error as e:
-        print(f"Error updating longterm.db conversation record: {e}")
+        logger.error(f"Error updating longterm.db conversation record: {e}")
         return False

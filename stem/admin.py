@@ -5,6 +5,7 @@ Admin dashboard and user management functionality for Tatlock.
 Provides admin endpoints for user management, statistics, and system administration.
 """
 
+import logging
 from fastapi import APIRouter, HTTPException, Depends
 from fastapi.responses import HTMLResponse
 from stem.security import get_current_user, require_admin_role, security_manager
@@ -14,6 +15,9 @@ from stem.models import (
     CreateRoleRequest, UpdateRoleRequest, RoleResponse,
     CreateGroupRequest, UpdateGroupRequest, GroupResponse
 )
+
+# Set up logging for this module
+logger = logging.getLogger(__name__)
 
 # Create admin router
 admin_router = APIRouter(prefix="/admin", tags=["admin"])
@@ -180,7 +184,7 @@ async def create_user(request: CreateUserRequest, current_user: dict = Depends(r
     except HTTPException:
         raise
     except Exception as e:
-        print(f"Error creating user: {e}")
+        logger.error(f"Error creating user: {e}")
         raise HTTPException(status_code=500, detail=f"Error creating user: {str(e)}")
 
 @admin_router.put("/users/{username}", response_model=UserResponse)
@@ -232,6 +236,7 @@ async def update_user(username: str, request: UpdateUserRequest, current_user: d
     except HTTPException:
         raise
     except Exception as e:
+        logger.error(f"Error updating user: {e}")
         raise HTTPException(status_code=500, detail=f"Error updating user: {str(e)}")
 
 @admin_router.delete("/users/{username}")
@@ -276,6 +281,7 @@ async def delete_user(username: str, current_user: dict = Depends(require_admin_
     except HTTPException:
         raise
     except Exception as e:
+        logger.error(f"Error deleting user: {e}")
         raise HTTPException(status_code=500, detail=f"Error deleting user: {str(e)}")
 
 @admin_router.get("/roles")
@@ -333,6 +339,7 @@ async def create_role(request: CreateRoleRequest, current_user: dict = Depends(r
     except HTTPException:
         raise
     except Exception as e:
+        logger.error(f"Error creating role: {e}")
         raise HTTPException(status_code=500, detail=f"Error creating role: {str(e)}")
 
 @admin_router.get("/roles/{role_id}", response_model=RoleResponse)
@@ -358,6 +365,7 @@ async def get_role(role_id: int, current_user: dict = Depends(require_admin_role
     except HTTPException:
         raise
     except Exception as e:
+        logger.error(f"Error getting role: {e}")
         raise HTTPException(status_code=500, detail=f"Error getting role: {str(e)}")
 
 @admin_router.put("/roles/{role_id}", response_model=RoleResponse)
@@ -404,6 +412,7 @@ async def update_role(role_id: int, request: UpdateRoleRequest, current_user: di
     except HTTPException:
         raise
     except Exception as e:
+        logger.error(f"Error updating role: {e}")
         raise HTTPException(status_code=500, detail=f"Error updating role: {str(e)}")
 
 @admin_router.delete("/roles/{role_id}")
@@ -441,6 +450,7 @@ async def delete_role(role_id: int, current_user: dict = Depends(require_admin_r
     except HTTPException:
         raise
     except Exception as e:
+        logger.error(f"Error deleting role: {e}")
         raise HTTPException(status_code=500, detail=f"Error deleting role: {str(e)}")
 
 # Group CRUD Endpoints
@@ -476,6 +486,7 @@ async def create_group(request: CreateGroupRequest, current_user: dict = Depends
     except HTTPException:
         raise
     except Exception as e:
+        logger.error(f"Error creating group: {e}")
         raise HTTPException(status_code=500, detail=f"Error creating group: {str(e)}")
 
 @admin_router.get("/groups/{group_id}", response_model=GroupResponse)
@@ -501,6 +512,7 @@ async def get_group(group_id: int, current_user: dict = Depends(require_admin_ro
     except HTTPException:
         raise
     except Exception as e:
+        logger.error(f"Error getting group: {e}")
         raise HTTPException(status_code=500, detail=f"Error getting group: {str(e)}")
 
 @admin_router.put("/groups/{group_id}", response_model=GroupResponse)
@@ -547,6 +559,7 @@ async def update_group(group_id: int, request: UpdateGroupRequest, current_user:
     except HTTPException:
         raise
     except Exception as e:
+        logger.error(f"Error updating group: {e}")
         raise HTTPException(status_code=500, detail=f"Error updating group: {str(e)}")
 
 @admin_router.delete("/groups/{group_id}")
@@ -584,4 +597,5 @@ async def delete_group(group_id: int, current_user: dict = Depends(require_admin
     except HTTPException:
         raise
     except Exception as e:
+        logger.error(f"Error deleting group: {e}")
         raise HTTPException(status_code=500, detail=f"Error deleting group: {str(e)}") 

@@ -14,9 +14,11 @@ Features:
 - ReDoc documentation disabled for security
 - Session-based login/logout with proper redirects
 - Conversation tracking and user data isolation
+- Structured logging for tool execution and debugging
 """
 
 import os
+import logging
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Depends, Request, Form, status
 from fastapi.responses import HTMLResponse, RedirectResponse, FileResponse
@@ -40,6 +42,15 @@ from config import (
 
 # Load environment variables from .env file
 load_dotenv()
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.StreamHandler(),  # Console handler
+    ]
+)
 
 # Get secret key from environment variable with fallback
 SECRET_KEY = os.getenv("STARLETTE_SECRET", "this-is-not-a-secret-key")
@@ -180,6 +191,8 @@ async def chat_endpoint(request: ChatRequest, current_user: dict = Depends(get_c
     Requires authentication via session-based authentication.
     Returns AI response with topic classification and updated history.
     """
+    logger = logging.getLogger(__name__)
+    
     try:
         history_dicts = [msg.model_dump(exclude_none=True) for msg in request.history]
 
@@ -195,7 +208,7 @@ async def chat_endpoint(request: ChatRequest, current_user: dict = Depends(get_c
         return ChatResponse(**result_dict)
 
     except Exception as e:
-        print(f"An error occurred in the endpoint: {e}")
+        logger.error(f"An error occurred in the endpoint: {e}", exc_info=True)
         # In a real app, you would log the full exception traceback here
         raise HTTPException(status_code=500, detail=f"An internal error occurred: {str(e)}")
 

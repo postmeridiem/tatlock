@@ -1,23 +1,36 @@
 """
 stem/logging.py
 
-Simple logging helpers for Tatlock project.
+Logging utilities for Tatlock.
+Provides centralized logging configuration and utility functions.
 """
 
+import logging
 from datetime import datetime
+from typing import Optional
 
-def log_error(msg: str):
-    """
-    Log an error message with a timestamp.
-    Args:
-        msg (str): The error message to log.
-    """
-    print(f"[ERROR] {datetime.now().isoformat()} - {msg}")
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.StreamHandler(),
+        logging.FileHandler('tatlock.log')
+    ]
+)
 
-def log_info(msg: str):
-    """
-    Log an info message with a timestamp.
-    Args:
-        msg (str): The info message to log.
-    """
-    print(f"[INFO] {datetime.now().isoformat()} - {msg}") 
+def log_error(msg: str, logger_name: Optional[str] = None) -> None:
+    """Log an error message."""
+    if logger_name:
+        logger = logging.getLogger(logger_name)
+    else:
+        logger = logging.getLogger(__name__)
+    logger.error(msg)
+
+def log_info(msg: str, logger_name: Optional[str] = None) -> None:
+    """Log an info message."""
+    if logger_name:
+        logger = logging.getLogger(logger_name)
+    else:
+        logger = logging.getLogger(__name__)
+    logger.info(msg) 

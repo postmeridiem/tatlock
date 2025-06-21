@@ -7,7 +7,11 @@ the conversational AI system with authentication and user management.
 """
 
 import os
+import logging
 from dotenv import load_dotenv
+
+# Set up logging for this module
+logger = logging.getLogger(__name__)
 
 load_dotenv()
 
@@ -27,8 +31,8 @@ PORT = int(os.getenv("PORT", "8000"))
 
 # --- Error Checking ---
 if not OPENWEATHER_API_KEY:
-    print("WARNING: OPENWEATHER_API_KEY environment variable not set. Weather functionality will be disabled.")
+    logger.warning("WARNING: OPENWEATHER_API_KEY environment variable not set. Weather functionality will be disabled.")
 if not GOOGLE_API_KEY:
-    print("WARNING: GOOGLE_API_KEY environment variable not set. Web search functionality will be disabled.")
+    logger.warning("WARNING: GOOGLE_API_KEY environment variable not set. Web search functionality will be disabled.")
 if not GOOGLE_CSE_ID:
-    print("WARNING: GOOGLE_CSE_ID environment variable not set. Web search functionality will be disabled.")
+    logger.warning("WARNING: GOOGLE_CSE_ID environment variable not set. Web search functionality will be disabled.")

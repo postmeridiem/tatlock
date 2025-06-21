@@ -5,9 +5,13 @@ User profile management functionality for Tatlock.
 Provides endpoints for users to manage their own profile information.
 """
 
+import logging
 from fastapi import APIRouter, HTTPException, Depends
 from stem.security import get_current_user, security_manager
 from stem.models import UpdateUserRequest, UserResponse, PasswordChangeRequest
+
+# Set up logging for this module
+logger = logging.getLogger(__name__)
 
 # Create profile router
 profile_router = APIRouter(prefix="/profile", tags=["profile"])
@@ -88,7 +92,7 @@ async def change_password(request: PasswordChangeRequest, current_user: dict = D
         # Verify current password
         user = security_manager.authenticate_user(current_user['username'], request.current_password)
         if not user:
-            print(f"Password verification failed for user: {current_user['username']}")
+            logger.info(f"Password verification failed for user: {current_user['username']}")
             raise HTTPException(status_code=400, detail="Current password is incorrect")
         
         # Update password
@@ -98,14 +102,14 @@ async def change_password(request: PasswordChangeRequest, current_user: dict = D
         )
         
         if not success:
-            print(f"Password update failed for user: {current_user['username']}")
+            logger.info(f"Password update failed for user: {current_user['username']}")
             raise HTTPException(status_code=500, detail="Failed to update password")
         
         return {"message": "Password updated successfully"}
     except HTTPException:
         raise
     except Exception as e:
-        print(f"Unexpected error in password change: {e}")
+        logger.error(f"Unexpected error in password change: {e}")
         raise HTTPException(status_code=500, detail=f"Error changing password: {str(e)}")
 
 @profile_router.get("/pageheader")

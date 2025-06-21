@@ -7,6 +7,7 @@ Core agent logic for Tatlock. Handles chat interaction, tool dispatch, and agent
 import ollama
 import json
 import re
+import logging
 from datetime import date, datetime
 import uuid
 
@@ -29,6 +30,9 @@ from stem.tools import (
     execute_search_conversations
 )
 from hippocampus.remember import save_interaction
+
+# Set up logging for this module
+logger = logging.getLogger(__name__)
 
 # --- Tool Dispatcher ---
 AVAILABLE_TOOLS = {
@@ -74,7 +78,8 @@ def process_chat_interaction(user_message: str, history: list[dict], username: s
     tool_failures = []  # Track tool failures for analysis
     
     for i in range(max_interactions):
-        print(f"Tool Iteration {i+1}")
+        logger.info(f"Tool Iteration {i+1}")
+        
         # Check if this is the last iteration and we've had tool failures
         if i == max_interactions - 1 and tool_failures:
             # Add system prompt for tool failure analysis
@@ -96,6 +101,11 @@ Do not attempt to call any more tools - provide a final response analyzing the s
         
         response = ollama.chat(model=OLLAMA_MODEL, messages=messages_for_ollama, tools=TOOLS)
         response_message = dict(response['message'])
+        
+        if response_message.get('tool_calls'):
+            logger.info(f"LLM Response: {len(response_message['tool_calls'])} tool calls")
+        else:
+            logger.info(f"LLM Response: Final response (no tools)")
 
         if response_message.get('tool_calls'):
             clean_tool_calls = []
@@ -140,9 +150,9 @@ Do not attempt to call any more tools - provide a final response analyzing the s
                     if clean_tool_calls:
                         response_message['tool_calls'] = clean_tool_calls
                         response_message['content'] = ""
-                        print(f"Successfully parsed {len(clean_tool_calls)} tool calls from content")
+                        logger.info(f"Successfully parsed {len(clean_tool_calls)} tool calls from content")
                 except (json.JSONDecodeError, AttributeError) as e:
-                    print(f"Failed to parse tool calls from ```tool_calls``` block: {e}")
+                    logger.error(f"Failed to parse tool calls from ```tool_calls``` block: {e}")
             
             # Fallback to the original <tool_call> parsing
             if not response_message.get('tool_calls'):
@@ -158,7 +168,7 @@ Do not attempt to call any more tools - provide a final response analyzing the s
                                                                         "arguments": parsed_call.get("parameters", {})}}]
                         response_message['content'] = ""
                     except (json.JSONDecodeError, AttributeError) as e:
-                        print(f"Failed to parse tool call from content: {e}")
+                        logger.error(f"Failed to parse tool call from content: {e}")
 
         messages_for_ollama.append(response_message)
 
@@ -173,6 +183,10 @@ Do not attempt to call any more tools - provide a final response analyzing the s
                 function_name = tool_call.get('function', {}).get('name')
                 function_args = tool_call.get('function', {}).get('arguments')
                 tool_call_id = tool_call.get('id')
+                
+                # Print single line tool call information
+                logger.info(f"TOOL: {function_name} | Args: {json.dumps(function_args)}")
+                
                 if not function_name or not isinstance(function_args, dict): 
                     failed_tools.append(f"Invalid tool call format for {function_name}")
                     continue
@@ -195,7 +209,7 @@ Do not attempt to call any more tools - provide a final response analyzing the s
                         })})
                 else:
                     failed_tools.append(f"Unknown tool: {function_name}")
-                    print(f"Warning: LLM tried to call an unknown tool: {function_name}")
+                    logger.warning(f"Warning: LLM tried to call an unknown tool: {function_name}")
 
         # Track failures for analysis
         if failed_tools:
@@ -238,7 +252,7 @@ Do not attempt to call any more tools - provide a final response analyzing the s
                 if not topic_str:
                     topic_str = "general"
             except Exception as e:
-                print(f"Could not generate topic: {e}")
+                logger.error(f"Could not generate topic: {e}")
 
     try:
         save_interaction(
@@ -250,7 +264,7 @@ Do not attempt to call any more tools - provide a final response analyzing the s
             conversation_id=conversation_id
         )
     except Exception as e:
-        print(f"Error during saving interaction: {e}")
+        logger.error(f"Error during saving interaction: {e}")
 
     return {
         "response": final_content,

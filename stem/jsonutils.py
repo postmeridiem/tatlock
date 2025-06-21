@@ -1,10 +1,16 @@
 """
 stem/jsonutils.py
 
-JSON serialization and deserialization helpers for Tatlock project.
+JSON utility functions for Tatlock.
+Provides safe JSON serialization and deserialization with error handling.
 """
 
 import json
+import logging
+from typing import Any, Dict, List, Optional
+
+# Set up logging for this module
+logger = logging.getLogger(__name__)
 
 def to_json(obj) -> str:
     """
@@ -17,7 +23,7 @@ def to_json(obj) -> str:
     try:
         return json.dumps(obj)
     except Exception as e:
-        print(f"Error serializing to JSON: {e}")
+        logger.error(f"Error serializing to JSON: {e}")
         return ""
 
 def from_json(json_str: str):
@@ -31,5 +37,5 @@ def from_json(json_str: str):
     try:
         return json.loads(json_str)
     except Exception as e:
-        print(f"Error deserializing from JSON: {e}")
+        logger.error(f"Error deserializing from JSON: {e}")
         return None 

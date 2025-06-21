@@ -7,8 +7,12 @@ Handles creation, deletion, and access to per-user longterm databases.
 
 import sqlite3
 import os
+import logging
 from typing import Optional
 from stem.installation.database_setup import create_longterm_db_tables
+
+# Set up logging for this module
+logger = logging.getLogger(__name__)
 
 
 def get_user_database_path(username: str) -> str:
@@ -39,7 +43,7 @@ def ensure_user_database(username: str) -> str:
         
         # Create the database with all required tables
         create_longterm_db_tables(db_path)
-        print(f"Created new longterm database for user '{username}' at {db_path}")
+        logger.info(f"Created new longterm database for user '{username}' at {db_path}")
     
     return db_path
 
@@ -57,10 +61,10 @@ def delete_user_database(username: str) -> bool:
     if os.path.exists(db_path):
         try:
             os.remove(db_path)
-            print(f"Deleted longterm database for user '{username}' at {db_path}")
+            logger.info(f"Deleted longterm database for user '{username}' at {db_path}")
             return True
         except OSError as e:
-            print(f"Error deleting database for user '{username}': {e}")
+            logger.error(f"Error deleting database for user '{username}': {e}")
             return False
     
     return True  # Database doesn't exist, consider it "deleted"
@@ -80,7 +84,7 @@ def get_database_connection(username: str) -> Optional[sqlite3.Connection]:
         conn.row_factory = sqlite3.Row
         return conn
     except Exception as e:
-        print(f"Error connecting to database for user '{username}': {e}")
+        logger.error(f"Error connecting to database for user '{username}': {e}")
         return None
 
 
@@ -105,7 +109,7 @@ def execute_user_query(username: str, query: str, params: tuple = ()) -> list[di
         rows = cursor.fetchall()
         results = [dict(row) for row in rows]
     except sqlite3.Error as e:
-        print(f"Database error for user '{username}': {e}")
+        logger.error(f"Database error for user '{username}': {e}")
     finally:
         conn.close()
     

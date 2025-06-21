@@ -4,15 +4,19 @@ Tests for hippocampus.database
 import os
 import pytest
 import uuid
+import logging
 from hippocampus.user_database import ensure_user_database, delete_user_database, execute_user_query, get_database_connection
 from hippocampus.database import get_base_instructions, query_personal_variables
+
+# Set up logging for this module
+logger = logging.getLogger(__name__)
 
 def test_get_base_instructions():
     username = f"testbase_{uuid.uuid4().hex[:8]}"
     ensure_user_database(username)
     # The rise_and_shine table is read-only and contains default instructions
     instructions = get_base_instructions(username)
-    print(f"DEBUG: get_base_instructions returned: {instructions}")
+    logger.debug(f"DEBUG: get_base_instructions returned: {instructions}")
     # Check that default instructions are present and contain expected content
     assert len(instructions) >= 3  # Should have at least 3 default instructions
     assert any("Tatlock" in instr for instr in instructions)
@@ -64,13 +68,13 @@ def test_query_personal_variables():
         values_data = [dict(row) for row in cursor.fetchall()]
         cursor.execute("SELECT key_id, variable_id FROM personal_variables_join")
         join_data = [dict(row) for row in cursor.fetchall()]
-        print(f"DEBUG: Keys table: {keys_data}")
-        print(f"DEBUG: Values table: {values_data}")
-        print(f"DEBUG: Join table: {join_data}")
+        logger.debug(f"DEBUG: Keys table: {keys_data}")
+        logger.debug(f"DEBUG: Values table: {values_data}")
+        logger.debug(f"DEBUG: Join table: {join_data}")
         
         # Test the query_personal_variables function
         results = query_personal_variables("nickname", username)
-        print(f"DEBUG: query_personal_variables returned: {results}")
+        logger.debug(f"DEBUG: query_personal_variables returned: {results}")
         assert any(r["value"] == "TatlockBot" for r in results)
         
     finally:

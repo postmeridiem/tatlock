@@ -4,6 +4,7 @@ stem/tools.py
 Defines callable tools for the Tatlock agent, including weather, web search, recall, and personal variable lookup.
 """
 
+import logging
 import requests
 import json
 from datetime import date, datetime
@@ -23,8 +24,8 @@ from hippocampus.recall import (
     search_conversations
 )
 
-# ... (The TOOLS list and other execute functions remain the same) ...
-# You can copy just the function below and replace the old one.
+# Set up logging for this module
+logger = logging.getLogger(__name__)
 
 TOOLS = [
     # ... your existing tools ...
@@ -275,7 +276,7 @@ def execute_get_weather_forecast(city: str, start_date: str | None = None, end_d
     Returns:
         dict: Status and weather data or error message.
     """
-    print(f"Executing weather query for: {city}, {start_date}, {end_date}")
+    logger.info(f"Executing weather query for: {city}, {start_date}, {end_date}")
     
     # Check if API key is configured
     if not OPENWEATHER_API_KEY:
@@ -332,7 +333,7 @@ def execute_web_search(query: str) -> dict:
     Returns:
         dict: Status and search results or error message.
     """
-    print(f"Executing web search for: {query}")
+    logger.info(f"Executing web search for: {query}")
     
     # Check if API keys are configured
     if not GOOGLE_API_KEY or not GOOGLE_CSE_ID:
@@ -363,7 +364,7 @@ def execute_web_search(query: str) -> dict:
             return {"status": "success", "data": "No search results found."}
         return {"status": "success", "data": formatted_results}
     except Exception as e:
-        print(f"An error occurred during web search: {e}")
+        logger.error(f"An error occurred during web search: {e}")
         return {"error": f"Failed to execute web search. {e}"}
 
 

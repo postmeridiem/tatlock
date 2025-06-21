@@ -29,11 +29,102 @@ Tatlock is a modular, brain-inspired conversational AI platform with built-in au
 - **Responsive Design**: Works on desktop and mobile devices
 - **Chat Sidepane**: Integrated chat interface on all pages for assistance
 
-### Modular Architecture
-- **Brain-Inspired Design**: Codebase organized into modules inspired by brain regions
-- **Extensible Tools**: Easily add new tools and skills for the agent to use
-- **Offline Capability**: Material Icons and static assets work without internet connection
-- **Service Management**: Optional auto-starting service for production deployments
+### Logging & Debugging
+
+Tatlock includes a comprehensive logging system integrated with FastAPI for debugging and monitoring tool execution.
+
+### Log Levels
+
+The application uses standard Python logging levels:
+- **DEBUG**: Detailed information for debugging
+- **INFO**: General information about tool execution and requests
+- **WARNING**: Warning messages for potential issues
+- **ERROR**: Error messages with stack traces
+
+### Tool Execution Logging
+
+When the agent executes tools, you'll see detailed logs like this:
+
+```
+2024-01-15 14:30:45,123 - cortex.agent - INFO - Tool Iteration 1
+2024-01-15 14:30:45,456 - cortex.agent - INFO - LLM Response: 1 tool calls
+2024-01-15 14:30:45,789 - cortex.agent - INFO - TOOL: find_personal_variables | Args: {"searchkey": "name"}
+2024-01-15 14:30:46,012 - cortex.agent - INFO - Tool Iteration 2
+2024-01-15 14:30:46,345 - cortex.agent - INFO - LLM Response: Final response (no tools)
+```
+
+### Logging Configuration
+
+The logging is configured in `main.py` with the following settings:
+
+```python
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.StreamHandler(),  # Console handler
+    ]
+)
+```
+
+### Customizing Log Levels
+
+To change the log level for debugging:
+
+```python
+# In main.py, change the level:
+logging.basicConfig(level=logging.DEBUG)
+```
+
+### Environment-Specific Logging
+
+**Development Mode:**
+- Set log level to DEBUG for maximum information
+- All tool calls and parameters are logged
+- Error stack traces are included
+
+**Production Mode:**
+- Set log level to INFO or WARNING
+- Reduce log verbosity for performance
+- Focus on errors and warnings
+
+### Log Output Locations
+
+**Manual Mode:**
+- Logs appear in the console where you run `./wakeup.sh`
+
+**Service Mode:**
+- **Linux**: `sudo journalctl -u tatlock -f`
+- **macOS**: `tail -f /tmp/tatlock.log`
+
+### Debugging Tool Issues
+
+If tools are failing, check the logs for:
+1. **Tool call parameters**: Verify the arguments being passed
+2. **Error messages**: Look for specific error details
+3. **API key issues**: Check if external APIs are accessible
+4. **Database errors**: Verify database connectivity and permissions
+
+### Performance Monitoring
+
+The logs include:
+- Tool execution times
+- Number of iterations per request
+- Success/failure rates
+- API response times
+
+### Adding Custom Logging
+
+To add logging to your own modules:
+
+```python
+import logging
+
+logger = logging.getLogger(__name__)
+
+logger.info("Your message here")
+logger.error("Error message", exc_info=True)
+```
 
 ## Current Implementation Status
 
@@ -144,201 +235,8 @@ sudo systemctl start tatlock
 sudo systemctl stop tatlock
 ```
 
-**Restart the service:**
-```bash
-sudo systemctl restart tatlock
-```
-
-**Enable auto-start on boot:**
-```bash
-sudo systemctl enable tatlock
-```
-
-**Disable auto-start on boot:**
-```bash
-sudo systemctl disable tatlock
-```
-
-**View service logs:**
-```bash
-# View recent logs
-sudo journalctl -u tatlock
-
-# Follow logs in real-time
-sudo journalctl -u tatlock -f
-
-# View logs from today
-sudo journalctl -u tatlock --since today
-```
-
-#### macOS (launchd)
-
-**Check if service is loaded:**
-```bash
-launchctl list | grep tatlock
-```
-
-**Load (start) the service:**
-```bash
-launchctl load ~/Library/LaunchAgents/com.tatlock.plist
-```
-
-**Unload (stop) the service:**
-```bash
-launchctl unload ~/Library/LaunchAgents/com.tatlock.plist
-```
-
-**View service logs:**
-```bash
-# View standard output logs
-tail -f /tmp/tatlock.log
-
-# View error logs
-tail -f /tmp/tatlock.error.log
-
-# View both logs
-tail -f /tmp/tatlock*.log
-```
-
-#### Manual vs Service Mode
-
-**Running manually (development):**
-```bash
-./wakeup.sh
-```
-
-**Running as service (production):**
-- Service starts automatically on boot/login
-- Runs in the background
-- Automatically restarts if it crashes
-- Logs are written to system logs or files
-
-**Switching between modes:**
-- To stop the service and run manually: Stop the service first, then run `./wakeup.sh`
-- To switch back to service mode: Stop manual process, then start the service
-
-**Troubleshooting service issues:**
-- If the service won't start, check the logs for error messages
-- Ensure the `.env` file exists and has valid API keys
-- Verify that Ollama is running (required for Tatlock to start)
-- Check that the port specified in `.env` is not already in use
-
-## Architecture Overview
-
-### Core Modules
-
-#### cortex
-The central processing unit that orchestrates all interactions. Handles the agentic loop, tool dispatch, and conversation management.
-
-#### hippocampus  
-The memory system that provides persistent storage for conversations, topics, and user data. Each user has their own isolated database.
-
-#### stem
-The foundational module containing authentication, admin dashboard, tool definitions, and utility functions.
-
-### Available Tools
-
-The agent can currently use these tools:
-- **web_search**: Search the web for current information
-- **get_weather_forecast**: Get weather forecasts for specific cities and dates
-- **find_personal_variables**: Look up personal information about the user
-- **recall_memories**: Search conversation history by keyword
-- **recall_memories_with_time**: Search conversation history with temporal filtering
-- **get_user_conversations**: List all conversations for the current user
-- **get_conversation_details**: Get detailed information about a specific conversation
-- **search_conversations**: Search conversations by title or content
-- **get_conversations_by_topic**: Find conversations containing specific topics
-- **get_topics_by_conversation**: Get all topics in a specific conversation
-- **get_conversation_summary**: Get comprehensive conversation summaries
-- **get_topic_statistics**: Get statistics about topics across conversations
-
-## API Usage
-
-### Authentication
-All API endpoints require session-based authentication. Users must first log in through the web interface or `/login/auth` endpoint.
-
-### Chat Endpoint
-```bash
-POST /cortex
-Content-Type: application/json
-
-{
-  "message": "What's the weather like in Amsterdam?",
-  "history": [],
-  "conversation_id": "optional-conversation-id"
-}
-```
-
-### Response Format
-```json
-{
-  "response": "The weather in Amsterdam is...",
-  "topic": "weather",
-  "history": [...],
-  "conversation_id": "2024-01-15-14-30-00"
-}
-```
-
-## Development
-
-### Project Structure
-```
-tatlock/
-├── cortex/           # Core agent logic
-├── hippocampus/      # Memory and database management
-├── stem/            # Authentication, tools, and utilities
-├── amygdala/        # Planned: Emotional processing
-├── cerebellum/      # Planned: Procedural memory
-├── occipital/       # Planned: Visual processing
-├── parietal/        # Planned: Spatial reasoning
-├── temporal/        # Planned: Language processing
-├── thalamus/        # Planned: Information routing
-├── main.py          # FastAPI application entry point
-├── config.py        # Configuration management
-└── requirements.txt # Python dependencies
-```
-
-### Adding New Tools
-1. Define the tool in `stem/tools.py`
-2. Add the tool to the `AVAILABLE_TOOLS` dictionary in `cortex/agent.py`
-3. Update the tool documentation in the relevant README files
-
-### Database Schema
-- **system.db**: Shared authentication and user management
-- **{username}_longterm.db**: Per-user conversation memory and topics
-
-## Troubleshooting
-
-If you encounter installation issues, especially repository-related errors, see the [Installation Troubleshooting Guide](INSTALLATION_TROUBLESHOOTING.md) for detailed solutions.
-
-### Common Issues
-
-**Ollama not running:**
-```bash
-# Start Ollama service
-ollama serve
-```
-
-**Port already in use:**
-```bash
-# Change port in .env file
-PORT=8001
-```
-
-**Database errors:**
-```bash
-# Recreate databases
-python -m stem.installation.database_setup
-```
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests for new functionality
-5. Submit a pull request
-
-## License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
+### Modular Architecture
+- **Brain-Inspired Design**: Codebase organized into modules inspired by brain regions
+- **Extensible Tools**: Easily add new tools and skills for the agent to use
+- **Offline Capability**: Material Icons and static assets work without internet connection
+- **Service Management**: Optional auto-starting service for production deployments
