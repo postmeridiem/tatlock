@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html data-theme="dark">
+<head>
+    <title>Tatlock Debug Console</title>
+    <link rel="stylesheet" href="/static/material-icons.css">
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="header-bar">
+        <div class="logo">Tatlock</div>
+        <div class="nav" id="main-nav">
+            <!-- Navigation links will be injected here -->
+        </div>
+        <div class="header-right">
+            <div id="user-dropdown-container"></div>
+        </div>
+    </div>
+    
+    <div class="main-layout">
+        <div class="sidebar-nav">
+            <div class="nav-section">
+                <div class="nav-title">Debug</div>
+                <a href="#server-log" class="nav-item active" onclick="showSection('server-log')">Server Log</a>
+                <a href="#system-info" class="nav-item" onclick="showSection('system-info')">System Info</a>
+            </div>
+        </div>
+        
+        <div class="main-content">
+            <!-- Server Log -->
+            <div id="server-log" class="section">
+                <div class="section-title">Server Interaction Log</div>
+                <div class="debug-controls">
+                    <button id="clear-log-btn" class="button">Clear Log</button>
+                    <button id="export-log-btn" class="button">Export Log</button>
+                    <label class="auto-scroll-toggle">
+                        <input type="checkbox" id="auto-scroll" checked>
+                        Auto-scroll
+                    </label>
+                </div>
+                <div id="json-container"></div>
+            </div>
+            
+            <!-- System Info -->
+            <div id="system-info" class="section" style="display: none;">
+                <div class="section-title">System Information</div>
+                <div id="system-info-content">
+                    <div class="loading">Loading system information...</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Chat Sidepane -->
+        <div class="chat-sidepane" id="chat-sidepane">
+            <div class="chat-sidepane-header">
+                <h3><span class="material-icons">bug_report</span> Debug Assistant</h3>
+            </div>
+            <div class="chat-sidepane-messages" id="sidepane-messages">
+                <div class="chat-message ai">
+                    I'm here to help you debug Tatlock. Ask me about system status, logs, or any issues you're encountering.
+                </div>
+            </div>
+            <div class="chat-sidepane-input">
+                <div class="chat-input-container">
+                    <textarea 
+                        class="chat-input" 
+                        id="sidepane-input" 
+                        placeholder="Ask about system status..."
+                        rows="1"
+                    ></textarea>
+                    <button class="chat-send-btn" id="sidepane-send-btn" disabled>
+                        <span class="material-icons">send</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Snackbar Container -->
+    <div class="snackbar-container" id="snackbar-container"></div>
+    
+    <script src="/static/js/common.js"></script>
+    <script src="/static/js/debug.js"></script>
+</body>
+</html> 
