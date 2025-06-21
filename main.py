@@ -135,6 +135,13 @@ async def login_page():
     """
     return HTMLResponse(content=get_login_page())
 
+@app.get("/login/test", tags=["debug"])
+async def test_auth(current_user: dict = Depends(get_current_user)):
+    """
+    Simple test endpoint to verify authentication is working.
+    """
+    return {"message": "Authentication working", "user": current_user}
+
 @app.get("/logout", tags=["html"], response_class=HTMLResponse)
 async def logout_page(request: Request):
     """

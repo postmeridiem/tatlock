@@ -10,49 +10,53 @@ const autoScrollToggle = document.getElementById('auto-scroll');
 let logEntries = [];
 
 function addLogEntry(content, type = 'info', data = null) {
-    const entry = {
-        timestamp: new Date(),
-        type: type,
-        content: content,
-        data: data
-    };
-    
-    logEntries.push(entry);
-    
-    const div = document.createElement('div');
-    div.className = `json-entry ${type}`;
-    
-    const timestamp = document.createElement('div');
-    timestamp.className = 'json-timestamp';
-    timestamp.textContent = entry.timestamp.toLocaleTimeString();
-    div.appendChild(timestamp);
-    
-    const contentDiv = document.createElement('div');
-    contentDiv.className = 'json-content';
-    if (data) {
-        contentDiv.textContent = JSON.stringify(data, null, 2);
-    } else {
-        contentDiv.textContent = content;
-    }
-    div.appendChild(contentDiv);
-    
-    // Insert at the beginning to show latest entries at the top
-    if (jsonContainer.firstChild) {
-        jsonContainer.insertBefore(div, jsonContainer.firstChild);
-    } else {
-        jsonContainer.appendChild(div);
-    }
-    
-    // Auto-scroll if enabled
-    if (autoScrollToggle.checked) {
-        jsonContainer.scrollTop = 0;
+    // Only log chat-related entries
+    if (type === 'tool-call' || type === 'tool-response' || type === 'error') {
+        const entry = {
+            timestamp: new Date(),
+            type: type,
+            content: content,
+            data: data
+        };
+        
+        logEntries.push(entry);
+        
+        const div = document.createElement('div');
+        div.className = `json-entry ${type}`;
+        
+        const timestamp = document.createElement('div');
+        timestamp.className = 'json-timestamp';
+        timestamp.textContent = entry.timestamp.toLocaleTimeString();
+        div.appendChild(timestamp);
+        
+        const contentDiv = document.createElement('div');
+        contentDiv.className = 'json-content';
+        if (data) {
+            const jsonString = JSON.stringify(data, null, 2);
+            contentDiv.innerHTML = highlightJSON(jsonString);
+            contentDiv.classList.add('highlighted');
+        } else {
+            contentDiv.textContent = content;
+        }
+        div.appendChild(contentDiv);
+        
+        // Insert at the beginning to show latest entries at the top
+        if (jsonContainer.firstChild) {
+            jsonContainer.insertBefore(div, jsonContainer.firstChild);
+        } else {
+            jsonContainer.appendChild(div);
+        }
+        
+        // Auto-scroll if enabled
+        if (autoScrollToggle.checked) {
+            jsonContainer.scrollTop = 0;
+        }
     }
 }
 
 function clearLog() {
     jsonContainer.innerHTML = '';
     logEntries = [];
-    addLogEntry('Log cleared', 'info');
 }
 
 function exportLog() {
@@ -70,8 +74,6 @@ function exportLog() {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-    
-    addLogEntry('Log exported', 'info');
 }
 
 // System info functionality
@@ -107,7 +109,7 @@ async function loadSystemInfo() {
             <div class="info-grid">
                 <div class="info-item">
                     <h4>Browser Information</h4>
-                    <pre>${JSON.stringify(systemInfo, null, 2)}</pre>
+                    <pre class="json-content">${highlightJSON(JSON.stringify(systemInfo, null, 2))}</pre>
                 </div>
             </div>
         `;
@@ -145,6 +147,7 @@ sidepaneSendBtn.addEventListener('click', sendSidepaneMessage);
 
 // Sidepane chat conversation history
 let sidepaneHistory = [];
+let sidepaneConversationId = null;
 
 function sendSidepaneMessage() {
     const message = sidepaneInput.value.trim();
@@ -174,18 +177,26 @@ function sendSidepaneMessage() {
     sidepaneMessages.appendChild(typingDiv);
     sidepaneMessages.scrollTop = sidepaneMessages.scrollHeight;
     
+    // Prepare request data
+    const requestData = { 
+        message: message, 
+        history: sidepaneHistory,
+        conversation_id: sidepaneConversationId
+    };
+    
     // Send to Tatlock
     fetch('/cortex', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',  // Include session cookies
-        body: JSON.stringify({ 
-            message: message, 
-            history: chatHistory,
-            conversation_id: currentConversationId
-        })
+        body: JSON.stringify(requestData)
     })
-    .then(response => response.json())
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        return response.json();
+    })
     .then(data => {
         // Remove typing indicator
         sidepaneMessages.removeChild(typingDiv);
@@ -196,6 +207,11 @@ function sendSidepaneMessage() {
         
         // Add to conversation history
         sidepaneHistory.push({ role: 'assistant', content: aiResponse });
+        
+        // Update conversation ID from response
+        if (data.conversation_id) {
+            sidepaneConversationId = data.conversation_id;
+        }
         
         // Log the response to debug console
         addLogEntry('Sidepane chat response received', 'tool-response', {
@@ -219,7 +235,8 @@ function sendSidepaneMessage() {
         // Log the error to debug console
         addLogEntry('Sidepane chat error', 'error', {
             error: error.message,
-            message: message
+            message: message,
+            stack: error.stack
         });
         
         console.error('Sidepane chat error:', error);
@@ -242,7 +259,32 @@ exportLogBtn.addEventListener('click', exportLog);
 document.addEventListener('DOMContentLoaded', function() {
     setupDebugEventListeners();
     loadSystemInfo();
+    checkAuthenticationStatus();
 });
+
+function checkAuthenticationStatus() {
+    // Try to fetch a protected endpoint to check authentication
+    fetch('/login/test', {
+        credentials: 'include'
+    })
+    .then(response => {
+        if (response.ok) {
+            return response.json();
+        } else if (response.status === 401) {
+            // Redirect to login page
+            window.location.href = '/login';
+            return null;
+        } else {
+            return null;
+        }
+    })
+    .then(data => {
+        // Authentication check completed silently
+    })
+    .catch(error => {
+        // Authentication check failed silently
+    });
+}
 
 function setupDebugEventListeners() {
     // Clear log button
