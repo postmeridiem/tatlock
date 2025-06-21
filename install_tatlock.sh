@@ -16,7 +16,7 @@ fi
 echo "Tatlock Installation Script"
 echo "--------------------------"
 echo "This script will:"
-echo "1. Install required system packages (Python 3, pip, sqlite3, build tools)"
+echo "1. Install required system packages (Python 3.10+, pip, sqlite3, build tools)"
 echo "2. Create and activate Python virtual environment (.venv) (safely handles existing environments)"
 echo "3. Install and configure Ollama with the Gemma3-enhanced model"
 echo "4. Install Python dependencies from requirements.txt"
@@ -26,6 +26,8 @@ echo "7. Initialize system.db and longterm.db with authentication and memory tab
 echo "8. Create default roles, groups, and system prompts"
 echo "9. Optionally create a new admin account if one does not exist yet"
 echo "10. Optionally install Tatlock as an auto-starting service"
+echo ""
+echo "Note: This script requires Python 3.10 or higher for modern type hint support."
 echo ""
 
 # --- Detect system and package manager ---
@@ -118,7 +120,123 @@ check_package_manager
 # --- Install system dependencies ---
 echo "[1/10] Installing system dependencies..."
 
+# Function to check Python version
+check_python_version() {
+    local python_cmd="$1"
+    if command -v "$python_cmd" &> /dev/null; then
+        local version=$("$python_cmd" -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')" 2>/dev/null)
+        if [ $? -eq 0 ]; then
+            local major=$(echo "$version" | cut -d. -f1)
+            local minor=$(echo "$version" | cut -d. -f2)
+            if [ "$major" -eq 3 ] && [ "$minor" -ge 10 ]; then
+                echo "✓ Found Python $version (meets requirement: 3.10+)"
+                return 0
+            else
+                echo "✗ Found Python $version (requires 3.10+)"
+                return 1
+            fi
+        fi
+    fi
+    return 1
+}
+
+# Function to install Python 3.10+ based on system
+install_python310() {
+    case $PACKAGE_MANAGER in
+        "apt")
+            echo "Installing Python 3.10+ on Debian/Ubuntu..."
+            
+            # Add deadsnakes PPA for newer Python versions
+            echo "Adding deadsnakes PPA for Python 3.10+..."
+            sudo add-apt-repository ppa:deadsnakes/ppa -y
+            sudo apt update
+            
+            # Install Python 3.10 and related packages
+            sudo apt install -y python3.10 python3.10-venv python3.10-pip python3.10-dev
+            
+            # Create symlinks if they don't exist
+            if [ ! -f /usr/bin/python3.10 ]; then
+                echo "Error: Python 3.10 installation failed."
+                exit 1
+            fi
+            
+            # Make python3.10 the default python3 if it's not already
+            if [ ! -L /usr/bin/python3 ] || [ "$(readlink /usr/bin/python3)" != "python3.10" ]; then
+                echo "Setting Python 3.10 as default..."
+                sudo update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.10 1
+            fi
+            
+            # Update pip
+            python3.10 -m pip install --upgrade pip
+            ;;
+            
+        "yum")
+            echo "Installing Python 3.10+ on RHEL/CentOS/Fedora..."
+            
+            # For RHEL/CentOS, we need to enable EPEL and IUS
+            if [ -f /etc/redhat-release ]; then
+                # Enable EPEL
+                sudo yum install -y epel-release
+                
+                # For CentOS/RHEL 8+, use dnf and enable PowerTools
+                if command -v dnf &> /dev/null; then
+                    sudo dnf install -y python3.10 python3.10-pip python3.10-devel
+                else
+                    # For older versions, try to install from source
+                    echo "Installing Python 3.10 from source..."
+                    sudo yum groupinstall -y "Development Tools"
+                    sudo yum install -y openssl-devel bzip2-devel libffi-devel zlib-devel
+                    
+                    # Download and compile Python 3.10
+                    cd /tmp
+                    wget https://www.python.org/ftp/python/3.10.12/Python-3.10.12.tgz
+                    tar xzf Python-3.10.12.tgz
+                    cd Python-3.10.12
+                    ./configure --enable-optimizations
+                    sudo make altinstall
+                    cd -
+                    rm -rf /tmp/Python-3.10.12*
+                fi
+            else
+                # For Fedora
+                sudo dnf install -y python3.10 python3.10-pip python3.10-devel
+            fi
+            ;;
+            
+        "brew")
+            echo "Installing Python 3.10+ on macOS..."
+            brew install python@3.10
+            
+            # Add to PATH
+            echo 'export PATH="/opt/homebrew/opt/python@3.10/bin:$PATH"' >> ~/.zshrc
+            export PATH="/opt/homebrew/opt/python@3.10/bin:$PATH"
+            ;;
+            
+        "pacman")
+            echo "Installing Python 3.10+ on Arch Linux..."
+            sudo pacman -S --noconfirm python310 python310-pip
+            ;;
+    esac
+}
+
 install_system_dependencies() {
+    # First, check if we have Python 3.10+ available
+    echo "Checking Python version..."
+    if check_python_version "python3" || check_python_version "python3.10" || check_python_version "python"; then
+        echo "✓ Python 3.10+ is available"
+    else
+        echo "✗ Python 3.10+ not found. Installing..."
+        install_python310
+        
+        # Verify installation
+        if check_python_version "python3" || check_python_version "python3.10" || check_python_version "python"; then
+            echo "✓ Python 3.10+ successfully installed"
+        else
+            echo "✗ Failed to install Python 3.10+. Please install manually."
+            exit 1
+        fi
+    fi
+    
     case $PACKAGE_MANAGER in
         "apt")
             echo "Using apt package manager..."
@@ -137,9 +255,9 @@ install_system_dependencies() {
                 echo "Attempting to continue with existing package lists..."
             fi
             
-            # Install packages with error handling
+            # Install packages with error handling (excluding Python as we handled it above)
             echo "Installing required packages..."
-            if ! sudo apt install -y python3 python3-pip python3-venv sqlite3 build-essential curl wget; then
+            if ! sudo apt install -y python3-pip python3-venv sqlite3 build-essential curl wget; then
                 echo "Error: Failed to install required packages."
                 echo "Please check your package manager configuration and try again."
                 exit 1
@@ -155,9 +273,9 @@ install_system_dependencies() {
                 echo "Warning: Package list update failed. Attempting to continue..."
             fi
             
-            # Install packages
+            # Install packages (excluding Python as we handled it above)
             echo "Installing required packages..."
-            if ! sudo yum install -y python3 python3-pip python3-venv sqlite gcc gcc-c++ make curl wget; then
+            if ! sudo yum install -y python3-pip python3-venv sqlite gcc gcc-c++ make curl wget; then
                 echo "Error: Failed to install required packages."
                 echo "Please check your package manager configuration and try again."
                 exit 1
@@ -173,9 +291,9 @@ install_system_dependencies() {
                 echo "Warning: Homebrew update failed. Attempting to continue..."
             fi
             
-            # Install packages
+            # Install packages (excluding Python as we handled it above)
             echo "Installing required packages..."
-            if ! brew install python sqlite curl wget; then
+            if ! brew install sqlite curl wget; then
                 echo "Error: Failed to install required packages."
                 echo "Please check your Homebrew installation and try again."
                 exit 1
@@ -201,9 +319,9 @@ install_system_dependencies() {
                 echo "Warning: Package list update failed. Attempting to continue..."
             fi
             
-            # Install packages
+            # Install packages (excluding Python as we handled it above)
             echo "Installing required packages..."
-            if ! sudo pacman -S --noconfirm python python-pip python-venv sqlite base-devel curl wget; then
+            if ! sudo pacman -S --noconfirm python-pip python-venv sqlite base-devel curl wget; then
                 echo "Error: Failed to install required packages."
                 echo "Please check your package manager configuration and try again."
                 exit 1
@@ -216,6 +334,28 @@ install_system_dependencies
 
 # --- Create and activate Python virtual environment ---
 echo "[2/10] Creating Python virtual environment..."
+
+# Function to find the correct Python executable
+find_python_executable() {
+    # Try different Python commands in order of preference
+    for cmd in "python3.10" "python3" "python"; do
+        if check_python_version "$cmd"; then
+            echo "$cmd"
+            return 0
+        fi
+    done
+    return 1
+}
+
+# Find the correct Python executable
+PYTHON_CMD=$(find_python_executable)
+if [ $? -ne 0 ]; then
+    echo "Error: No suitable Python 3.10+ executable found."
+    echo "Please ensure Python 3.10+ is installed and available in PATH."
+    exit 1
+fi
+
+echo "Using Python executable: $PYTHON_CMD"
 
 # Check if virtual environment already exists
 if [ -d ".venv" ]; then
@@ -246,7 +386,7 @@ fi
 # Create virtual environment if it doesn't exist or user chose to recreate
 if [ ! -d ".venv" ]; then
     echo "Creating new virtual environment in .venv directory..."
-    if ! python3 -m venv .venv; then
+    if ! $PYTHON_CMD -m venv .venv; then
         echo "Error: Failed to create virtual environment."
         echo "Please ensure python3-venv is installed."
         exit 1
@@ -318,15 +458,28 @@ fi
 
 echo "[4/10] Installing Python dependencies..."
 
-# Use the appropriate pip command
-if command -v pip3 &> /dev/null; then
-    PIP_CMD="pip3"
-elif command -v pip &> /dev/null; then
-    PIP_CMD="pip"
+# Ensure we're using the virtual environment's pip
+if [ -f ".venv/bin/pip" ]; then
+    PIP_CMD=".venv/bin/pip"
+elif [ -f ".venv/bin/pip3" ]; then
+    PIP_CMD=".venv/bin/pip3"
 else
-    echo "Error: pip not found. Please install Python and pip first."
-    exit 1
+    # Fallback to system pip if virtual environment pip is not available
+    if command -v pip3 &> /dev/null; then
+        PIP_CMD="pip3"
+    elif command -v pip &> /dev/null; then
+        PIP_CMD="pip"
+    else
+        echo "Error: pip not found. Please install Python and pip first."
+        exit 1
+    fi
 fi
+
+echo "Using pip: $PIP_CMD"
+
+# Upgrade pip first
+echo "Upgrading pip..."
+$PIP_CMD install --upgrade pip
 
 if ! $PIP_CMD install -r requirements.txt; then
     echo "Error: Failed to install Python dependencies."
@@ -353,13 +506,10 @@ fi
 
 # Only create .env if it doesn't exist or user chose to overwrite
 if [ ! -f ".env" ] || [[ "$overwrite_env" =~ ^[Yy]$ ]]; then
-    # Generate a random UUID for STARLETTE_SECRET
-    if command -v python3 &> /dev/null; then
-        STARLETTE_SECRET=$(python3 -c "import uuid; print(str(uuid.uuid4()))")
-    elif command -v python &> /dev/null; then
-        STARLETTE_SECRET=$(python -c "import uuid; print(str(uuid.uuid4()))")
-    else
-        echo "Error: Python not found for generating secret key."
+    # Generate a random UUID for STARLETTE_SECRET using the correct Python version
+    STARLETTE_SECRET=$($PYTHON_CMD -c "import uuid; print(str(uuid.uuid4()))")
+    if [ $? -ne 0 ]; then
+        echo "Error: Failed to generate secret key with $PYTHON_CMD."
         exit 1
     fi
 
@@ -416,7 +566,7 @@ cd "$PROJECT_ROOT"
 
 # --- Initialize databases ---
 echo "[7/10] Initializing databases..."
-if ! PYTHONPATH="$PROJECT_ROOT" python3 -c "from stem.installation.database_setup import create_system_db_tables; create_system_db_tables('hippocampus/system.db')"; then
+if ! PYTHONPATH="$PROJECT_ROOT" $PYTHON_CMD -c "from stem.installation.database_setup import create_system_db_tables; create_system_db_tables('hippocampus/system.db')"; then
     echo "Error: Failed to initialize databases."
     echo "Current directory: $(pwd)"
     echo "PYTHONPATH: $PYTHONPATH"
@@ -428,7 +578,7 @@ echo "- system.db is ready in the hippocampus/ directory. User memory databases 
 # --- Create admin user if not exists ---
 echo "[8/10] Checking for admin account..."
         # Check if admin user already exists
-        admin_exists=$(PYTHONPATH="$PROJECT_ROOT" python3 -c "from stem.security import security_manager; print('yes' if security_manager.authenticate_user('admin', 'breaker') else 'no')")
+        admin_exists=$(PYTHONPATH="$PROJECT_ROOT" $PYTHON_CMD -c "from stem.security import security_manager; print('yes' if security_manager.authenticate_user('admin', 'breaker') else 'no')")
 if [ "$admin_exists" = "no" ]; then
     echo "No admin account found. Let's create one."
     read -p "Enter admin username [admin]: " admin_user
@@ -447,7 +597,7 @@ if [ "$admin_exists" = "no" ]; then
         echo "Passwords do not match. Exiting."
         exit 1
     fi
-    if ! PYTHONPATH="$PROJECT_ROOT" python3 -c "
+    if ! PYTHONPATH="$PROJECT_ROOT" $PYTHON_CMD -c "
 from stem.security import security_manager
 if security_manager.create_user('$admin_user', '$admin_first', '$admin_last', '$admin_pass', '$admin_email'):
     security_manager.add_user_to_role('$admin_user', 'user')
