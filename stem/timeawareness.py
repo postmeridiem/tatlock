@@ -6,7 +6,6 @@ Date/time parsing helpers for natural language expressions in Tatlock project.
 
 import sqlite3
 import os
-from config import DATABASE_PATH
 from datetime import datetime, date, timedelta
 from dateutil.relativedelta import relativedelta
 import re
