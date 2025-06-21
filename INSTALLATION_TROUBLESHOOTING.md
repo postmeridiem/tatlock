@@ -5,16 +5,26 @@ This guide helps resolve common issues encountered during Tatlock installation.
 ## What the Installation Script Does
 
 The automated installation script performs the following steps:
-1. Installs system dependencies (Python, pip, sqlite3, build tools)
-2. Creates and activates Python virtual environment (.venv)
-3. Installs and configures Ollama with the Gemma3-enhanced model
-4. Installs Python dependencies from requirements.txt
-5. Creates a `.env` configuration file with auto-generated secret key (safely handles existing files)
-6. Downloads Material Icons for offline web interface
-7. Initializes system.db and longterm.db with authentication and memory tables
-8. Creates default roles, groups, and system prompts
-9. Optionally creates a new admin account
-10. Optionally installs Tatlock as an auto-starting service
+1. **Checks and installs Python 3.10+** (required for modern type hints)
+2. Installs system dependencies (pip, sqlite3, build tools)
+3. Creates and activates Python virtual environment (.venv) with Python 3.10+
+4. Installs and configures Ollama with the Gemma3-enhanced model
+5. Installs Python dependencies from requirements.txt
+6. Creates a `.env` configuration file with auto-generated secret key (safely handles existing files)
+7. Downloads Material Icons for offline web interface
+8. Initializes system.db and longterm.db with authentication and memory tables
+9. Creates default roles, groups, and system prompts
+10. Optionally creates a new admin account
+11. Optionally installs Tatlock as an auto-starting service
+
+## System Requirements
+
+- **OS**: Ubuntu 20.04+, Debian 11+, CentOS 8+, RHEL 8+, Fedora 33+, macOS 10.15+, Arch Linux
+- **Architecture**: x86_64, ARM64 (Apple Silicon)
+- **Python**: 3.10 or higher (required for modern type hints like `list[dict]` and `str | None`)
+- **RAM**: 8GB minimum, 16GB recommended
+- **Storage**: 10GB free space
+- **Network**: Internet connection for initial setup
 
 ## Supported Systems
 
@@ -23,6 +33,92 @@ The installation script now supports:
 - **CentOS/RHEL/Fedora systems** (yum/dnf package manager)
 - **macOS** (Intel and Apple Silicon, using Homebrew)
 - **Arch Linux** (pacman package manager)
+
+## Python 3.10+ Installation
+
+The installation script automatically handles Python 3.10+ installation with multiple fallback methods:
+
+### Ubuntu/Debian Systems
+1. **Primary**: Uses deadsnakes PPA to install Python 3.10 packages
+2. **Fallback 1**: Installs Python 3.10 without pip, then installs pip separately
+3. **Fallback 2**: Compiles Python 3.10 from source if packages are unavailable
+
+### CentOS/RHEL/Fedora Systems
+1. **Primary**: Uses EPEL and dnf to install Python 3.10 packages
+2. **Fallback**: Compiles Python 3.10 from source for older systems
+
+### macOS Systems
+1. **Primary**: Uses Homebrew to install Python 3.10
+2. **Apple Silicon**: Automatically configures PATH for ARM64
+
+### Arch Linux
+1. **Primary**: Uses pacman to install Python 3.10 packages
+
+## Common Python Installation Issues
+
+### "python3.10-pip package not found" Error
+
+This error occurs on older Ubuntu/Debian systems where the `python3.10-pip` package is not available.
+
+**What the script does automatically:**
+- Detects missing `python3.10-pip` package
+- Installs pip separately using `get-pip.py`
+- Creates necessary symlinks for `pip3.10`
+
+**Manual fix if needed:**
+```bash
+# Install pip for Python 3.10 manually
+curl -sS https://bootstrap.pypa.io/get-pip.py | python3.10
+
+# Create symlink
+sudo ln -sf /usr/local/bin/pip3.10 /usr/bin/pip3.10
+```
+
+### "deadsnakes PPA not available" Error
+
+This can happen due to network issues or unsupported systems.
+
+**What the script does automatically:**
+- Falls back to source compilation if PPA fails
+- Installs all required build dependencies
+- Compiles Python 3.10 from source
+
+**Manual fix if needed:**
+```bash
+# Install build dependencies
+sudo apt install -y build-essential zlib1g-dev libncurses5-dev libgdbm-dev libnss3-dev libssl-dev libreadline-dev libffi-dev libsqlite3-dev wget libbz2-dev
+
+# Download and compile Python 3.10
+cd /tmp
+wget https://www.python.org/ftp/python/3.10.12/Python-3.10.12.tgz
+tar xzf Python-3.10.12.tgz
+cd Python-3.10.12
+./configure --enable-optimizations --prefix=/usr/local
+make -j$(nproc)
+sudo make altinstall
+cd -
+rm -rf /tmp/Python-3.10.12*
+
+# Install pip
+curl -sS https://bootstrap.pypa.io/get-pip.py | python3.10
+```
+
+### "TypeError: 'type' object is not subscriptable" Error
+
+This error occurs when using Python versions below 3.9 with modern type hints.
+
+**Solution:**
+- Ensure Python 3.10+ is installed and being used
+- The installation script automatically handles this requirement
+
+**Manual verification:**
+```bash
+# Check Python version
+python3 --version
+
+# Should show Python 3.10.x or higher
+# If not, the installation script will install Python 3.10+
+```
 
 ## Repository Issues
 
@@ -96,41 +192,94 @@ This error typically occurs when:
 
 If the automated script fails, you can install dependencies manually:
 
-### System Dependencies
+### Python 3.10+ Installation
 
 **Ubuntu/Debian:**
 ```bash
+# Add deadsnakes PPA for Python 3.10
+sudo add-apt-repository ppa:deadsnakes/ppa -y
 sudo apt update
-sudo apt install -y python3 python3-pip python3-venv sqlite3 build-essential curl wget
+sudo apt install -y python3.10 python3.10-venv python3.10-dev
+
+# Install pip for Python 3.10
+curl -sS https://bootstrap.pypa.io/get-pip.py | python3.10
+
+# Set Python 3.10 as default
+sudo update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.10 1
 ```
 
 **CentOS/RHEL/Fedora:**
 ```bash
-sudo yum update -y
-sudo yum install -y python3 python3-pip sqlite gcc gcc-c++ make curl wget
+# Enable EPEL
+sudo yum install -y epel-release
+
+# Install Python 3.10 (for newer systems with dnf)
+sudo dnf install -y python3.10 python3.10-pip python3.10-devel
+
+# For older systems, compile from source
+sudo yum groupinstall -y "Development Tools"
+sudo yum install -y openssl-devel bzip2-devel libffi-devel zlib-devel
+cd /tmp
+wget https://www.python.org/ftp/python/3.10.12/Python-3.10.12.tgz
+tar xzf Python-3.10.12.tgz
+cd Python-3.10.12
+./configure --enable-optimizations
+sudo make altinstall
+cd -
+rm -rf /tmp/Python-3.10.12*
 ```
 
 **macOS (Intel):**
 ```bash
 # Install Homebrew first if not installed
 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-brew install python sqlite curl wget
+brew install python@3.10
 ```
 
 **macOS (Apple Silicon):**
 ```bash
 # Install Homebrew first if not installed
 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-brew install python sqlite curl wget
+brew install python@3.10
 # Add Homebrew to PATH
-echo 'export PATH="/opt/homebrew/bin:$PATH"' >> ~/.zshrc
+echo 'export PATH="/opt/homebrew/opt/python@3.10/bin:$PATH"' >> ~/.zshrc
 source ~/.zshrc
 ```
 
 **Arch Linux:**
 ```bash
 sudo pacman -Sy
-sudo pacman -S --noconfirm python python-pip sqlite base-devel curl wget
+sudo pacman -S --noconfirm python310 python310-pip
+```
+
+### System Dependencies
+
+**Ubuntu/Debian:**
+```bash
+sudo apt update
+sudo apt install -y python3-pip python3-venv sqlite3 build-essential curl wget
+```
+
+**CentOS/RHEL/Fedora:**
+```bash
+sudo yum update -y
+sudo yum install -y python3-pip sqlite gcc gcc-c++ make curl wget
+```
+
+**macOS (Intel):**
+```bash
+brew install sqlite curl wget
+```
+
+**macOS (Apple Silicon):**
+```bash
+brew install sqlite curl wget
+```
+
+**Arch Linux:**
+```bash
+sudo pacman -Sy
+sudo pacman -S --noconfirm python-pip sqlite base-devel curl wget
 ```
 
 ### Ollama Installation
@@ -157,11 +306,14 @@ pip3 install -r requirements.txt
 
 ### Virtual Environment Setup
 ```bash
-# Create virtual environment
-python3 -m venv .venv
+# Create virtual environment with Python 3.10+
+python3.10 -m venv .venv
 
 # Activate virtual environment
 source .venv/bin/activate
+
+# Verify Python version in virtual environment
+python --version  # Should show Python 3.10.x
 
 # Install dependencies in virtual environment
 pip install -r requirements.txt
@@ -336,10 +488,35 @@ touch cortex/__init__.py
 # If missing, create it manually using the steps above
 ```
 
+**API Key Configuration:**
+The installation script now handles missing API keys gracefully:
+- **Weather API**: If `OPENWEATHER_API_KEY` is missing, weather functionality is disabled with a warning
+- **Web Search API**: If `GOOGLE_API_KEY` or `GOOGLE_CSE_ID` are missing, web search functionality is disabled with a warning
+- **Application continues**: The application will start and run without these APIs, just with limited functionality
+
+**To enable full functionality, add your API keys to .env:**
+```bash
+# Edit .env file
+nano .env
+
+# Add your API keys:
+OPENWEATHER_API_KEY=your_actual_openweather_api_key
+GOOGLE_API_KEY=your_actual_google_api_key
+GOOGLE_CSE_ID=your_actual_google_cse_id
+```
+
+**Getting API Keys:**
+- **OpenWeather API**: Sign up at https://openweathermap.org/api (free tier available)
+- **Google Custom Search**: 
+  - Get API key from https://console.cloud.google.com/
+  - Create Custom Search Engine at https://programmablesearchengine.google.com/
+  - Get CSE ID from your search engine settings
+
 **Invalid API keys:**
 - Verify your API keys are correct and active
 - Check that you have the necessary permissions for each service
 - Ensure you're using the correct API key format
+- For Google Custom Search, make sure your CSE is configured for web search
 
 **STARLETTE_SECRET issues:**
 ```bash
@@ -579,16 +756,7 @@ cp .env .env.backup
 cp .env.backup .env
 ```
 
-## System Requirements
-
-- **OS**: Ubuntu 20.04+, Debian 11+, CentOS 8+, RHEL 8+, Fedora 33+, macOS 10.15+, Arch Linux
-- **Architecture**: x86_64, ARM64 (Apple Silicon)
-- **Python**: 3.10 or higher
-- **RAM**: 8GB minimum, 16GB recommended
-- **Storage**: 10GB free space
-- **Network**: Internet connection for initial setup 
-
-### Ollama Service Issues
+## Ollama Service Issues
 
 **Linux:**
 ```bash
@@ -614,7 +782,7 @@ ollama serve &
 ollama logs
 ```
 
-### Ollama Model Issues
+## Ollama Model Issues
 
 **"command not found" errors with model names:**
 If you see errors like `3-enhanced:12b: command not found`, this is a shell parsing issue with colons in model names.
@@ -667,4 +835,68 @@ ollama rm "gemma3-cortex:latest"
 
 # Try copying again
 ollama cp "ebdm/gemma3-enhanced:12b" "gemma3-cortex:latest"
+```
+
+## Agent and Tool Issues
+
+### Web Search Tool Issues
+
+**"Tool call syntax returned instead of results" Error:**
+This was a common issue where the agent would return tool call syntax instead of executing the search.
+
+**What's been fixed:**
+- The agent now properly parses tool calls from ```tool_calls``` code blocks
+- Web search tool executes correctly and returns actual search results
+- Improved error handling for missing API keys
+
+**If you still see tool call syntax:**
+1. Ensure your Google API keys are configured in `.env`
+2. Check that the agent is using the latest code with tool call parsing fixes
+3. Verify that Python 3.10+ is being used (required for modern type hints)
+
+### Agent Tool Call Parsing
+
+The agent now supports multiple tool call formats:
+- **Standard Ollama format**: Proper tool call objects
+- **Code block format**: ```tool_calls``` blocks with JSON
+- **Legacy format**: `<tool_call>` XML-style tags
+
+**Manual verification:**
+```bash
+# Test web search functionality
+python -c "
+from stem.tools import execute_web_search
+result = execute_web_search('test query')
+print('Web search result:', result)
+"
+```
+
+### Memory and Database Issues
+
+**"No module named 'hippocampus'" Error:**
+This can occur if the Python path is not set correctly.
+
+**Solution:**
+```bash
+# Ensure you're in the project root
+cd /path/to/tatlock
+
+# Set PYTHONPATH
+export PYTHONPATH=$(pwd)
+
+# Test import
+python -c "import hippocampus; print('Import successful')"
+```
+
+**Database initialization errors:**
+```bash
+# Check database permissions
+ls -la hippocampus/
+
+# Fix permissions if needed
+chmod 755 hippocampus/
+chmod 644 hippocampus/*.db 2>/dev/null || true
+
+# Reinitialize database
+python -c "from stem.installation.database_setup import create_system_db_tables; create_system_db_tables('hippocampus/system.db')"
 ``` 

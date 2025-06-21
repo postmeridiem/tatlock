@@ -137,6 +137,23 @@ check_python_version() {
             fi
         fi
     fi
+    
+    # Also check common installation paths
+    local common_paths=("/usr/bin/python3.10" "/usr/local/bin/python3.10" "/opt/homebrew/bin/python3.10")
+    for path in "${common_paths[@]}"; do
+        if [ -f "$path" ]; then
+            local version=$("$path" -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')" 2>/dev/null)
+            if [ $? -eq 0 ]; then
+                local major=$(echo "$version" | cut -d. -f1)
+                local minor=$(echo "$version" | cut -d. -f2)
+                if [ "$major" -eq 3 ] && [ "$minor" -ge 10 ]; then
+                    echo "✓ Found Python $version at $path (meets requirement: 3.10+)"
+                    return 0
+                fi
+            fi
+        fi
+    done
+    
     return 1
 }
 
@@ -148,14 +165,78 @@ install_python310() {
             
             # Add deadsnakes PPA for newer Python versions
             echo "Adding deadsnakes PPA for Python 3.10+..."
-            sudo add-apt-repository ppa:deadsnakes/ppa -y
-            sudo apt update
-            
-            # Install Python 3.10 and related packages
-            sudo apt install -y python3.10 python3.10-venv python3.10-pip python3.10-dev
+            if ! sudo add-apt-repository ppa:deadsnakes/ppa -y; then
+                echo "Warning: Failed to add deadsnakes PPA. This might be due to network issues or unsupported system."
+                echo "Trying to install Python 3.10 from source..."
+                
+                # Install build dependencies
+                sudo apt install -y build-essential zlib1g-dev libncurses5-dev libgdbm-dev libnss3-dev libssl-dev libreadline-dev libffi-dev libsqlite3-dev wget libbz2-dev
+                
+                # Download and compile Python 3.10 from source
+                cd /tmp
+                wget https://www.python.org/ftp/python/3.10.12/Python-3.10.12.tgz
+                tar xzf Python-3.10.12.tgz
+                cd Python-3.10.12
+                ./configure --enable-optimizations --prefix=/usr/local
+                make -j$(nproc)
+                sudo make altinstall
+                cd -
+                rm -rf /tmp/Python-3.10.12*
+                
+                # Install pip for the compiled Python
+                curl -sS https://bootstrap.pypa.io/get-pip.py | python3.10
+                
+                # Create symlink for pip3.10
+                sudo ln -sf /usr/local/bin/pip3.10 /usr/bin/pip3.10
+            else
+                sudo apt update
+                
+                # Install Python 3.10 and related packages
+                echo "Installing Python 3.10..."
+                if ! sudo apt install -y python3.10 python3.10-venv python3.10-dev; then
+                    echo "Warning: python3.10 packages not available. Trying alternative installation..."
+                    
+                    # Try installing just python3.10 and use get-pip.py
+                    if sudo apt install -y python3.10 python3.10-venv python3.10-dev; then
+                        echo "Python 3.10 installed successfully. Installing pip separately..."
+                        
+                        # Download and install pip for Python 3.10
+                        curl -sS https://bootstrap.pypa.io/get-pip.py | python3.10
+                        
+                        # Create symlink for pip3.10
+                        sudo ln -sf /usr/local/bin/pip3.10 /usr/bin/pip3.10
+                    else
+                        echo "Error: Failed to install Python 3.10 from repositories."
+                        echo "Trying to install from source..."
+                        
+                        # Install build dependencies
+                        sudo apt install -y build-essential zlib1g-dev libncurses5-dev libgdbm-dev libnss3-dev libssl-dev libreadline-dev libffi-dev libsqlite3-dev wget libbz2-dev
+                        
+                        # Download and compile Python 3.10 from source
+                        cd /tmp
+                        wget https://www.python.org/ftp/python/3.10.12/Python-3.10.12.tgz
+                        tar xzf Python-3.10.12.tgz
+                        cd Python-3.10.12
+                        ./configure --enable-optimizations --prefix=/usr/local
+                        make -j$(nproc)
+                        sudo make altinstall
+                        cd -
+                        rm -rf /tmp/Python-3.10.12*
+                        
+                        # Install pip for the compiled Python
+                        curl -sS https://bootstrap.pypa.io/get-pip.py | python3.10
+                    fi
+                else
+                    # Try to install python3.10-pip if available
+                    if ! sudo apt install -y python3.10-pip; then
+                        echo "python3.10-pip not available, installing pip separately..."
+                        curl -sS https://bootstrap.pypa.io/get-pip.py | python3.10
+                    fi
+                fi
+            fi
             
             # Create symlinks if they don't exist
-            if [ ! -f /usr/bin/python3.10 ]; then
+            if [ ! -f /usr/bin/python3.10 ] && [ ! -f /usr/local/bin/python3.10 ]; then
                 echo "Error: Python 3.10 installation failed."
                 exit 1
             fi
@@ -344,6 +425,16 @@ find_python_executable() {
             return 0
         fi
     done
+    
+    # Also check common installation paths directly
+    local common_paths=("/usr/bin/python3.10" "/usr/local/bin/python3.10" "/opt/homebrew/bin/python3.10")
+    for path in "${common_paths[@]}"; do
+        if [ -f "$path" ] && check_python_version "$path"; then
+            echo "$path"
+            return 0
+        fi
+    done
+    
     return 1
 }
 
