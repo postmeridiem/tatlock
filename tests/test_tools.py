@@ -158,7 +158,7 @@ class TestMemoryRecallTools:
     
     def test_recall_memories_success(self):
         """Test successful memory recall."""
-        with patch('hippocampus.tools.recall_memories_tool.recall_memories') as mock_recall:
+        with patch('hippocampus.recall_memories_tool.recall_memories') as mock_recall:
             mock_recall.return_value = [
                 {"timestamp": "2022-01-01", "user_prompt": "test prompt", "llm_reply": "test reply", "conversation_id": "conv1", "topic_name": "test"}
             ]
@@ -170,7 +170,7 @@ class TestMemoryRecallTools:
     
     def test_recall_memories_with_time_success(self):
         """Test successful memory recall with time filter."""
-        with patch('hippocampus.tools.recall_memories_with_time_tool.recall_memories_with_time') as mock_recall:
+        with patch('hippocampus.recall_memories_with_time_tool.recall_memories_with_time') as mock_recall:
             mock_recall.return_value = [
                 {"timestamp": "2022-01-01", "user_prompt": "test prompt", "llm_reply": "test reply", "conversation_id": "conv1", "topic_name": "test"}
             ]
@@ -182,7 +182,7 @@ class TestMemoryRecallTools:
     
     def test_recall_memories_no_results(self):
         """Test memory recall with no results."""
-        with patch('hippocampus.tools.recall_memories_tool.recall_memories') as mock_recall:
+        with patch('hippocampus.recall_memories_tool.recall_memories') as mock_recall:
             mock_recall.return_value = []
             
             result = execute_recall_memories("nonexistent", "testuser")
@@ -192,7 +192,7 @@ class TestMemoryRecallTools:
     
     def test_recall_memories_database_error(self):
         """Test memory recall with database error."""
-        with patch('hippocampus.tools.recall_memories_tool.recall_memories') as mock_recall:
+        with patch('hippocampus.recall_memories_tool.recall_memories') as mock_recall:
             mock_recall.side_effect = Exception("Database error")
             
             result = execute_recall_memories("test", "testuser")
@@ -206,7 +206,7 @@ class TestConversationTools:
     
     def test_get_conversations_by_topic_success(self):
         """Test successful conversation retrieval by topic."""
-        with patch('hippocampus.tools.get_conversations_by_topic_tool.get_conversations_by_topic') as mock_get:
+        with patch('hippocampus.get_conversations_by_topic_tool.get_conversations_by_topic') as mock_get:
             mock_get.return_value = [
                 {"conversation_id": "conv1", "topic_name": "test", "first_seen": "2022-01-01"}
             ]
@@ -218,7 +218,7 @@ class TestConversationTools:
     
     def test_get_topics_by_conversation_success(self):
         """Test successful topic retrieval by conversation."""
-        with patch('hippocampus.tools.get_topics_by_conversation_tool.get_topics_by_conversation') as mock_get:
+        with patch('hippocampus.get_topics_by_conversation_tool.get_topics_by_conversation') as mock_get:
             mock_get.return_value = [
                 {"topic_name": "test", "frequency": 3, "first_seen": "2022-01-01"}
             ]
@@ -230,7 +230,7 @@ class TestConversationTools:
     
     def test_get_conversation_summary_success(self):
         """Test successful conversation summary retrieval."""
-        with patch('hippocampus.tools.get_conversation_summary_tool.get_conversation_summary') as mock_get:
+        with patch('hippocampus.get_conversation_summary_tool.get_conversation_summary') as mock_get:
             mock_get.return_value = {
                 "conversation_id": "conv1",
                 "title": "Test Conversation",
@@ -245,7 +245,7 @@ class TestConversationTools:
     
     def test_get_topic_statistics_success(self):
         """Test successful topic statistics retrieval."""
-        with patch('hippocampus.tools.get_topic_statistics_tool.get_topic_statistics') as mock_get:
+        with patch('hippocampus.get_topic_statistics_tool.get_topic_statistics') as mock_get:
             mock_get.return_value = {
                 "total_topics": 10,
                 "total_conversations": 5,
@@ -259,7 +259,7 @@ class TestConversationTools:
     
     def test_get_user_conversations_success(self):
         """Test successful user conversations retrieval."""
-        with patch('hippocampus.tools.get_user_conversations_tool.get_user_conversations') as mock_get:
+        with patch('hippocampus.get_user_conversations_tool.get_user_conversations') as mock_get:
             mock_get.return_value = [
                 {"conversation_id": "conv1", "title": "Test", "last_activity": "2022-01-01"}
             ]
@@ -271,7 +271,7 @@ class TestConversationTools:
     
     def test_get_conversation_details_success(self):
         """Test successful conversation details retrieval."""
-        with patch('hippocampus.tools.get_conversation_details_tool.get_conversation_details') as mock_get:
+        with patch('hippocampus.get_conversation_details_tool.get_conversation_details') as mock_get:
             mock_get.return_value = {
                 "conversation_id": "conv1",
                 "title": "Test Conversation",
@@ -285,7 +285,7 @@ class TestConversationTools:
     
     def test_search_conversations_success(self):
         """Test successful conversation search."""
-        with patch('hippocampus.tools.search_conversations_tool.search_conversations') as mock_search:
+        with patch('hippocampus.search_conversations_tool.search_conversations') as mock_search:
             mock_search.return_value = [
                 {"conversation_id": "conv1", "relevance": 0.8, "snippet": "test content"}
             ]

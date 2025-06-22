@@ -12,7 +12,7 @@ import shutil
 from occipital.website_tester import WebsiteTester
 from occipital.visual_analyzer import VisualAnalyzer
 from occipital.run_tests import ScreenshotTestRunner
-from occipital.url_screenshot import take_screenshot_from_url, analyze_screenshot_file
+from occipital.take_screenshot_from_url_tool import execute_take_screenshot_from_url, analyze_screenshot_file
 
 
 class TestWebsiteTester:
@@ -237,15 +237,15 @@ class TestTakeScreenshotFromURL:
     @pytest.mark.asyncio
     async def test_successful_screenshot(self):
         """Test successful screenshot capture."""
-        with patch('occipital.url_screenshot.get_user_image_path') as mock_get_path:
+        with patch('occipital.take_screenshot_from_url_tool.get_user_image_path') as mock_get_path:
             mock_get_path.return_value = "/tmp/test_screenshot.png"
             
-            with patch('occipital.url_screenshot.WebsiteTester') as mock_tester_class:
+            with patch('occipital.take_screenshot_from_url_tool.WebsiteTester') as mock_tester_class:
                 mock_tester = Mock()
                 mock_tester_class.return_value = mock_tester
                 mock_tester.take_screenshot_from_url = AsyncMock()
                 
-                result = await take_screenshot_from_url(
+                result = await execute_take_screenshot_from_url(
                     url="https://example.com",
                     session_id="test_session",
                     username="testuser"
@@ -266,15 +266,15 @@ class TestTakeScreenshotFromURL:
     @pytest.mark.asyncio
     async def test_screenshot_error_handling(self):
         """Test error handling during screenshot capture."""
-        with patch('occipital.url_screenshot.get_user_image_path') as mock_get_path:
+        with patch('occipital.take_screenshot_from_url_tool.get_user_image_path') as mock_get_path:
             mock_get_path.return_value = "/tmp/test_screenshot.png"
             
-            with patch('occipital.url_screenshot.WebsiteTester') as mock_tester_class:
+            with patch('occipital.take_screenshot_from_url_tool.WebsiteTester') as mock_tester_class:
                 mock_tester = Mock()
                 mock_tester_class.return_value = mock_tester
                 mock_tester.take_screenshot_from_url = AsyncMock(side_effect=Exception("Browser error"))
                 
-                result = await take_screenshot_from_url(
+                result = await execute_take_screenshot_from_url(
                     url="https://example.com",
                     session_id="test_session",
                     username="testuser"
@@ -288,15 +288,15 @@ class TestTakeScreenshotFromURL:
     @pytest.mark.asyncio
     async def test_screenshot_with_default_username(self):
         """Test screenshot with default username."""
-        with patch('occipital.url_screenshot.get_user_image_path') as mock_get_path:
+        with patch('occipital.take_screenshot_from_url_tool.get_user_image_path') as mock_get_path:
             mock_get_path.return_value = "/tmp/test_screenshot.png"
             
-            with patch('occipital.url_screenshot.WebsiteTester') as mock_tester_class:
+            with patch('occipital.take_screenshot_from_url_tool.WebsiteTester') as mock_tester_class:
                 mock_tester = Mock()
                 mock_tester_class.return_value = mock_tester
                 mock_tester.take_screenshot_from_url = AsyncMock()
                 
-                result = await take_screenshot_from_url(
+                result = await execute_take_screenshot_from_url(
                     url="https://example.com",
                     session_id="test_session"
                 )
@@ -311,7 +311,7 @@ class TestAnalyzeScreenshotFile:
     
     def test_successful_file_analysis(self):
         """Test successful file analysis."""
-        with patch('occipital.url_screenshot.get_user_image_path') as mock_get_path:
+        with patch('occipital.take_screenshot_from_url_tool.get_user_image_path') as mock_get_path:
             mock_get_path.return_value = "/tmp/test_screenshot.png"
             
             with patch('os.path.exists', return_value=True):
@@ -336,7 +336,7 @@ class TestAnalyzeScreenshotFile:
     
     def test_file_not_found(self):
         """Test analysis when file doesn't exist."""
-        with patch('occipital.url_screenshot.get_user_image_path') as mock_get_path:
+        with patch('occipital.take_screenshot_from_url_tool.get_user_image_path') as mock_get_path:
             mock_get_path.return_value = "/tmp/nonexistent.png"
             
             with patch('os.path.exists', return_value=False):
@@ -352,7 +352,7 @@ class TestAnalyzeScreenshotFile:
     
     def test_analysis_error_handling(self):
         """Test error handling during file analysis."""
-        with patch('occipital.url_screenshot.get_user_image_path') as mock_get_path:
+        with patch('occipital.take_screenshot_from_url_tool.get_user_image_path') as mock_get_path:
             mock_get_path.side_effect = Exception("Path error")
             
             result = analyze_screenshot_file(
@@ -367,7 +367,7 @@ class TestAnalyzeScreenshotFile:
     
     def test_analysis_with_default_username(self):
         """Test analysis with default username."""
-        with patch('occipital.url_screenshot.get_user_image_path') as mock_get_path:
+        with patch('occipital.take_screenshot_from_url_tool.get_user_image_path') as mock_get_path:
             mock_get_path.return_value = "/tmp/test_screenshot.png"
             
             with patch('os.path.exists', return_value=True):
@@ -383,7 +383,7 @@ class TestAnalyzeScreenshotFile:
     
     def test_analysis_with_empty_prompt(self):
         """Test analysis with empty original prompt."""
-        with patch('occipital.url_screenshot.get_user_image_path') as mock_get_path:
+        with patch('occipital.take_screenshot_from_url_tool.get_user_image_path') as mock_get_path:
             mock_get_path.return_value = "/tmp/test_screenshot.png"
             
             with patch('os.path.exists', return_value=True):
@@ -399,7 +399,7 @@ class TestAnalyzeScreenshotFile:
     
     def test_analysis_with_none_prompt(self):
         """Test analysis with None original prompt."""
-        with patch('occipital.url_screenshot.get_user_image_path') as mock_get_path:
+        with patch('occipital.take_screenshot_from_url_tool.get_user_image_path') as mock_get_path:
             mock_get_path.return_value = "/tmp/test_screenshot.png"
             
             with patch('os.path.exists', return_value=True):
@@ -415,7 +415,7 @@ class TestAnalyzeScreenshotFile:
     
     def test_analysis_with_large_file(self):
         """Test analysis with large file size."""
-        with patch('occipital.url_screenshot.get_user_image_path') as mock_get_path:
+        with patch('occipital.take_screenshot_from_url_tool.get_user_image_path') as mock_get_path:
             mock_get_path.return_value = "/tmp/large_screenshot.png"
             
             with patch('os.path.exists', return_value=True):
@@ -432,7 +432,7 @@ class TestAnalyzeScreenshotFile:
     
     def test_analysis_with_zero_size_file(self):
         """Test analysis with zero size file."""
-        with patch('occipital.url_screenshot.get_user_image_path') as mock_get_path:
+        with patch('occipital.take_screenshot_from_url_tool.get_user_image_path') as mock_get_path:
             mock_get_path.return_value = "/tmp/empty_screenshot.png"
             
             with patch('os.path.exists', return_value=True):
@@ -449,7 +449,7 @@ class TestAnalyzeScreenshotFile:
     
     def test_analysis_insights_structure(self):
         """Test that analysis insights have the expected structure."""
-        with patch('occipital.url_screenshot.get_user_image_path') as mock_get_path:
+        with patch('occipital.take_screenshot_from_url_tool.get_user_image_path') as mock_get_path:
             mock_get_path.return_value = "/tmp/test_screenshot.png"
             
             with patch('os.path.exists', return_value=True):
@@ -469,7 +469,7 @@ class TestAnalyzeScreenshotFile:
     
     def test_analysis_recommendations_structure(self):
         """Test that analysis recommendations have the expected structure."""
-        with patch('occipital.url_screenshot.get_user_image_path') as mock_get_path:
+        with patch('occipital.take_screenshot_from_url_tool.get_user_image_path') as mock_get_path:
             mock_get_path.return_value = "/tmp/test_screenshot.png"
             
             with patch('os.path.exists', return_value=True):
@@ -488,7 +488,7 @@ class TestAnalyzeScreenshotFile:
     
     def test_analysis_with_special_characters_in_prompt(self):
         """Test analysis with special characters in the original prompt."""
-        with patch('occipital.url_screenshot.get_user_image_path') as mock_get_path:
+        with patch('occipital.take_screenshot_from_url_tool.get_user_image_path') as mock_get_path:
             mock_get_path.return_value = "/tmp/test_screenshot.png"
             
             with patch('os.path.exists', return_value=True):
@@ -505,7 +505,7 @@ class TestAnalyzeScreenshotFile:
     
     def test_analysis_with_very_long_prompt(self):
         """Test analysis with very long original prompt."""
-        with patch('occipital.url_screenshot.get_user_image_path') as mock_get_path:
+        with patch('occipital.take_screenshot_from_url_tool.get_user_image_path') as mock_get_path:
             mock_get_path.return_value = "/tmp/test_screenshot.png"
             
             with patch('os.path.exists', return_value=True):

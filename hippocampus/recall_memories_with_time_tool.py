@@ -1,7 +1,7 @@
 """
-hippocampus/tools/recall_memories_with_time_tool.py
+hippocampus/recall_memories_with_time_tool.py
 
-Time-based memory recall functionality for searching past conversations within date ranges.
+Tool for recalling memories with time-based filtering.
 """
 
 import logging

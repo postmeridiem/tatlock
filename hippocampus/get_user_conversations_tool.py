@@ -1,7 +1,7 @@
 """
-hippocampus/tools/get_user_conversations_tool.py
+hippocampus/get_user_conversations_tool.py
 
-User conversation listing functionality.
+Tool for retrieving all conversations for a specific user.
 """
 
 import logging

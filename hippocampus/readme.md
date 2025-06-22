@@ -44,8 +44,8 @@ The Hippocampus module manages all forms of persistent memory for Tatlock, inclu
 
 ## 🛠️ **Tool Integration**
 
-### **Memory Tools** (`tools/` directory)
-All memory-related tools are organized in the `hippocampus/tools/` directory:
+### **Memory Tools** (Root directory)
+All memory-related tools are organized in the root of the `hippocampus/` module:
 
 - **`find_personal_variables_tool.py`**: Look up personal information by key
 - **`get_conversation_details_tool.py`**: Get detailed conversation information

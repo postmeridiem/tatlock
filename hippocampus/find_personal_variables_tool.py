@@ -1,7 +1,7 @@
 """
-hippocampus/tools/find_personal_variables_tool.py
+hippocampus/find_personal_variables_tool.py
 
-Personal variables lookup functionality for user database queries.
+Tool for finding personal variables in the user's database.
 """
 
 import logging

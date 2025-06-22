@@ -77,12 +77,12 @@ report_path = analyzer.generate_regression_report(regression_results)
 layout_analysis = analyzer.analyze_layout_changes("current.png", "baseline.png")
 ```
 
-#### **URL Screenshot Service** (`url_screenshot.py`)
+#### **URL Screenshot Service** (`take_screenshot_from_url_tool.py`)
 ```python
-from occipital.url_screenshot import take_screenshot_from_url, analyze_screenshot_file
+from occipital.take_screenshot_from_url_tool import execute_take_screenshot_from_url, analyze_screenshot_file
 
 # Take screenshot from URL
-result = await take_screenshot_from_url(
+result = await execute_take_screenshot_from_url(
     url="https://example.com",
     session_id="user_request_123",
     username="jeroen"
@@ -238,7 +238,7 @@ python -m pytest tests/test_occipital_screenshot.py -v
 ### **Integration Tests**
 ```bash
 # Test screenshot functionality
-python -c "from occipital.url_screenshot import take_screenshot_from_url; print('Screenshot service imported successfully')"
+python -c "from occipital.take_screenshot_from_url_tool import execute_take_screenshot_from_url; print('Screenshot service imported successfully')"
 ```
 
 ## 📈 **Performance Considerations**

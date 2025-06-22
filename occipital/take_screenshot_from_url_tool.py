@@ -1,7 +1,7 @@
 """
-occipital/url_screenshot.py
+occipital/take_screenshot_from_url_tool.py
 
-URL screenshot functionality for taking screenshots of webpages and saving them to user storage.
+Screenshot and analysis tools for capturing and analyzing website screenshots.
 """
 
 import logging
@@ -13,7 +13,7 @@ from occipital.website_tester import WebsiteTester
 logger = logging.getLogger(__name__)
 
 
-async def take_screenshot_from_url(url: str, session_id: str, username: str = "admin") -> dict:
+async def execute_take_screenshot_from_url(url: str, session_id: str, username: str = "admin") -> dict:
     """
     Take a full-page screenshot of a webpage and save it to the user's shortterm storage.
     

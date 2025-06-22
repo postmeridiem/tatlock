@@ -1,5 +1,5 @@
 """
-hippocampus/tools/get_topic_statistics_tool.py
+hippocampus/get_topic_statistics_tool.py
 
 Topic statistics and analytics functionality.
 """

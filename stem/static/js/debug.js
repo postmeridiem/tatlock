@@ -27,6 +27,10 @@ function addToInteractionLog(type, data) {
             message = `Chat error: ${data.error}`;
             logType = 'error';
             break;
+        case 'Voice Command':
+            message = `Voice command detected: "${data.extracted_command}" (original: "${data.original_text}")`;
+            logType = 'user';
+            break;
         default:
             message = `${type}: ${JSON.stringify(data)}`;
             logType = 'info';
@@ -36,8 +40,12 @@ function addToInteractionLog(type, data) {
 }
 
 function addLogEntry(content, type = 'info', data = null) {
-    // Only log chat-related entries
-    if (type === 'tool-call' || type === 'tool-response' || type === 'error') {
+    // Log chat-related entries and tool interactions
+    if (type === 'tool-call' || type === 'tool-response' || type === 'error' || 
+        type === 'user' || type === 'ai' || type === 'info') {
+        
+        console.log('Adding log entry:', { type, content, data });
+        
         const entry = {
             timestamp: new Date(),
             type: type,
@@ -77,6 +85,8 @@ function addLogEntry(content, type = 'info', data = null) {
         if (autoScrollToggle.checked) {
             jsonContainer.scrollTop = 0;
         }
+    } else {
+        console.log('Skipping log entry of type:', type);
     }
 }
 

@@ -1,7 +1,7 @@
 """
-hippocampus/tools/get_topics_by_conversation_tool.py
+hippocampus/get_topics_by_conversation_tool.py
 
-Conversation topic analysis functionality.
+Tool for retrieving topics by conversation.
 """
 
 import logging

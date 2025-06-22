@@ -1,7 +1,7 @@
 """
-hippocampus/tools/get_conversation_summary_tool.py
+hippocampus/get_conversation_summary_tool.py
 
-Conversation summary generation functionality.
+Tool for retrieving a summary of a specific conversation.
 """
 
 import logging

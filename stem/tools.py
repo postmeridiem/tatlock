@@ -9,17 +9,17 @@ import logging
 # Import tools from their respective modules
 from cerebellum.web_search_tool import execute_web_search
 from cerebellum.weather_tool import execute_get_weather_forecast
-from hippocampus.tools.find_personal_variables_tool import execute_find_personal_variables
-from hippocampus.tools.recall_memories_tool import execute_recall_memories
-from hippocampus.tools.recall_memories_with_time_tool import execute_recall_memories_with_time
-from hippocampus.tools.get_conversations_by_topic_tool import execute_get_conversations_by_topic
-from hippocampus.tools.get_topics_by_conversation_tool import execute_get_topics_by_conversation
-from hippocampus.tools.get_conversation_summary_tool import execute_get_conversation_summary
-from hippocampus.tools.get_topic_statistics_tool import execute_get_topic_statistics
-from hippocampus.tools.get_user_conversations_tool import execute_get_user_conversations
-from hippocampus.tools.get_conversation_details_tool import execute_get_conversation_details
-from hippocampus.tools.search_conversations_tool import execute_search_conversations
-from occipital.url_screenshot import take_screenshot_from_url, analyze_screenshot_file
+from hippocampus.find_personal_variables_tool import execute_find_personal_variables
+from hippocampus.recall_memories_tool import execute_recall_memories
+from hippocampus.recall_memories_with_time_tool import execute_recall_memories_with_time
+from hippocampus.get_conversations_by_topic_tool import execute_get_conversations_by_topic
+from hippocampus.get_topics_by_conversation_tool import execute_get_topics_by_conversation
+from hippocampus.get_conversation_summary_tool import execute_get_conversation_summary
+from hippocampus.get_topic_statistics_tool import execute_get_topic_statistics
+from hippocampus.get_user_conversations_tool import execute_get_user_conversations
+from hippocampus.get_conversation_details_tool import execute_get_conversation_details
+from hippocampus.search_conversations_tool import execute_search_conversations
+from occipital.take_screenshot_from_url_tool import execute_take_screenshot_from_url, analyze_screenshot_file
 
 # Set up logging for this module
 logger = logging.getLogger(__name__)
@@ -293,7 +293,7 @@ async def execute_screenshot_from_url(url: str, session_id: str, username: str =
     """
     Execute screenshot_from_url tool.
     """
-    return await take_screenshot_from_url(url, session_id, username)
+    return await execute_take_screenshot_from_url(url, session_id, username)
 
 
 def execute_analyze_file(session_id: str, original_prompt: str, username: str = "admin") -> dict:

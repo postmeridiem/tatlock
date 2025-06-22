@@ -1,7 +1,7 @@
 """
-hippocampus/tools/search_conversations_tool.py
+hippocampus/search_conversations_tool.py
 
-Conversation search functionality for finding conversations by title or ID.
+Tool for searching conversations in the user's database.
 """
 
 import logging

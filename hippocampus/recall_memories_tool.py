@@ -1,7 +1,7 @@
 """
-hippocampus/tools/recall_memories_tool.py
+hippocampus/recall_memories_tool.py
 
-Memory recall functionality for searching past conversations.
+Tool for recalling memories from the user's database.
 """
 
 import logging

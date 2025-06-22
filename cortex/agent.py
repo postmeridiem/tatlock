@@ -124,6 +124,10 @@ Do not attempt to call any more tools - provide a final response analyzing the s
         response = ollama.chat(model=OLLAMA_MODEL, messages=messages_for_ollama, tools=TOOLS)
         response_message = dict(response['message'])
         
+        # Add debugging for LLM response
+        logger.info(f"Raw LLM response content: {response_message.get('content', 'None')}")
+        logger.info(f"Raw LLM response tool_calls: {response_message.get('tool_calls', 'None')}")
+        
         if response_message.get('tool_calls'):
             logger.info(f"LLM Response: {len(response_message['tool_calls'])} tool calls")
         else:
@@ -148,10 +152,12 @@ Do not attempt to call any more tools - provide a final response analyzing the s
 
         if not response_message.get('tool_calls') and "tool_calls" in response_message.get('content', ''):
             content = response_message['content']
+            logger.info(f"Found 'tool_calls' in content, attempting to parse...")
             
             # Try to parse tool calls from ```tool_calls``` code blocks
             match = re.search(r"```tool_calls\s*\n(.*?)\n```", content, re.DOTALL)
             if match:
+                logger.info(f"Found ```tool_calls``` block, attempting to parse...")
                 try:
                     tool_json_str = match.group(1).strip()
                     parsed_calls = json.loads(tool_json_str)
@@ -172,14 +178,18 @@ Do not attempt to call any more tools - provide a final response analyzing the s
                     if clean_tool_calls:
                         response_message['tool_calls'] = clean_tool_calls
                         response_message['content'] = ""
-                        logger.info(f"Successfully parsed {len(clean_tool_calls)} tool calls from content")
+                        logger.info(f"Successfully parsed {len(clean_tool_calls)} tool calls from content, cleared content")
+                    else:
+                        logger.info("No valid tool calls found in ```tool_calls``` block, keeping original content")
                 except (json.JSONDecodeError, AttributeError) as e:
                     logger.error(f"Failed to parse tool calls from ```tool_calls``` block: {e}")
+                    logger.info("Keeping original content due to parsing error")
             
             # Fallback to the original <tool_call> parsing
             if not response_message.get('tool_calls'):
                 match = re.search(r"<tool_call>\s*(\{.*?\})\s*</tool_call>", content, re.DOTALL)
                 if match:
+                    logger.info(f"Found <tool_call> block, attempting to parse...")
                     try:
                         tool_json_str = match.group(1).replace('\\"', '"')
                         parsed_call = json.loads(tool_json_str)
@@ -189,12 +199,29 @@ Do not attempt to call any more tools - provide a final response analyzing the s
                                                            "function": {"name": parsed_call.get("name"),
                                                                         "arguments": parsed_call.get("parameters", {})}}]
                         response_message['content'] = ""
+                        logger.info(f"Successfully parsed tool call from <tool_call> block, cleared content")
                     except (json.JSONDecodeError, AttributeError) as e:
                         logger.error(f"Failed to parse tool call from content: {e}")
+                        logger.info("Keeping original content due to parsing error")
 
         messages_for_ollama.append(response_message)
 
+        # Add debugging after processing response message
+        logger.info(f"After processing - content: {response_message.get('content', 'None')}")
+        logger.info(f"After processing - tool_calls: {response_message.get('tool_calls', 'None')}")
+
+        # If content is empty but no tool calls, try to get a proper response
+        if not response_message.get('content') and not response_message.get('tool_calls'):
+            logger.warning("Content is empty and no tool calls found, requesting new response from LLM")
+            # Add a system message to request a proper response
+            messages_for_ollama.append({'role': 'system', 'content': 'Please provide a helpful response to the user\'s message.'})
+            response = ollama.chat(model=OLLAMA_MODEL, messages=messages_for_ollama, tools=TOOLS)
+            response_message = dict(response['message'])
+            messages_for_ollama[-1] = response_message  # Replace the system message with the new response
+            logger.info(f"New response content: {response_message.get('content', 'None')}")
+
         if not response_message.get('tool_calls'):
+            logger.info("No tool calls found, breaking out of loop")
             break
 
         tool_outputs = []
@@ -254,6 +281,12 @@ Do not attempt to call any more tools - provide a final response analyzing the s
 
     final_content = messages_for_ollama[-1]['content'] if messages_for_ollama and messages_for_ollama[-1][
         'role'] == 'assistant' else "I'm sorry, an error occurred or no assistant reply was generated."
+    
+    # Add debugging for empty response issue
+    logger.info(f"Final content length: {len(final_content) if final_content else 0}")
+    logger.info(f"Final content preview: {final_content[:100] if final_content else 'None'}...")
+    logger.info(f"Last message role: {messages_for_ollama[-1]['role'] if messages_for_ollama else 'None'}")
+    
     final_history = [msg for msg in messages_for_ollama if msg['role'] != 'system']
 
     topic_str = "general"

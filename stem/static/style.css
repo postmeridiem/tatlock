@@ -1266,6 +1266,14 @@ table tr:last-child td, .user-table tr:last-child td {
     border-left-color: var(--accent-color);
 }
 
+.json-entry.user {
+    border-left-color: #2196F3;
+}
+
+.json-entry.ai {
+    border-left-color: #4CAF50;
+}
+
 .json-timestamp {
     font-size: 10px;
     color: var(--text-muted);

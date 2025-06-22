@@ -201,7 +201,7 @@ logger.error("Error message", exc_info=True)
 
 ### Tool Organization
 
-Tatlock follows a modular tool organization pattern where each tool is implemented in its own file within the appropriate brain module. This promotes maintainability, testability, and clear separation of concerns.
+Tatlock follows a modular tool organization pattern where each tool is implemented in its own file within the appropriate brain module. **Tools belong in the root of their respective modules, not in subdirectories.** This promotes maintainability, testability, and clear separation of concerns.
 
 #### Tool File Structure
 
@@ -211,25 +211,24 @@ cerebellum/
 └── weather_tool.py         # Weather forecast functionality
 
 hippocampus/
-├── tools/
-│   ├── find_personal_variables_tool.py
-│   ├── recall_memories_tool.py
-│   ├── recall_memories_with_time_tool.py
-│   ├── get_conversations_by_topic_tool.py
-│   ├── get_topics_by_conversation_tool.py
-│   ├── get_conversation_summary_tool.py
-│   ├── get_topic_statistics_tool.py
-│   ├── get_user_conversations_tool.py
-│   ├── get_conversation_details_tool.py
-│   └── search_conversations_tool.py
+├── find_personal_variables_tool.py
+├── recall_memories_tool.py
+├── recall_memories_with_time_tool.py
+├── get_conversations_by_topic_tool.py
+├── get_topics_by_conversation_tool.py
+├── get_conversation_summary_tool.py
+├── get_topic_statistics_tool.py
+├── get_user_conversations_tool.py
+├── get_conversation_details_tool.py
+├── search_conversations_tool.py
 ├── database.py             # Database access functions
 ├── recall.py               # Memory recall functions
 └── remember.py             # Memory storage functions
 
 occipital/
-├── url_screenshot.py       # Screenshot and analysis tools
-├── website_tester.py       # Website testing functionality
-└── visual_analyzer.py      # Visual analysis functionality
+├── take_screenshot_from_url_tool.py  # Screenshot and analysis tools
+├── website_tester.py                 # Website testing functionality
+└── visual_analyzer.py                # Visual analysis functionality
 
 stem/
 └── tools.py                # Tool registration and dispatcher
@@ -265,7 +264,7 @@ All tools are registered in `stem/tools.py`:
 # stem/tools.py
 from cerebellum.web_search_tool import execute_web_search
 from cerebellum.weather_tool import execute_get_weather_forecast
-from hippocampus.tools.find_personal_variables_tool import execute_find_personal_variables
+from hippocampus.find_personal_variables_tool import execute_find_personal_variables
 # ... other imports
 
 # Tool definitions for LLM
@@ -316,7 +315,7 @@ AVAILABLE_TOOLS = {
 
 #### Adding New Tools
 
-1. **Create Tool File**: Add new file in appropriate module (e.g., `cerebellum/new_tool.py`)
+1. **Create Tool File**: Add new file in the root of the appropriate module (e.g., `cerebellum/new_tool.py`)
 2. **Implement Function**: Create `execute_tool_name()` function with proper docstring
 3. **Add Imports**: Import the tool in `stem/tools.py`
 4. **Register Tool**: Add tool definition to `TOOLS` list

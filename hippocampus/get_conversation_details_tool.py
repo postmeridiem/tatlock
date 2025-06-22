@@ -1,7 +1,7 @@
 """
-hippocampus/tools/get_conversation_details_tool.py
+hippocampus/get_conversation_details_tool.py
 
-Conversation detail retrieval functionality.
+Tool for retrieving detailed information about a specific conversation.
 """
 
 import logging
