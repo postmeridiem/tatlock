@@ -47,7 +47,7 @@ load_dotenv()
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    format='%(levelname)s:\t  %(name)s - %(message)s %(asctime)s',
     handlers=[
         logging.StreamHandler(),  # Console handler
     ]
