@@ -10,7 +10,7 @@
             <a href="/chat" class="nav-link">
                 Debug
             </a>
-            {% if user and 'admin' in user.get('roles', []) %}
+            {% if user and 'admin' in user.roles %}
                 <a href="/admin/dashboard" class="nav-link">
                     Admin Dashboard
                 </a>

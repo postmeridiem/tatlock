@@ -387,9 +387,17 @@ function renderConversations(conversations) {
 async function viewConversation(conversationId) {
     const modalContent = document.getElementById('conversationModalContent');
     const modalTitle = document.getElementById('conversationModalTitle');
-    modalContent.innerHTML = '<div class="loading">Loading messages...</div>';
+    const modal = document.getElementById('conversationModal');
     
-    document.getElementById('conversationModal').style.display = 'flex';
+    // Check if modal elements exist
+    if (!modalContent || !modalTitle || !modal) {
+        console.error('Conversation modal elements not found. Modal may not be properly initialized.');
+        alert('Error: Conversation modal not available. Please refresh the page and try again.');
+        return;
+    }
+    
+    modalContent.innerHTML = '<div class="loading">Loading messages...</div>';
+    modal.style.display = 'flex';
 
     try {
         const response = await fetch(`/hippocampus/longterm/conversation/${conversationId}/messages`, { credentials: 'include' });
@@ -415,7 +423,12 @@ async function viewConversation(conversationId) {
 }
 
 function closeConversationModal() {
-    document.getElementById('conversationModal').style.display = 'none';
+    const modal = document.getElementById('conversationModal');
+    if (modal) {
+        modal.style.display = 'none';
+    } else {
+        console.error('Conversation modal not found when trying to close.');
+    }
 }
 
 async function deleteConversation(conversationId) {

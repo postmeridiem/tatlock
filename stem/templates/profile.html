@@ -80,21 +80,6 @@
         </div>
     </div>
 </div>
-{% endblock %}
-
-{% block page_styles %}
-<style>
-    .main-content {
-        display: flex;
-        padding: 0;
-    }
-    .content-area {
-        flex-grow: 1;
-        padding: 20px;
-        overflow-y: auto;
-    }
-</style>
-{% endblock %}
 
 <!-- Conversation Detail Modal -->
 <div id="conversationModal" class="modal">
@@ -111,6 +96,21 @@
 
 <!-- Snackbar Container -->
 {% include 'components/snackbar.html' %}
+{% endblock %}
+
+{% block page_styles %}
+<style>
+    .main-content {
+        display: flex;
+        padding: 0;
+    }
+    .content-area {
+        flex-grow: 1;
+        padding: 20px;
+        overflow-y: auto;
+    }
+</style>
+{% endblock %}
 
 {% block scripts %}
 <script src="/static/js/common.js"></script>

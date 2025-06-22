@@ -17,7 +17,7 @@ router = APIRouter(
 
 @router.get("/longterm/conversations", response_model=List[dict])
 async def get_user_conversations(
-    search: Optional[str] = Query(None, description="Search term to filter conversations by topic or summary."),
+    search: Optional[str] = Query(None, description="Search term to filter conversations by title."),
     user: UserModel = Depends(get_current_user)
 ):
     """Get all conversations for the current user, with optional search."""
@@ -29,11 +29,11 @@ async def get_user_conversations(
     
     return [
         {
-            "id": c['id'],
-            "start_time": c['start_time'],
+            "id": c['conversation_id'],
+            "start_time": c['started_at'],
             "last_activity": c['last_activity'],
-            "topic": c['topic'],
-            "summary": c['summary']
+            "title": c.get('title', 'Untitled Conversation'),
+            "message_count": c.get('message_count', 0)
         }
         for c in conversations
     ]
@@ -48,7 +48,7 @@ async def get_conversation_messages_endpoint(
         raise HTTPException(status_code=401, detail="Not authenticated")
 
     user_convos = recall.get_user_conversations(user.username)
-    if not any(c['id'] == conversation_id for c in user_convos):
+    if not any(c['conversation_id'] == conversation_id for c in user_convos):
         raise HTTPException(status_code=403, detail="You do not have permission to view this conversation.")
 
     messages = recall.get_conversation_messages(user.username, conversation_id)

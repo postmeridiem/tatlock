@@ -1039,7 +1039,7 @@ def get_current_user(request: Request):
     Args:
         request: FastAPI request object
     Returns:
-        dict: User data if authentication successful
+        UserModel: User data if authentication successful
     Raises:
         HTTPException: If authentication fails
     """
@@ -1060,12 +1060,17 @@ def get_current_user(request: Request):
     # Add roles and groups to the user object
     user['roles'] = security_manager.get_user_roles(username)
     user['groups'] = security_manager.get_user_groups(username)
-    
-    # Create UserModel and set context
-    user_model = UserModel(**{k: user[k] for k in UserModel.model_fields if k in user})
+    try:
+        # Create UserModel and set context
+        user_model = UserModel(**{k: user[k] for k in UserModel.model_fields if k in user})
+    except Exception as e:
+        logger.error(f"Error creating UserModel for user '{username}': {e}. User dict: {user}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"User data is incomplete or invalid: {e}"
+        )
     set_current_user(user_model)
-    
-    return user
+    return user_model
 
 def require_admin_role(request: Request):
     """

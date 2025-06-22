@@ -6,11 +6,12 @@ Provides server-side templating with shared components and layouts.
 """
 
 import os
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, Union
 from fastapi import Request
 from fastapi.responses import HTMLResponse
 from jinja2 import Environment, FileSystemLoader, Template
 import logging
+from .models import UserModel
 
 logger = logging.getLogger(__name__)
 
@@ -68,13 +69,22 @@ class TemplateManager:
         content = self.render_template(template_name, context)
         return HTMLResponse(content=content)
     
-    def get_common_context(self, request: Request, user: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    def get_common_context(self, request: Request, user: Optional[Union[Dict[str, Any], UserModel]] = None) -> Dict[str, Any]:
         """
         Get common context variables for all templates.
         """
         roles = []
         if user:
-            user_roles = user.get('roles', [])
+            # Handle both UserModel objects and dictionaries
+            if isinstance(user, UserModel):
+                # UserModel object
+                user_roles = user.roles
+            elif isinstance(user, dict):
+                # Dictionary (backward compatibility)
+                user_roles = user.get('roles', [])
+            else:
+                user_roles = []
+                
             if isinstance(user_roles, str):
                 roles = [user_roles.lower()]
             elif isinstance(user_roles, list):
@@ -101,6 +111,6 @@ def render_page(template_name: str, context: Optional[Dict[str, Any]] = None) ->
     """Render a template and return as HTMLResponse."""
     return template_manager.render_page(template_name, context)
 
-def get_common_context(request: Request, user: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+def get_common_context(request: Request, user: Optional[Union[Dict[str, Any], UserModel]] = None) -> Dict[str, Any]:
     """Get common context variables for all templates."""
     return template_manager.get_common_context(request, user) 

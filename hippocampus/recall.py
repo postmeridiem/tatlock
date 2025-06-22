@@ -237,7 +237,7 @@ def get_user_conversations(username: str, limit: int = 50) -> list:
     Retrieves all conversations for a specific user.
     """
     query = """
-        SELECT id, start_time, last_activity, topic, summary
+        SELECT conversation_id, started_at, last_activity, title, message_count
         FROM conversations
         ORDER BY last_activity DESC
         LIMIT ?;
@@ -308,25 +308,42 @@ def get_conversation_details(conversation_id: str, username: str) -> dict | None
 
 def search_conversations(username: str, search_term: str, limit: int = 50) -> list:
     """
-    Searches conversations by topic or summary for a specific user.
+    Searches conversations by title for a specific user.
     """
     query = """
-        SELECT id, start_time, last_activity, topic, summary
+        SELECT conversation_id, started_at, last_activity, title, message_count
         FROM conversations
-        WHERE topic LIKE ? OR summary LIKE ?
+        WHERE title LIKE ?
         ORDER BY last_activity DESC
         LIMIT ?;
     """
     like_term = f"%{search_term}%"
-    return execute_user_query(username, query, (like_term, like_term, limit))
+    return execute_user_query(username, query, (like_term, limit))
 
 
 def get_conversation_messages(username: str, conversation_id: str) -> list:
     """
     Retrieves all messages for a specific conversation.
     """
-    query = "SELECT id, role, content, timestamp FROM memories WHERE conversation_id = ? ORDER BY timestamp;"
-    return execute_user_query(username, query, (conversation_id,))
+    query = """
+        SELECT 
+            interaction_id as id,
+            'user' as role,
+            user_prompt as content,
+            timestamp
+        FROM memories 
+        WHERE conversation_id = ? 
+        UNION ALL
+        SELECT 
+            interaction_id as id,
+            'assistant' as role,
+            llm_reply as content,
+            timestamp
+        FROM memories 
+        WHERE conversation_id = ?
+        ORDER BY timestamp;
+    """
+    return execute_user_query(username, query, (conversation_id, conversation_id))
 
 
 def delete_conversation(username: str, conversation_id: str) -> None:
@@ -334,10 +351,10 @@ def delete_conversation(username: str, conversation_id: str) -> None:
     Deletes a conversation and its related messages for a specific user.
     """
     # First, verify the conversation belongs to the user to prevent unauthorized deletion
-    convo_check = execute_user_query(username, "SELECT id FROM conversations WHERE id = ?", (conversation_id,))
+    convo_check = execute_user_query(username, "SELECT conversation_id FROM conversations WHERE conversation_id = ?", (conversation_id,))
     if not convo_check:
         raise ValueError("Conversation not found or access denied.")
 
     # Delete messages and then the conversation entry (no fetch needed)
     execute_user_query(username, "DELETE FROM memories WHERE conversation_id = ?", (conversation_id,))
-    execute_user_query(username, "DELETE FROM conversations WHERE id = ?", (conversation_id,))
+    execute_user_query(username, "DELETE FROM conversations WHERE conversation_id = ?", (conversation_id,))
