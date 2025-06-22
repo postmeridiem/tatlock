@@ -150,7 +150,6 @@ async function loadUserInfo() {
         });
         if (response.ok) {
             const userInfo = await response.json();
-            console.log('User info loaded:', userInfo);
             
             // Update username in the header if it exists
             const usernameElement = document.querySelector('.user-dropdown-button .username');

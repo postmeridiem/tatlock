@@ -147,4 +147,6 @@ class UserModel(BaseModel):
     last_name: str
     email: str | None
     created_at: str
-    updated_at: str | None = None 
+    updated_at: str | None = None
+    roles: List[str] = Field(default_factory=list, description="User roles")
+    groups: List[str] = Field(default_factory=list, description="User groups") 

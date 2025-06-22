@@ -17,7 +17,7 @@ from stem.current_user_context import get_current_user_ctx
 from stem.models import (
     CreateUserRequest, UpdateUserRequest, UserResponse, AdminStatsResponse,
     CreateRoleRequest, UpdateRoleRequest, RoleResponse,
-    CreateGroupRequest, UpdateGroupRequest, GroupResponse
+    CreateGroupRequest, UpdateGroupRequest, GroupResponse, UserModel
 )
 
 # Set up logging for this module
@@ -79,14 +79,14 @@ def delete_user_directories(username: str) -> bool:
 admin_router = APIRouter(prefix="/admin", tags=["admin"])
 
 @admin_router.get("/dashboard", response_class=HTMLResponse)
-async def admin_page(request: Request, _: None = Depends(require_admin_role)):
+async def admin_page(request: Request, user: UserModel = Depends(require_admin_role)):
     """
     Admin dashboard page.
     Requires admin role.
     Provides user, role, and group management interface.
     """
-    user = get_current_user_ctx()
     if user is None:
+        logger.warning("admin_page: No user from require_admin_role")
         raise HTTPException(status_code=401, detail="Not authenticated")
     # Convert UserModel to dict for compatibility with get_admin_page
     user_dict = user.model_dump()

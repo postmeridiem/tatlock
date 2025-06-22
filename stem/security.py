@@ -52,14 +52,14 @@ class SecurityManager:
         
         return password_hash, salt
     
-    def verify_password(self, password: str, stored_hash: str, stored_salt: str, username: str = None) -> bool:
+    def verify_password(self, password: str, stored_hash: str, stored_salt: str, username: Optional[str] = None) -> bool:
         """
         Verify a password against stored hash and salt. If PBKDF2, migrate to bcrypt on success.
         Args:
             password (str): Plain text password to verify
             stored_hash (str): Stored password hash
             stored_salt (str): Stored salt
-            username (str): Username (for migration)
+            username (Optional[str]): Username (for migration)
         Returns:
             bool: True if password matches, False otherwise
         """
@@ -1043,9 +1043,7 @@ def get_current_user(request: Request):
     Raises:
         HTTPException: If authentication fails
     """
-    # logger.info(f"get_current_user: Session data: {dict(request.session)}")
     username = request.session.get("user")
-    # logger.info(f"get_current_user: Username from session: {username}")
     if not username:
         logger.warning("get_current_user: No username in session")
         raise HTTPException(
@@ -1059,27 +1057,57 @@ def get_current_user(request: Request):
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="User not found.",
         )
-    # Add roles to the user object
+    # Add roles and groups to the user object
     user['roles'] = security_manager.get_user_roles(username)
-    # logger.info(f"get_current_user: User authenticated successfully: {username}")
-    set_current_user(UserModel(**{k: user[k] for k in UserModel.model_fields if k in user}))
+    user['groups'] = security_manager.get_user_groups(username)
+    
+    # Create UserModel and set context
+    user_model = UserModel(**{k: user[k] for k in UserModel.model_fields if k in user})
+    set_current_user(user_model)
+    
     return user
 
-def require_admin_role():
+def require_admin_role(request: Request):
     """
-    Check if current user has admin role using the context variable.
+    Check if current user has admin role by getting user from session.
     Returns:
         UserModel: User data if admin
     Raises:
         HTTPException: If user doesn't have admin role
     """
-    current_user = get_current_user_ctx()
-    if not current_user or not security_manager.user_has_role(current_user.username, 'admin'):
+    # Get user from session directly since context variable is not persisting
+    username = request.session.get("user")
+    if not username:
+        logger.warning("require_admin_role: No username in session")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Not authenticated. Please log in.",
+        )
+    
+    # Get user data and check admin role
+    user = security_manager.get_user_by_username(username)
+    if not user:
+        logger.warning(f"require_admin_role: User '{username}' not found in database")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="User not found.",
+        )
+    
+    # Check if user has admin role
+    if not security_manager.user_has_role(username, 'admin'):
+        logger.warning(f"require_admin_role: User '{username}' does not have admin role")
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Admin role required"
         )
-    return current_user
+    
+    # Create UserModel and set context for the rest of the request
+    user['roles'] = security_manager.get_user_roles(username)
+    user['groups'] = security_manager.get_user_groups(username)
+    user_model = UserModel(**{k: user[k] for k in UserModel.model_fields if k in user})
+    set_current_user(user_model)
+    
+    return user_model
 
 def login_user(request: Request, username: str, password: str) -> dict:
     """
