@@ -50,6 +50,7 @@ import base64
 from hippocampus.user_database import get_user_image_path
 from stem.current_user_context import get_current_user_ctx
 from fastapi.logger import logger
+from api_metadata import tags_metadata
 
 # Load environment variables from .env file
 load_dotenv()
@@ -119,6 +120,7 @@ def custom_openapi():
         version=app.version,
         description=app.description,
         routes=app.routes,
+        tags=tags_metadata,
     )
     
     # Add security schemes
