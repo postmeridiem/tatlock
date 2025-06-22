@@ -6,23 +6,28 @@ Tool for retrieving topics by conversation.
 
 import logging
 from hippocampus.recall import get_topics_by_conversation
+from stem.models import UserModel
+from stem.current_user_context import get_current_user_ctx
 
 # Set up logging for this module
 logger = logging.getLogger(__name__)
 
-def execute_get_topics_by_conversation(conversation_id: str, username: str = "admin") -> dict:
+def execute_get_topics_by_conversation(conversation_id: str) -> dict:
     """
-    Get all topics that appear in a specific conversation, with metadata about topic frequency.
+    Find all topics that appear in a specific conversation, with metadata about when they appeared.
     
     Args:
-        conversation_id (str): The conversation ID to analyze for topics.
-        username (str, optional): The username whose database to search. Defaults to "admin".
+        conversation_id (str): The conversation ID to search for topics.
         
     Returns:
         dict: Status and topic results or message.
     """
     try:
-        results = get_topics_by_conversation(conversation_id, username)
+        user = get_current_user_ctx()
+        if user is None:
+            return {"status": "error", "message": "User not authenticated"}
+        
+        results = get_topics_by_conversation(conversation_id, user)
         
         if not results:
             return {
@@ -35,4 +40,4 @@ def execute_get_topics_by_conversation(conversation_id: str, username: str = "ad
         
     except Exception as e:
         logger.error(f"Error getting topics for conversation '{conversation_id}': {e}")
-        return {"status": "error", "message": f"Conversation topic analysis failed: {e}"} 
+        return {"status": "error", "message": f"Conversation-based topic retrieval failed: {e}"} 

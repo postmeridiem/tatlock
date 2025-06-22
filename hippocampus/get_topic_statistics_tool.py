@@ -1,27 +1,30 @@
 """
 hippocampus/get_topic_statistics_tool.py
 
-Topic statistics and analytics functionality.
+Tool for retrieving topic statistics.
 """
 
 import logging
 from hippocampus.recall import get_topic_statistics
+from stem.models import UserModel
+from stem.current_user_context import get_current_user_ctx
 
 # Set up logging for this module
 logger = logging.getLogger(__name__)
 
-def execute_get_topic_statistics(username: str = "admin") -> dict:
+def execute_get_topic_statistics() -> dict:
     """
-    Get statistics about all topics across conversations, including frequency and conversation count.
+    Get statistics about topics across all conversations, including frequency and conversation counts.
     
-    Args:
-        username (str, optional): The username whose database to search. Defaults to "admin".
-        
     Returns:
         dict: Status and topic statistics or message.
     """
     try:
-        results = get_topic_statistics(username)
+        user = get_current_user_ctx()
+        if user is None:
+            return {"status": "error", "message": "User not authenticated"}
+        
+        results = get_topic_statistics(user)
         
         if not results:
             return {
@@ -33,5 +36,5 @@ def execute_get_topic_statistics(username: str = "admin") -> dict:
         return {"status": "success", "data": results}
         
     except Exception as e:
-        logger.error(f"Error getting topic statistics for user '{username}': {e}")
+        logger.error(f"Error getting topic statistics: {e}")
         return {"status": "error", "message": f"Topic statistics retrieval failed: {e}"} 

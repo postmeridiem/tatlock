@@ -1,28 +1,33 @@
 """
 hippocampus/get_user_conversations_tool.py
 
-Tool for retrieving all conversations for a specific user.
+Tool for retrieving user conversations.
 """
 
 import logging
 from hippocampus.recall import get_user_conversations
+from stem.models import UserModel
+from stem.current_user_context import get_current_user_ctx
 
 # Set up logging for this module
 logger = logging.getLogger(__name__)
 
-def execute_get_user_conversations(username: str = "admin", limit: int = 50) -> dict:
+def execute_get_user_conversations(limit: int = 50) -> dict:
     """
-    Get all conversations for the current user, ordered by most recent activity.
+    List all conversations for the current user.
     
     Args:
-        username (str, optional): The username whose database to search. Defaults to "admin".
         limit (int, optional): Maximum number of conversations to return. Defaults to 50.
         
     Returns:
         dict: Status and conversation list or message.
     """
     try:
-        results = get_user_conversations(username, limit)
+        user = get_current_user_ctx()
+        if user is None:
+            return {"status": "error", "message": "User not authenticated"}
+        
+        results = get_user_conversations(user, limit)
         
         if not results:
             return {
@@ -34,5 +39,5 @@ def execute_get_user_conversations(username: str = "admin", limit: int = 50) -> 
         return {"status": "success", "data": results}
         
     except Exception as e:
-        logger.error(f"Error getting conversations for user '{username}': {e}")
+        logger.error(f"Error getting user conversations: {e}")
         return {"status": "error", "message": f"User conversation retrieval failed: {e}"} 

@@ -8,22 +8,24 @@ Now supports user-specific databases and conversation-topic relationships.
 import sqlite3
 import os
 import logging
+from typing import Optional
 from hippocampus.user_database import execute_user_query, get_database_connection, ensure_user_database
 from datetime import datetime, timedelta
 from config import SYSTEM_DB_PATH
 from stem.timeawareness import parse_natural_date_range
+from stem.models import UserModel
 # Import any date helpers from stem.timeawareness if needed
 
 # Set up logging for this module
 logger = logging.getLogger(__name__)
 
 
-def recall_memories(keyword: str | None = None, username: str = "admin") -> list[dict]:
+def recall_memories(user: UserModel, keyword: str | None = None) -> list[dict]:
     """
     Search memories for a keyword in user_prompt, llm_reply, or topic name.
     Args:
+        user (UserModel): The user whose database to search.
         keyword (str | None): The keyword to search for. Defaults to None (empty search).
-        username (str): The username whose database to search. Defaults to "admin".
     Returns:
         list[dict]: Summaries of matching memories.
     """
@@ -45,17 +47,17 @@ def recall_memories(keyword: str | None = None, username: str = "admin") -> list
     LIMIT 20
     '''
     like_kw = f"%{keyword}%"
-    results = execute_user_query(username, query, (like_kw, like_kw, like_kw))
+    results = execute_user_query(user.username, query, (like_kw, like_kw, like_kw))
     
     return results
 
 
-def recall_memories_with_time(keyword: str | None = None, username: str = "admin", start_date: str | None = None, end_date: str | None = None) -> list[dict]:
+def recall_memories_with_time(user: UserModel, keyword: str | None = None, start_date: str | None = None, end_date: str | None = None) -> list[dict]:
     """
     Search memories for a keyword in user_prompt, llm_reply, or topic name, limited to a date or date range.
     Args:
+        user (UserModel): The user whose database to search.
         keyword (str | None): The keyword to search for. Defaults to None (empty search).
-        username (str): The username whose database to search. Defaults to "admin".
         start_date (str | None, optional): Start date (YYYY-MM-DD).
         end_date (str | None, optional): End date (YYYY-MM-DD).
     Returns:
@@ -91,16 +93,16 @@ def recall_memories_with_time(keyword: str | None = None, username: str = "admin
     
     query += " ORDER BY m.timestamp DESC LIMIT 20"
     
-    results = execute_user_query(username, query, tuple(params))
+    results = execute_user_query(user.username, query, tuple(params))
     return results
 
 
-def get_conversations_by_topic(topic_name: str, username: str = "admin") -> list[dict]:
+def get_conversations_by_topic(topic_name: str, user: UserModel) -> list[dict]:
     """
     Get all conversations that contain a specific topic.
     Args:
         topic_name (str): The topic name to search for.
-        username (str): The username whose database to search. Defaults to "admin".
+        user (UserModel): The user whose database to search.
     Returns:
         list[dict]: Conversations with the specified topic, including metadata.
     """
@@ -121,16 +123,16 @@ def get_conversations_by_topic(topic_name: str, username: str = "admin") -> list
     '''
     
     like_topic = f"%{topic_name}%"
-    results = execute_user_query(username, query, (like_topic,))
+    results = execute_user_query(user.username, query, (like_topic,))
     return results
 
 
-def get_topics_by_conversation(conversation_id: str, username: str = "admin") -> list[dict]:
+def get_topics_by_conversation(conversation_id: str, user: UserModel) -> list[dict]:
     """
     Get all topics that appear in a specific conversation.
     Args:
         conversation_id (str): The conversation ID to search for.
-        username (str): The username whose database to search. Defaults to "admin".
+        user (UserModel): The user whose database to search.
     Returns:
         list[dict]: Topics in the specified conversation, including metadata.
     """
@@ -146,16 +148,16 @@ def get_topics_by_conversation(conversation_id: str, username: str = "admin") ->
     ORDER BY ct.topic_count DESC, ct.last_occurrence DESC
     '''
     
-    results = execute_user_query(username, query, (conversation_id,))
+    results = execute_user_query(user.username, query, (conversation_id,))
     return results
 
 
-def get_conversation_summary(conversation_id: str, username: str = "admin") -> dict:
+def get_conversation_summary(conversation_id: str, user: UserModel) -> dict:
     """
     Get a summary of a conversation including its topics and key interactions.
     Args:
         conversation_id (str): The conversation ID to summarize.
-        username (str): The username whose database to search. Defaults to "admin".
+        user (UserModel): The user whose database to search.
     Returns:
         dict: Summary of the conversation including topics and interaction count.
     """
@@ -171,13 +173,13 @@ def get_conversation_summary(conversation_id: str, username: str = "admin") -> d
     GROUP BY m.conversation_id
     '''
     
-    metadata = execute_user_query(username, query, (conversation_id,))
+    metadata = execute_user_query(user.username, query, (conversation_id,))
     
     if not metadata:
         return {}
     
     # Get topics for this conversation
-    topics = get_topics_by_conversation(conversation_id, username)
+    topics = get_topics_by_conversation(conversation_id, user)
     
     # Get first and last interactions
     query = '''
@@ -187,7 +189,7 @@ def get_conversation_summary(conversation_id: str, username: str = "admin") -> d
     ORDER BY timestamp ASC
     LIMIT 1
     '''
-    first_interaction = execute_user_query(username, query, (conversation_id,))
+    first_interaction = execute_user_query(user.username, query, (conversation_id,))
     
     query = '''
     SELECT user_prompt, llm_reply, timestamp
@@ -196,7 +198,7 @@ def get_conversation_summary(conversation_id: str, username: str = "admin") -> d
     ORDER BY timestamp DESC
     LIMIT 1
     '''
-    last_interaction = execute_user_query(username, query, (conversation_id,))
+    last_interaction = execute_user_query(user.username, query, (conversation_id,))
     
     summary = metadata[0]
     summary['topics'] = topics
@@ -206,11 +208,11 @@ def get_conversation_summary(conversation_id: str, username: str = "admin") -> d
     return summary
 
 
-def get_topic_statistics(username: str = "admin") -> list[dict]:
+def get_topic_statistics(user: UserModel) -> list[dict]:
     """
     Get statistics about topics across all conversations.
     Args:
-        username (str): The username whose database to search. Defaults to "admin".
+        user (UserModel): The user whose database to search.
     Returns:
         list[dict]: Topic statistics including conversation count and total occurrences.
     """
@@ -227,12 +229,12 @@ def get_topic_statistics(username: str = "admin") -> list[dict]:
     ORDER BY conversation_count DESC, total_occurrences DESC
     '''
     
-    results = execute_user_query(username, query)
+    results = execute_user_query(user.username, query)
     return results
 
 
 # New conversation management functions
-def get_user_conversations(username: str, limit: int = 50) -> list:
+def get_user_conversations(user: UserModel, limit: int = 50) -> list:
     """
     Retrieves all conversations for a specific user.
     """
@@ -242,21 +244,21 @@ def get_user_conversations(username: str, limit: int = 50) -> list:
         ORDER BY last_activity DESC
         LIMIT ?;
     """
-    return execute_user_query(username, query, (limit,))
+    return execute_user_query(user.username, query, (limit,))
 
 
-def get_conversation_details(conversation_id: str, username: str) -> dict | None:
+def get_conversation_details(conversation_id: str, user: UserModel) -> dict | None:
     """
     Get detailed information about a specific conversation.
     Args:
         conversation_id (str): The conversation ID.
-        username (str): The username.
+        user (UserModel): The user.
     Returns:
         dict | None: Conversation details or None if not found.
     """
     try:
         # Get from user's longterm database
-        db_path = ensure_user_database(username)
+        db_path = ensure_user_database(user.username)
         conn = sqlite3.connect(db_path)
         cursor = conn.cursor()
         
@@ -306,7 +308,7 @@ def get_conversation_details(conversation_id: str, username: str) -> dict | None
         return None
 
 
-def search_conversations(username: str, search_term: str, limit: int = 50) -> list:
+def search_conversations(user: UserModel, search_term: str, limit: int = 50) -> list:
     """
     Searches conversations by title for a specific user.
     """
@@ -318,10 +320,10 @@ def search_conversations(username: str, search_term: str, limit: int = 50) -> li
         LIMIT ?;
     """
     like_term = f"%{search_term}%"
-    return execute_user_query(username, query, (like_term, limit))
+    return execute_user_query(user.username, query, (like_term, limit))
 
 
-def get_conversation_messages(username: str, conversation_id: str) -> list:
+def get_conversation_messages(user: UserModel, conversation_id: str) -> list:
     """
     Retrieves all messages for a specific conversation.
     """
@@ -343,18 +345,18 @@ def get_conversation_messages(username: str, conversation_id: str) -> list:
         WHERE conversation_id = ?
         ORDER BY timestamp;
     """
-    return execute_user_query(username, query, (conversation_id, conversation_id))
+    return execute_user_query(user.username, query, (conversation_id, conversation_id))
 
 
-def delete_conversation(username: str, conversation_id: str) -> None:
+def delete_conversation(user: UserModel, conversation_id: str) -> None:
     """
     Deletes a conversation and its related messages for a specific user.
     """
     # First, verify the conversation belongs to the user to prevent unauthorized deletion
-    convo_check = execute_user_query(username, "SELECT conversation_id FROM conversations WHERE conversation_id = ?", (conversation_id,))
+    convo_check = execute_user_query(user.username, "SELECT conversation_id FROM conversations WHERE conversation_id = ?", (conversation_id,))
     if not convo_check:
         raise ValueError("Conversation not found or access denied.")
 
     # Delete messages and then the conversation entry (no fetch needed)
-    execute_user_query(username, "DELETE FROM memories WHERE conversation_id = ?", (conversation_id,))
-    execute_user_query(username, "DELETE FROM conversations WHERE conversation_id = ?", (conversation_id,))
+    execute_user_query(user.username, "DELETE FROM memories WHERE conversation_id = ?", (conversation_id,))
+    execute_user_query(user.username, "DELETE FROM conversations WHERE conversation_id = ?", (conversation_id,))
