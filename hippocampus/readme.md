@@ -1,27 +1,30 @@
-# hippocampus
+# Hippocampus
 
-This module manages all forms of persistent memory for Tatlock, including databases and long-term storage. It provides memory recall, storage, and retrieval functions to inform the agent's context and history, along with comprehensive user authentication and management. Each user has their own isolated memory database for complete privacy and data separation.
+**Status: Production Ready - Complete Memory System**
 
-## Core Components
+The Hippocampus module manages all forms of persistent memory for Tatlock, including databases and long-term storage. Named after the brain's hippocampus responsible for memory formation and retrieval, this module provides memory recall, storage, and retrieval functions to inform the agent's context and history, along with comprehensive user authentication and management. Each user has their own isolated memory database for complete privacy and data separation.
 
-### Database Management
+## ✅ **Core Features**
+
+### 🗄️ **Database Management**
 - **{username}_longterm.db**: Per-user conversation memory, topics, and system prompts
 - **system.db**: Stores user authentication, roles, and groups (shared across all users)
+- **Short-term Storage**: User-specific temporary file storage in `shortterm/{username}/`
 
-### Memory Functions
+### 🧠 **Memory Functions**
 
-#### `database.py`
+#### **Database Operations** (`database.py`)
 - **`get_base_instructions()`**: Retrieves enabled system prompts from user's `rise_and_shine` table
 - **`query_personal_variables()`**: Looks up personal information by key for the current user
 - **Database Connection Management**: Handles connections to both user-specific longterm and shared system databases
 
-#### `remember.py`
+#### **Memory Storage** (`remember.py`)
 - **`save_interaction()`**: Saves full conversation interactions with topics to user's database
 - **`get_or_create_topic()`**: Manages topic creation and linking within user's database
 - **`create_or_update_conversation()`**: Creates and updates conversation records with metadata
 - **User-Specific Storage**: Associates memories with specific users in isolated databases
 
-#### `recall.py`
+#### **Memory Recall** (`recall.py`)
 - **`recall_memories()`**: Search memories by keyword in prompts, replies, or topics (user-scoped)
 - **`recall_memories_with_time()`**: Search with temporal filtering (date ranges) for current user
 - **`get_user_conversations()`**: List all conversations for the current user
@@ -33,84 +36,184 @@ This module manages all forms of persistent memory for Tatlock, including databa
 - **`get_topic_statistics()`**: Get statistics about topics across conversations for current user
 - **User-Specific Recall**: All memory operations are scoped to the current user for privacy
 
-#### `user_database.py`
+#### **User Database Management** (`user_database.py`)
 - **`ensure_user_database()`**: Creates user-specific database if it doesn't exist
 - **`get_database_connection()`**: Gets connection to user's specific database
 - **`execute_user_query()`**: Executes queries on user's database with proper error handling
+- **`get_user_image_path()`**: Manages user-specific image storage paths
 
-## Database Schema
+## 🛠️ **Tool Integration**
 
-### {username}_longterm.db Tables (Per User)
-- **memories**: Stores conversation interactions with timestamps and conversation_id
-  - `id`: Primary key
-  - `user_prompt`: The user's message
-  - `llm_reply`: The AI's response
-  - `full_llm_history`: Complete conversation context including tool calls
-  - `topic`: Topic classification
-  - `timestamp`: When the interaction occurred
-  - `conversation_id`: Links interactions to conversations
+### **Memory Tools** (`tools/` directory)
+All memory-related tools are organized in the `hippocampus/tools/` directory:
 
-- **topics**: Topic classification for conversations
-  - `id`: Primary key
-  - `name`: Topic name (e.g., "weather", "personal_info")
-  - `created_at`: When the topic was created
+- **`find_personal_variables_tool.py`**: Look up personal information by key
+- **`get_conversation_details_tool.py`**: Get detailed conversation information
+- **`get_conversation_summary_tool.py`**: Get conversation summaries
+- **`get_conversations_by_topic_tool.py`**: Find conversations by topic
+- **`get_topic_statistics_tool.py`**: Get topic statistics across conversations
+- **`get_topics_by_conversation_tool.py`**: Get topics in a conversation
+- **`get_user_conversations_tool.py`**: List user conversations
+- **`recall_memories_tool.py`**: Search memories by keyword
+- **`recall_memories_with_time_tool.py`**: Search memories with temporal filtering
+- **`search_conversations_tool.py`**: Search conversations by content
 
-- **memory_topics**: Links memories to topics
-  - `memory_id`: Foreign key to memories table
-  - `topic_id`: Foreign key to topics table
+### **Tool Standards**
+All tools follow the standardized pattern:
+```python
+import logging
+from stem.logging import get_logger
 
-- **conversation_topics**: Links conversations to topics with metadata
-  - `conversation_id`: Foreign key to conversations table
-  - `topic_id`: Foreign key to topics table
-  - `first_mentioned`: When the topic was first mentioned in the conversation
-  - `last_mentioned`: When the topic was last mentioned in the conversation
-  - `mention_count`: How many times the topic was mentioned
+logger = get_logger(__name__)
 
-- **conversations**: Conversation metadata including titles, start times, and message counts
-  - `id`: Primary key (conversation_id)
-  - `title`: Generated conversation title
-  - `start_time`: When the conversation started
-  - `last_activity`: When the conversation was last active
-  - `message_count`: Total number of messages in the conversation
+def execute_tool_name(parameters):
+    """Tool description following developer.md standards."""
+    try:
+        # Tool implementation
+        return {"status": "success", "data": result}
+    except Exception as e:
+        logger.error(f"Tool error: {e}")
+        return {"status": "error", "message": str(e)}
 
-- **rise_and_shine**: System prompts and instructions for the LLM (copied to each user's database)
-  - `id`: Primary key
-  - `instruction`: The system instruction
-  - `enabled`: Whether the instruction is active
-  - `created_at`: When the instruction was created
+## 📊 **Database Schema**
 
-### system.db Tables (Shared)
-- **users**: User accounts with hashed passwords, salts, and profile information
-  - `username`: Primary key
-  - `password_hash`: PBKDF2 hashed password
-  - `salt`: Unique salt for password hashing
-  - `first_name`: User's first name
-  - `last_name`: User's last name
-  - `email`: User's email address
-  - `created_at`: When the account was created
-  - `last_login`: When the user last logged in
+### **{username}_longterm.db Tables (Per User)**
 
-- **roles**: Available roles (user, admin, moderator)
-  - `id`: Primary key
-  - `name`: Role name
-  - `description`: Role description
-  - `created_at`: When the role was created
+#### **memories**
+Stores conversation interactions with timestamps and conversation_id
+```sql
+CREATE TABLE memories (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_prompt TEXT NOT NULL,
+    llm_reply TEXT NOT NULL,
+    full_llm_history TEXT NOT NULL,
+    topic TEXT,
+    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+    conversation_id INTEGER,
+    FOREIGN KEY (conversation_id) REFERENCES conversations(id)
+);
+```
 
-- **groups**: Available groups (users, admins, moderators)
-  - `id`: Primary key
-  - `name`: Group name
-  - `description`: Group description
-  - `created_at`: When the group was created
+#### **topics**
+Topic classification for conversations
+```sql
+CREATE TABLE topics (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT UNIQUE NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+```
 
-- **user_roles**: Links users to roles
-  - `username`: Foreign key to users table
-  - `role_id`: Foreign key to roles table
+#### **memory_topics**
+Links memories to topics
+```sql
+CREATE TABLE memory_topics (
+    memory_id INTEGER,
+    topic_id INTEGER,
+    FOREIGN KEY (memory_id) REFERENCES memories(id),
+    FOREIGN KEY (topic_id) REFERENCES topics(id)
+);
+```
 
-- **user_groups**: Links users to groups
-  - `username`: Foreign key to users table
-  - `group_id`: Foreign key to groups table
+#### **conversation_topics**
+Links conversations to topics with metadata
+```sql
+CREATE TABLE conversation_topics (
+    conversation_id INTEGER,
+    topic_id INTEGER,
+    first_mentioned DATETIME,
+    last_mentioned DATETIME,
+    mention_count INTEGER DEFAULT 1,
+    FOREIGN KEY (conversation_id) REFERENCES conversations(id),
+    FOREIGN KEY (topic_id) REFERENCES topics(id)
+);
+```
 
-## System Prompts
+#### **conversations**
+Conversation metadata including titles, start times, and message counts
+```sql
+CREATE TABLE conversations (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    title TEXT,
+    start_time DATETIME DEFAULT CURRENT_TIMESTAMP,
+    last_activity DATETIME DEFAULT CURRENT_TIMESTAMP,
+    message_count INTEGER DEFAULT 0
+);
+```
+
+#### **rise_and_shine**
+System prompts and instructions for the LLM (copied to each user's database)
+```sql
+CREATE TABLE rise_and_shine (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    instruction TEXT NOT NULL,
+    enabled BOOLEAN DEFAULT 1,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+### **system.db Tables (Shared)**
+
+#### **users**
+User accounts with hashed passwords, salts, and profile information
+```sql
+CREATE TABLE users (
+    username TEXT PRIMARY KEY,
+    password_hash TEXT NOT NULL,
+    salt TEXT NOT NULL,
+    first_name TEXT,
+    last_name TEXT,
+    email TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    last_login DATETIME
+);
+```
+
+#### **roles**
+Available roles (user, admin, moderator)
+```sql
+CREATE TABLE roles (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT UNIQUE NOT NULL,
+    description TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+#### **groups**
+Available groups (users, admins, moderators)
+```sql
+CREATE TABLE groups (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT UNIQUE NOT NULL,
+    description TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+#### **user_roles**
+Links users to roles
+```sql
+CREATE TABLE user_roles (
+    username TEXT,
+    role_id INTEGER,
+    FOREIGN KEY (username) REFERENCES users(username),
+    FOREIGN KEY (role_id) REFERENCES roles(id)
+);
+```
+
+#### **user_groups**
+Links users to groups
+```sql
+CREATE TABLE user_groups (
+    username TEXT,
+    group_id INTEGER,
+    FOREIGN KEY (username) REFERENCES users(username),
+    FOREIGN KEY (group_id) REFERENCES groups(id)
+);
+```
+
+## 🔧 **System Prompts**
 
 **Important**: All future system prompts (base instructions) for the LLM should be stored as records in the `rise_and_shine` table, except for the current date, which is injected dynamically. Each user gets their own copy of system prompts in their database.
 
@@ -120,7 +223,7 @@ The `rise_and_shine` table contains:
 - Silent tool execution directive
 - Improvement suggestion instructions
 
-## Memory Recall Features
+## 🎯 **Memory Recall Features**
 
 - **Keyword Search**: Search across user prompts, AI replies, and topic names (user-scoped)
 - **Temporal Filtering**: Filter by date ranges ("yesterday", "last week", etc.) for current user
@@ -130,7 +233,7 @@ The `rise_and_shine` table contains:
 - **Conversation Management**: Track conversation metadata, titles, and statistics per user
 - **Natural Language Date Parsing**: Understands relative time expressions
 
-## Security & Privacy
+## 🛡️ **Security & Privacy**
 
 - **Password Hashing**: PBKDF2 with unique salts per user
 - **Role-Based Access**: User roles and group management
@@ -140,7 +243,7 @@ The `rise_and_shine` table contains:
 - **Complete Data Separation**: No cross-user data access possible
 - **SQL Injection Prevention**: All queries use parameterized statements
 
-## Integration with Authentication
+## 🔗 **Integration with Authentication**
 
 - **User Context**: Memory operations respect user authentication and session data
 - **Personal Information**: Tools can access user-specific data through the authentication system
@@ -148,7 +251,7 @@ The `rise_and_shine` table contains:
 - **Role-Based Access**: Memory access can be controlled by user roles
 - **Session Management**: Works with session-based authentication for user context
 
-## Installation Support
+## 🚀 **Installation Support**
 
 The module includes database setup utilities in `stem/installation/database_setup.py`:
 - **`create_system_db_tables()`**: Creates shared authentication database schema
@@ -157,7 +260,7 @@ The module includes database setup utilities in `stem/installation/database_setu
 - **`create_default_groups()`**: Sets up default user groups
 - **`create_default_rise_and_shine()`**: Populates system prompts (copied to each user's database)
 
-## Performance Considerations
+## 📈 **Performance Considerations**
 
 - **Indexed Queries**: Database queries are optimized with proper indexing
 - **Connection Pooling**: Efficient database connection management per user
@@ -166,22 +269,38 @@ The module includes database setup utilities in `stem/installation/database_setu
 - **User Database Creation**: User databases are created on-demand for efficient resource usage
 - **Lazy Loading**: Database connections are established only when needed
 
-## Error Handling
+## 🧪 **Testing**
 
-### Database Errors
+### **Unit Tests**
+```bash
+# Run hippocampus-specific tests
+python -m pytest tests/test_hippocampus_*.py -v
+```
+
+### **Database Tests**
+```bash
+# Test database operations
+python -m pytest tests/test_hippocampus_database.py -v
+python -m pytest tests/test_hippocampus_recall.py -v
+python -m pytest tests/test_hippocampus_remember.py -v
+```
+
+## ⚠️ **Error Handling**
+
+### **Database Errors**
 - **Connection Failures**: Graceful handling of database connection issues
 - **Query Errors**: Comprehensive error logging and fallback responses
 - **User Database Creation**: Automatic creation of user databases on first use
 - **Transaction Management**: Proper transaction handling for data consistency
 
-### Memory Operations
+### **Memory Operations**
 - **Save Failures**: Memory save errors are logged but don't break conversation flow
 - **Recall Failures**: Graceful degradation when memory recall fails
 - **Topic Classification**: Fallback to "general" topic when classification fails
 
-## Future Enhancements
+## 🔮 **Future Enhancements**
 
-### Planned Features
+### **Planned Features**
 - **Memory Compression**: Automatic summarization of old conversations
 - **Memory Expiration**: Configurable retention policies for old memories
 - **Memory Search**: Full-text search capabilities across all user data
@@ -189,17 +308,17 @@ The module includes database setup utilities in `stem/installation/database_setu
 - **Memory Export**: User data export functionality
 - **Memory Backup**: Automatic backup and restore capabilities
 
-### Performance Improvements
+### **Performance Improvements**
 - **Database Indexing**: Additional indexes for faster queries
 - **Query Optimization**: More efficient query patterns
 - **Connection Pooling**: Enhanced connection management
 - **Caching**: Memory result caching for frequently accessed data
 
-## Related Documentation
+## 📚 **Related Documentation**
 
-- [README.md](../README.md) - General overview and installation
-- [developer.md](../developer.md) - Developer guide and practices
-- [moreinfo.md](../moreinfo.md) - In-depth technical information
-- [cortex/readme.md](../cortex/readme.md) - Core agent logic documentation
-- [stem/readme.md](../stem/readme.md) - Core utilities and infrastructure
-- [parietal/readme.md](../parietal/readme.md) - Hardware monitoring and performance
+- **[README.md](../README.md)** - General overview and installation
+- **[developer.md](../developer.md)** - Developer guide and practices
+- **[moreinfo.md](../moreinfo.md)** - In-depth technical information
+- **[cortex/readme.md](../cortex/readme.md)** - Core agent logic documentation
+- **[stem/readme.md](../stem/readme.md)** - Core utilities and infrastructure
+- **[parietal/readme.md](../parietal/readme.md)** - Hardware monitoring and performance

@@ -1,110 +1,198 @@
-# cerebellum
+# Cerebellum
 
-**Status: Planned for Future Development**
+**Status: Production Ready - External API Tools Implemented**
 
-This module is planned for procedural memory, routines, and learned behaviors in Tatlock. The cerebellum will help the agent manage and execute repeated tasks, habits, and background processes.
+The Cerebellum module provides external API integration and procedural tools for Tatlock. Named after the brain's cerebellum responsible for coordination and procedural memory, this module handles web search, weather forecasting, and will support future procedural automation features.
 
-## Planned Features
+## ✅ **Current Features**
 
-### Procedural Memory
-- **Task Automation**: Learn and execute repetitive tasks
-- **Routine Management**: Handle scheduled and recurring activities
+### 🔍 **Web Search Tool**
+- **Google Custom Search**: Integration with Google Custom Search JSON API
+- **Query Processing**: Intelligent search query handling and formatting
+- **Result Formatting**: Clean, structured search results with titles, links, and snippets
+- **Error Handling**: Graceful handling of API failures and configuration issues
+- **Rate Limiting**: Respectful API usage with configurable result limits
+
+### 🌤️ **Weather Tool**
+- **OpenWeather Integration**: Real-time weather data from OpenWeather API
+- **Multi-City Support**: Weather forecasts for any city worldwide
+- **Date Range Queries**: Flexible date range support for historical and future forecasts
+- **Temperature Units**: Metric temperature units (Celsius) with configurable options
+- **Comprehensive Data**: Temperature ranges, descriptions, and weather conditions
+
+## 🛠️ **Implementation Details**
+
+### **Web Search Tool** (`web_search_tool.py`)
+```python
+from cerebellum.web_search_tool import execute_web_search
+
+# Perform a web search
+result = execute_web_search("Python programming best practices")
+```
+
+**Features:**
+- **API Key Validation**: Checks for required Google API keys
+- **Error Recovery**: Handles network failures and API errors
+- **Result Limiting**: Configurable number of results (default: 5)
+- **Structured Output**: Consistent response format with status and data
+
+### **Weather Tool** (`weather_tool.py`)
+```python
+from cerebellum.weather_tool import execute_get_weather_forecast
+
+# Get weather forecast
+result = execute_get_weather_forecast("Rotterdam", "2024-01-15", "2024-01-20")
+```
+
+**Features:**
+- **Geocoding**: Automatic city name to coordinates conversion
+- **Date Processing**: Flexible date range support with defaults
+- **Data Aggregation**: Daily temperature ranges and weather descriptions
+- **Error Handling**: Comprehensive error handling for API failures
+
+## 🔧 **Configuration**
+
+### **Required Environment Variables**
+```bash
+# Google Custom Search API
+GOOGLE_API_KEY=your_google_api_key
+GOOGLE_CSE_ID=your_custom_search_engine_id
+
+# OpenWeather API
+OPENWEATHER_API_KEY=your_openweather_api_key
+```
+
+### **API Setup Instructions**
+
+#### **Google Custom Search**
+1. **Create Google Cloud Project**: Visit [Google Cloud Console](https://console.cloud.google.com/)
+2. **Enable Custom Search API**: Enable the Custom Search JSON API
+3. **Create API Key**: Generate an API key in the Credentials section
+4. **Create Custom Search Engine**: Visit [Programmable Search Engine](https://programmablesearchengine.google.com/)
+5. **Configure Search Engine**: Set up search engine and get the Search Engine ID
+
+#### **OpenWeather API**
+1. **Create Account**: Sign up at [OpenWeather](https://openweathermap.org/api)
+2. **Generate API Key**: Create a free API key in your account
+3. **Configure Units**: API returns metric units by default
+
+## 📊 **Tool Integration**
+
+### **LLM Tool Registration**
+Both tools are registered in `stem/tools.py` and available to the AI agent:
+
+```python
+# Tool definitions for LLM
+TOOLS = [
+    {
+        "type": "function",
+        "function": {
+            "name": "web_search",
+            "description": "Perform a web search using Google Custom Search API.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "query": {
+                        "type": "string",
+                        "description": "The search query to send to the search engine."
+                    }
+                },
+                "required": ["query"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_weather_forecast",
+            "description": "Get the weather forecast for a specific city and date range.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "city": {"type": "string", "description": "City name."},
+                    "start_date": {"type": "string", "description": "Start date (YYYY-MM-DD). Optional."},
+                    "end_date": {"type": "string", "description": "End date (YYYY-MM-DD). Optional."}
+                },
+                "required": ["city"],
+            },
+        },
+    }
+]
+```
+
+### **Error Handling**
+Both tools follow the standardized error handling pattern:
+
+```python
+# Success response
+{"status": "success", "data": results}
+
+# Error response
+{"status": "error", "message": "Error description"}
+```
+
+## 🔮 **Future Development**
+
+### **Planned Features**
+- **Procedural Memory**: Learn and execute repetitive tasks
+- **Task Automation**: Handle scheduled and recurring activities
 - **Skill Acquisition**: Develop and refine procedural skills
 - **Behavioral Patterns**: Learn and replicate successful interaction patterns
 
-### Background Processing
+### **Background Processing**
 - **Async Tasks**: Handle long-running operations
 - **Scheduled Jobs**: Manage time-based activities
 - **Process Monitoring**: Track and manage ongoing operations
 - **Task Queuing**: Manage task priorities and execution order
 
-### Learning and Adaptation
+### **Learning and Adaptation**
 - **Behavior Patterns**: Learn from repeated interactions
 - **Efficiency Optimization**: Improve task execution over time
 - **Error Recovery**: Handle and learn from procedural failures
 - **Performance Tracking**: Monitor and optimize task performance
 
-## Technical Implementation Plan
+## 🔗 **Integration Points**
 
-### Phase 1: Foundation
-- **Task Definition System**: Define and store procedural tasks
-- **Basic Task Execution**: Execute simple procedural tasks
-- **Task History Tracking**: Record task execution history and outcomes
+- **Cortex**: Execute learned procedures and routines
+- **Hippocampus**: Store procedural memories and patterns
+- **Temporal**: Process temporal aspects of routines
+- **Thalamus**: Coordinate with other brain regions
+- **Stem**: Access system tools and utilities
 
-### Phase 2: Intelligence
-- **Learning Engine**: Learn from task execution patterns
-- **Optimization System**: Improve task efficiency over time
-- **Error Handling**: Robust error recovery and learning from failures
+## 🧪 **Testing**
 
-### Phase 3: Advanced Features
-- **Predictive Task Execution**: Anticipate and prepare for common tasks
-- **Adaptive Scheduling**: Intelligent task scheduling based on patterns
-- **Cross-Task Learning**: Apply learnings across different task types
+### **Unit Tests**
+```bash
+# Run cerebellum-specific tests
+python -m pytest tests/test_cerebellum_tools.py -v
+```
 
-## Integration Points
+### **Integration Tests**
+```bash
+# Test tool integration with agent
+python -c "from stem.tools import execute_web_search, execute_get_weather_forecast; print('Tools imported successfully')"
+```
 
-- **cortex**: Execute learned procedures and routines
-- **hippocampus**: Store procedural memories and patterns
-- **temporal**: Process temporal aspects of routines
-- **thalamus**: Coordinate with other brain regions
-- **stem**: Access system tools and utilities
+## 📈 **Performance Considerations**
 
-## Data Models (Planned)
+- **API Rate Limiting**: Respectful API usage to avoid rate limits
+- **Caching**: Consider implementing result caching for frequently requested data
+- **Error Recovery**: Graceful degradation when external APIs are unavailable
+- **Connection Pooling**: Efficient HTTP connection management
 
-### Procedural Tasks
-- **Task Definitions**: Structured task descriptions and parameters
-- **Execution History**: Record of task executions and outcomes
-- **Performance Metrics**: Efficiency and success rate tracking
-- **Learning Patterns**: Patterns derived from repeated executions
+## 🔒 **Security Considerations**
 
-### Routines and Schedules
-- **Routine Definitions**: Recurring task patterns and schedules
-- **Execution Context**: Environmental and contextual factors
-- **Adaptation Rules**: Rules for modifying procedures based on context
-- **Success Criteria**: Metrics for determining task success
+- **API Key Management**: Secure storage and rotation of API keys
+- **Input Validation**: Validate all user inputs before API calls
+- **Error Information**: Avoid exposing sensitive information in error messages
+- **Rate Limiting**: Implement client-side rate limiting to prevent abuse
 
-## API Integration (Planned)
+## 📚 **Related Documentation**
 
-### Endpoints
-- `POST /cerebellum/tasks` - Create new procedural task
-- `GET /cerebellum/tasks` - List available tasks
-- `POST /cerebellum/execute` - Execute a procedural task
-- `GET /cerebellum/history` - Get task execution history
-- `POST /cerebellum/learn` - Update task based on execution results
-
-### Tool Integration
-- **Task Execution Tool**: Execute procedural tasks
-- **Routine Management Tool**: Manage recurring tasks and schedules
-- **Learning Tool**: Update task definitions based on outcomes
-
-## Future Implementation
-
-This module will be developed to enable Tatlock to learn, remember, and efficiently execute procedural tasks, making the agent more capable of handling complex workflows and automated processes.
-
-### Development Priorities
-1. **Task Definition System**: Create framework for defining procedural tasks
-2. **Basic Execution Engine**: Implement task execution capabilities
-3. **Learning and Optimization**: Add ability to learn from task outcomes
-4. **Advanced Automation**: Implement sophisticated task automation and scheduling
-
-### Use Cases
-- **Conversation Routines**: Automate common conversation patterns
-- **Data Processing**: Handle repetitive data analysis tasks
-- **System Maintenance**: Automated system monitoring and maintenance
-- **User Assistance**: Proactive assistance based on learned patterns
-
-### Security Considerations
-- **Task Validation**: Validate all procedural tasks before execution
-- **Execution Limits**: Prevent infinite loops and resource exhaustion
-- **Access Control**: Ensure tasks respect user permissions and data boundaries
-- **Audit Trail**: Comprehensive logging of all procedural executions
-
-## Related Documentation
-
-- [README.md](../README.md) - General overview and installation
-- [developer.md](../developer.md) - Developer guide and practices
-- [moreinfo.md](../moreinfo.md) - In-depth technical information
-- [cortex/readme.md](../cortex/readme.md) - Core agent logic documentation
-- [hippocampus/readme.md](../hippocampus/readme.md) - Memory system documentation
-- [stem/readme.md](../stem/readme.md) - Core utilities and infrastructure
-- [parietal/readme.md](../parietal/readme.md) - Hardware monitoring and performance
+- **[README.md](../README.md)** - General overview and installation
+- **[developer.md](../developer.md)** - Developer guide and practices
+- **[moreinfo.md](../moreinfo.md)** - In-depth technical information
+- **[cortex/readme.md](../cortex/readme.md)** - Core agent logic documentation
+- **[hippocampus/readme.md](../hippocampus/readme.md)** - Memory system documentation
+- **[stem/readme.md](../stem/readme.md)** - Core utilities and infrastructure
+- **[parietal/readme.md](../parietal/readme.md)** - Hardware monitoring and performance

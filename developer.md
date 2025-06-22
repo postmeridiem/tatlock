@@ -198,8 +198,210 @@ logger.error("Error message", exc_info=True)
 ### Code Organization
 
 - **Brain-Inspired Design**: Codebase organized into modules inspired by brain regions
-- **Clean Separation**: Tests go in `tests/`, security in `security.py`, etc.
-- **Modular Architecture**: Each module has clear responsibilities and interfaces
+
+### Tool Organization
+
+Tatlock follows a modular tool organization pattern where each tool is implemented in its own file within the appropriate brain module. This promotes maintainability, testability, and clear separation of concerns.
+
+#### Tool File Structure
+
+```
+cerebellum/
+├── web_search_tool.py      # Web search functionality
+└── weather_tool.py         # Weather forecast functionality
+
+hippocampus/
+├── tools/
+│   ├── find_personal_variables_tool.py
+│   ├── recall_memories_tool.py
+│   ├── recall_memories_with_time_tool.py
+│   ├── get_conversations_by_topic_tool.py
+│   ├── get_topics_by_conversation_tool.py
+│   ├── get_conversation_summary_tool.py
+│   ├── get_topic_statistics_tool.py
+│   ├── get_user_conversations_tool.py
+│   ├── get_conversation_details_tool.py
+│   └── search_conversations_tool.py
+├── database.py             # Database access functions
+├── recall.py               # Memory recall functions
+└── remember.py             # Memory storage functions
+
+occipital/
+├── url_screenshot.py       # Screenshot and analysis tools
+├── website_tester.py       # Website testing functionality
+└── visual_analyzer.py      # Visual analysis functionality
+
+stem/
+└── tools.py                # Tool registration and dispatcher
+```
+
+#### Tool Implementation Pattern
+
+Each tool file follows this structure:
+
+```python
+# cerebellum/web_search_tool.py
+import requests
+import logging
+from config import GOOGLE_API_KEY, GOOGLE_CSE_ID
+
+def execute_web_search(query: str) -> dict:
+    """
+    Perform a web search using the Google Custom Search JSON API.
+    Args:
+        query (str): The search query.
+    Returns:
+        dict: Status and search results or error message.
+    """
+    # Tool implementation here
+    pass
+```
+
+#### Tool Registration
+
+All tools are registered in `stem/tools.py`:
+
+```python
+# stem/tools.py
+from cerebellum.web_search_tool import execute_web_search
+from cerebellum.weather_tool import execute_get_weather_forecast
+from hippocampus.tools.find_personal_variables_tool import execute_find_personal_variables
+# ... other imports
+
+# Tool definitions for LLM
+TOOLS = [
+    {
+        "type": "function",
+        "function": {
+            "name": "web_search",
+            "description": "Perform a web search using Google Custom Search API.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "query": {
+                        "type": "string",
+                        "description": "The search query to send to the search engine."
+                    }
+                },
+                "required": ["query"],
+            },
+        },
+    },
+    # ... other tool definitions
+]
+
+# Tool dispatcher
+AVAILABLE_TOOLS = {
+    "web_search": execute_web_search,
+    "find_personal_variables": execute_find_personal_variables,
+    # ... other tool mappings
+}
+```
+
+#### Module Assignment Guidelines
+
+- **Cerebellum**: External API tools (web search, weather, etc.)
+- **Hippocampus**: Memory and database-related tools
+- **Occipital**: Visual processing and screenshot tools
+- **Stem**: Core system tools and tool registration
+
+#### Benefits
+
+- **Modularity**: Each tool is self-contained and can be developed/tested independently
+- **Maintainability**: Easy to locate and modify specific tool functionality
+- **Testability**: Individual tools can be unit tested in isolation
+- **Scalability**: New tools can be added without cluttering existing files
+- **Clear Dependencies**: Each tool file only imports what it needs
+- **Brain-Inspired Organization**: Tools are grouped by functional area
+
+#### Adding New Tools
+
+1. **Create Tool File**: Add new file in appropriate module (e.g., `cerebellum/new_tool.py`)
+2. **Implement Function**: Create `execute_tool_name()` function with proper docstring
+3. **Add Imports**: Import the tool in `stem/tools.py`
+4. **Register Tool**: Add tool definition to `TOOLS` list
+5. **Add to Dispatcher**: Add mapping to `AVAILABLE_TOOLS` dictionary
+6. **Write Tests**: Create tests in `tests/` directory
+
+#### Tool Function Signature
+
+All tools should follow this pattern:
+
+```python
+def execute_tool_name(param1: str, param2: int = 10, username: str = "admin") -> dict:
+    """
+    Brief description of what the tool does.
+    
+    Args:
+        param1 (str): Description of first parameter
+        param2 (int, optional): Description of second parameter. Defaults to 10.
+        username (str, optional): Username for user-specific operations. Defaults to "admin".
+        
+    Returns:
+        dict: Status and data or error message
+    """
+    try:
+        # Tool implementation
+        return {"status": "success", "data": result}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+```
+
+#### Error Handling
+
+Tools should handle errors gracefully and return consistent error responses:
+
+```python
+def execute_example_tool(param: str) -> dict:
+    try:
+        # Tool logic here
+        return {"status": "success", "data": result}
+    except ValueError as e:
+        return {"status": "error", "message": f"Invalid parameter: {e}"}
+    except Exception as e:
+        logger.error(f"Tool execution failed: {e}")
+        return {"status": "error", "message": "Internal tool error"}
+```
+
+#### Future Agent Router Integration
+
+The `stem/tools.py` file serves as a central catalog for tool registration and will be extended to support future agent routing functionality. This design allows for:
+
+- **Tool Discovery**: The `TOOLS` list provides a complete catalog of available tools
+- **Agent Routing**: Future implementations can route requests to specialized agents based on tool requirements
+- **Load Balancing**: Multiple agents can be registered for the same tool type
+- **Agent Selection**: Intelligent routing based on agent capabilities and current load
+
+**Planned Router Features:**
+- **Specialized Agents**: Different agents for different tool categories (memory, web search, visual processing)
+- **Load Distribution**: Route tool requests across multiple available agents
+- **Agent Health Monitoring**: Track agent availability and performance
+- **Dynamic Registration**: Agents can register/deregister tools at runtime
+- **Fallback Mechanisms**: Automatic failover to backup agents
+
+**Example Future Router Structure:**
+```python
+# stem/tools.py (future enhancement)
+AGENT_ROUTER = {
+    "memory_tools": {
+        "agents": ["memory_agent_1", "memory_agent_2"],
+        "current_agent": "memory_agent_1",
+        "load_balancing": "round_robin"
+    },
+    "web_tools": {
+        "agents": ["web_agent_1"],
+        "current_agent": "web_agent_1",
+        "load_balancing": "single"
+    },
+    "visual_tools": {
+        "agents": ["visual_agent_1"],
+        "current_agent": "visual_agent_1",
+        "load_balancing": "single"
+    }
+}
+```
+
+This architecture ensures that `stem/tools.py` remains the single source of truth for tool availability and routing decisions.
 
 ### Testing
 
@@ -215,6 +417,96 @@ python -m pytest tests/test_cortex_agent.py
 # Run with verbose output
 python -m pytest -v tests/
 ```
+
+### Test Cleanup System
+
+Tatlock includes a comprehensive test cleanup system to ensure tests don't leave behind user data or interfere with each other.
+
+#### Automatic Cleanup
+
+The test system automatically cleans up user data after tests:
+
+- **User Databases**: Individual user databases in `hippocampus/longterm/`
+- **User Directories**: Short-term storage directories in `hippocampus/shortterm/{username}/`
+- **Test Users**: Users created during testing with test-related names
+
+#### Cleanup Functions
+
+```python
+from tests.conftest import cleanup_user_data
+
+def test_example():
+    username = "test_user"
+    # ... test code that creates user data ...
+    
+    # Clean up after test
+    cleanup_user_data(username)
+```
+
+#### Cleanup Fixtures
+
+The test configuration includes several cleanup fixtures:
+
+- **`cleanup_test_users`**: Session-scoped fixture that cleans up all test users at the end of the test session
+- **`cleanup_after_test`**: Function-scoped fixture that runs after each test
+- **User fixtures**: `admin_user` and `test_user` fixtures automatically clean up their created users
+
+#### Cleanup Patterns
+
+```python
+@pytest.fixture
+def test_user_with_cleanup(security_manager):
+    """Create a test user with automatic cleanup."""
+    username = f'testuser_{uuid.uuid4()[:8]}'
+    
+    # Create user
+    security_manager.create_user(username, 'Test', 'User', 'password123', 'test@test.com')
+    
+    user_data = {
+        'username': username,
+        'password': 'password123',
+        'first_name': 'Test',
+        'last_name': 'User',
+        'email': 'test@test.com'
+    }
+    
+    yield user_data
+    
+    # Automatic cleanup
+    cleanup_user_data(username)
+```
+
+#### What Gets Cleaned Up
+
+- **User Databases**: SQLite files in `hippocampus/longterm/{username}.db`
+- **User Directories**: Complete directories in `hippocampus/shortterm/{username}/`
+- **Test Files**: Any files created during testing
+- **Temporary Data**: Screenshots, uploaded files, etc.
+
+#### Cleanup Safety
+
+- **Graceful Handling**: Cleanup functions handle missing files gracefully
+- **Error Logging**: Cleanup errors are logged but don't fail tests
+- **Partial Cleanup**: Works even if only some user data exists
+- **Non-destructive**: Only removes test-related data, not production data
+
+#### Testing Cleanup
+
+```bash
+# Test the cleanup system itself
+python -m pytest tests/test_cleanup.py -v
+
+# Run tests with cleanup verification
+python -m pytest tests/ --tb=short
+```
+
+#### Best Practices
+
+1. **Use Unique Names**: Always use unique usernames with UUIDs or timestamps
+2. **Clean Up Explicitly**: Call `cleanup_user_data()` for users created in tests
+3. **Use Fixtures**: Leverage the built-in cleanup fixtures when possible
+4. **Test Isolation**: Ensure tests don't depend on data from other tests
+5. **Verify Cleanup**: Check that cleanup actually removes the expected data
 
 ### API Development
 
@@ -329,6 +621,11 @@ Access interactive API documentation at:
 ### Documentation
 
 - **README Files**: Keep module README files up to date and properly linked
+- **root readme.md**: Only should contain installarion instructions, high level project description and links to other readmes
+- **developer.ms**: Help for developers to start contributing, contains coding and project standards, ai instructions. AI should not alter coding standards or ai instructions.
+- **moreinfo.md**: In depth project description. Acts as overflow to main readme.md.
+- **troubleshooting.md**: Contains troubleshooting information for installation or runtime issues. AI should suggest updates when fixes require informing users.
+- **module level readme.md**: Contains a desciption of the module, the purpose, the planned features, describes the file system and the file purposes.
 - **API Documentation**: Maintain accurate API documentation
 - **Code Comments**: Include helpful code comments
 - **Change Log**: Document significant changes
@@ -623,7 +920,6 @@ class UserCreateRequest(BaseModel):
     first_name: str
     last_name: str
     email: EmailStr
-    password: str
 ```
 
 #### Database Security
@@ -802,7 +1098,7 @@ Before submitting code for review, ensure:
 4. **Monitoring**: Track performance metrics and optimize bottlenecks
 
 #### AI-Assisted Development
-1. **Always Include Standards**: When using coding AI assistants (like GitHub Copilot, Claude, GPT, etc.), always include the Tatlock coding standards from this `developer.md` file as part of your prompt
+1. **Always Include Standards**: When using coding AI assistants (like Cursor, GitHub Copilot, Claude, GPT, etc.), always include the Tatlock coding standards from this `developer.md` file as part of your prompt
 2. **Reference Specific Sections**: Reference relevant sections like "Python Coding Standards", "JavaScript Coding Standards", or "Security Standards" based on the task
 3. **Validate Generated Code**: Review AI-generated code to ensure it follows our established patterns and conventions
 4. **Update Standards**: If AI suggests improvements to our coding standards, evaluate and update this document accordingly
