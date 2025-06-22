@@ -28,3 +28,4 @@ Thumbs.db
 *.temp
 hippocampus/longterm/
 hippocampus/shortterm/
+hippocampus/system.db
