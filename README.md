@@ -29,117 +29,22 @@ Tatlock is a modular, brain-inspired conversational AI platform with built-in au
 - **Responsive Design**: Works on desktop and mobile devices
 - **Chat Sidepane**: Integrated chat interface on all pages for assistance
 
-### Logging & Debugging
+## Brain-Inspired Architecture
 
-Tatlock includes a comprehensive logging system integrated with FastAPI for debugging and monitoring tool execution.
-
-### Log Levels
-
-The application uses standard Python logging levels:
-- **DEBUG**: Detailed information for debugging
-- **INFO**: General information about tool execution and requests
-- **WARNING**: Warning messages for potential issues
-- **ERROR**: Error messages with stack traces
-
-### Tool Execution Logging
-
-When the agent executes tools, you'll see detailed logs like this:
-
-```
-2024-01-15 14:30:45,123 - cortex.agent - INFO - Tool Iteration 1
-2024-01-15 14:30:45,456 - cortex.agent - INFO - LLM Response: 1 tool calls
-2024-01-15 14:30:45,789 - cortex.agent - INFO - TOOL: find_personal_variables | Args: {"searchkey": "name"}
-2024-01-15 14:30:46,012 - cortex.agent - INFO - Tool Iteration 2
-2024-01-15 14:30:46,345 - cortex.agent - INFO - LLM Response: Final response (no tools)
-```
-
-### Logging Configuration
-
-The logging is configured in `main.py` with the following settings:
-
-```python
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.StreamHandler(),  # Console handler
-    ]
-)
-```
-
-### Customizing Log Levels
-
-To change the log level for debugging:
-
-```python
-# In main.py, change the level:
-logging.basicConfig(level=logging.DEBUG)
-```
-
-### Environment-Specific Logging
-
-**Development Mode:**
-- Set log level to DEBUG for maximum information
-- All tool calls and parameters are logged
-- Error stack traces are included
-
-**Production Mode:**
-- Set log level to INFO or WARNING
-- Reduce log verbosity for performance
-- Focus on errors and warnings
-
-### Log Output Locations
-
-**Manual Mode:**
-- Logs appear in the console where you run `./wakeup.sh`
-
-**Service Mode:**
-- **Linux**: `sudo journalctl -u tatlock -f`
-- **macOS**: `tail -f /tmp/tatlock.log`
-
-### Debugging Tool Issues
-
-If tools are failing, check the logs for:
-1. **Tool call parameters**: Verify the arguments being passed
-2. **Error messages**: Look for specific error details
-3. **API key issues**: Check if external APIs are accessible
-4. **Database errors**: Verify database connectivity and permissions
-
-### Performance Monitoring
-
-The logs include:
-- Tool execution times
-- Number of iterations per request
-- Success/failure rates
-- API response times
-
-### Adding Custom Logging
-
-To add logging to your own modules:
-
-```python
-import logging
-
-logger = logging.getLogger(__name__)
-
-logger.info("Your message here")
-logger.error("Error message", exc_info=True)
-```
-
-## Current Implementation Status
+Tatlock's architecture is inspired by the human brain, with each module representing a specific brain region:
 
 ### Fully Implemented Modules
-- **cortex**: Core agent logic with tool dispatch and agentic loop
-- **hippocampus**: Complete memory system with user-specific databases
-- **stem**: Authentication, admin dashboard, tools, and utilities
+- **🧠 Cortex**: Core agent logic with tool dispatch and agentic loop
+- **🧠 Hippocampus**: Complete memory system with user-specific databases
+- **🧠 Stem**: Authentication, admin dashboard, tools, and utilities
+- **🧠 Parietal**: Hardware monitoring and performance analysis
 
 ### Planned Modules (Future Development)
-- **amygdala**: Emotional processing and mood awareness
-- **cerebellum**: Procedural memory and task automation
-- **occipital**: Visual processing and image analysis
-- **parietal**: Spatial reasoning and sensory integration
-- **temporal**: Language processing and temporal context
-- **thalamus**: Information routing and coordination
+- **🧠 Amygdala**: Emotional processing and mood awareness
+- **🧠 Cerebellum**: Procedural memory and task automation
+- **🧠 Occipital**: Visual processing and image analysis
+- **🧠 Temporal**: Language processing and temporal context
+- **🧠 Thalamus**: Information routing and coordination
 
 ## Installation
 
@@ -235,8 +140,41 @@ sudo systemctl start tatlock
 sudo systemctl stop tatlock
 ```
 
+## Documentation
+
+### Core Documentation
+- **[Developer Guide](developer.md)** - Developer-specific information, logging, debugging, and development practices
+- **[In-Depth Technical Information](moreinfo.md)** - Detailed architecture, implementation details, and advanced features
+
+### Module Documentation
+- **[Cortex](cortex/readme.md)** - Core agent logic and decision-making
+- **[Hippocampus](hippocampus/readme.md)** - Memory system and storage
+- **[Stem](stem/readme.md)** - Authentication, utilities, and core services
+- **[Parietal](parietal/readme.md)** - Hardware monitoring and performance analysis
+
+### Planned Module Documentation
+- **[Amygdala](amygdala/readme.md)** - Emotional processing and mood awareness (planned)
+- **[Cerebellum](cerebellum/readme.md)** - Procedural memory and task automation (planned)
+- **[Occipital](occipital/readme.md)** - Visual processing and image analysis (planned)
+- **[Temporal](temporal/readme.md)** - Language processing and temporal context (planned)
+- **[Thalamus](thalamus/readme.md)** - Information routing and coordination (planned)
+
+## Key Features
+
 ### Modular Architecture
 - **Brain-Inspired Design**: Codebase organized into modules inspired by brain regions
 - **Extensible Tools**: Easily add new tools and skills for the agent to use
 - **Offline Capability**: Material Icons and static assets work without internet connection
 - **Service Management**: Optional auto-starting service for production deployments
+
+### Security & Privacy
+- **Complete User Isolation**: Each user has their own database for complete privacy
+- **Session-Based Authentication**: Secure session management with proper cookie handling
+- **Role-Based Access Control**: Fine-grained permissions and user management
+- **Input Validation**: Comprehensive validation and sanitization of all inputs
+
+### Performance & Monitoring
+- **Real-time System Monitoring**: CPU, RAM, disk, and network usage tracking
+- **Performance Benchmarking**: LLM and tool performance analysis
+- **Debug Console**: Real-time logging and system health monitoring
+- **Hardware Resource Tracking**: Comprehensive system resource analysis

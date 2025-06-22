@@ -194,3 +194,12 @@ The module includes database setup utilities in `stem/installation/database_setu
 - **Query Optimization**: More efficient query patterns
 - **Connection Pooling**: Enhanced connection management
 - **Caching**: Memory result caching for frequently accessed data
+
+## Related Documentation
+
+- [README.md](../README.md) - General overview and installation
+- [developer.md](../developer.md) - Developer guide and practices
+- [moreinfo.md](../moreinfo.md) - In-depth technical information
+- [cortex/readme.md](../cortex/readme.md) - Core agent logic documentation
+- [stem/readme.md](../stem/readme.md) - Core utilities and infrastructure
+- [parietal/readme.md](../parietal/readme.md) - Hardware monitoring and performance

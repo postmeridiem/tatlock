@@ -267,3 +267,12 @@ All tools are defined in the `tools.py` module and are automatically scoped to t
 - **Database Optimization**: Enhanced database performance
 - **Static Asset Optimization**: Improved asset delivery
 - **API Response Optimization**: Faster API response times
+
+## Related Documentation
+
+- [README.md](../README.md) - General overview and installation
+- [developer.md](../developer.md) - Developer guide and practices
+- [moreinfo.md](../moreinfo.md) - In-depth technical information
+- [cortex/readme.md](../cortex/readme.md) - Core agent logic documentation
+- [hippocampus/readme.md](../hippocampus/readme.md) - Memory system documentation
+- [parietal/readme.md](../parietal/readme.md) - Hardware monitoring and performance

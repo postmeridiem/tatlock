@@ -104,3 +104,13 @@ This module will be developed to enable Tatlock to efficiently coordinate inform
 - **Resource Efficiency**: Efficient use of system resources
 - **Scalability**: Support for scaling to additional modules and features
 - **Reliability**: Robust error handling and recovery mechanisms
+
+## Related Documentation
+
+- [README.md](../README.md) - General overview and installation
+- [developer.md](../developer.md) - Developer guide and practices
+- [moreinfo.md](../moreinfo.md) - In-depth technical information
+- [cortex/readme.md](../cortex/readme.md) - Core agent logic documentation
+- [hippocampus/readme.md](../hippocampus/readme.md) - Memory system documentation
+- [stem/readme.md](../stem/readme.md) - Core utilities and infrastructure
+- [parietal/readme.md](../parietal/readme.md) - Hardware monitoring and performance

@@ -137,3 +137,12 @@ The agent handles two types of tool call formats:
 - **Email Integration**: Send and receive emails
 - **Code Execution**: Safe code execution environment
 - **Image Processing**: Image analysis and generation
+
+## Related Documentation
+
+- [README.md](../README.md) - General overview and installation
+- [developer.md](../developer.md) - Developer guide and practices
+- [moreinfo.md](../moreinfo.md) - In-depth technical information
+- [hippocampus/readme.md](../hippocampus/readme.md) - Memory system documentation
+- [stem/readme.md](../stem/readme.md) - Core utilities and infrastructure
+- [parietal/readme.md](../parietal/readme.md) - Hardware monitoring and performance

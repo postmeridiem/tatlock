@@ -101,3 +101,13 @@ This module will be developed to enable Tatlock to better understand language, p
 - **User Consent**: Clear consent for voice processing and language analysis
 - **Data Minimization**: Collect only necessary language and temporal data
 - **Anonymization**: Protect user privacy in language and temporal data
+
+## Related Documentation
+
+- [README.md](../README.md) - General overview and installation
+- [developer.md](../developer.md) - Developer guide and practices
+- [moreinfo.md](../moreinfo.md) - In-depth technical information
+- [cortex/readme.md](../cortex/readme.md) - Core agent logic documentation
+- [hippocampus/readme.md](../hippocampus/readme.md) - Memory system documentation
+- [stem/readme.md](../stem/readme.md) - Core utilities and infrastructure
+- [parietal/readme.md](../parietal/readme.md) - Hardware monitoring and performance

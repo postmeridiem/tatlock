@@ -101,3 +101,13 @@ This module will be developed to enable Tatlock to process, understand, and gene
 - **Access Control**: Ensure images respect user permissions
 - **Data Retention**: Clear policies for image data retention
 - **Processing Transparency**: Clear information about image processing
+
+## Related Documentation
+
+- [README.md](../README.md) - General overview and installation
+- [developer.md](../developer.md) - Developer guide and practices
+- [moreinfo.md](../moreinfo.md) - In-depth technical information
+- [cortex/readme.md](../cortex/readme.md) - Core agent logic documentation
+- [hippocampus/readme.md](../hippocampus/readme.md) - Memory system documentation
+- [stem/readme.md](../stem/readme.md) - Core utilities and infrastructure
+- [parietal/readme.md](../parietal/readme.md) - Hardware monitoring and performance
