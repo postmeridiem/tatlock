@@ -134,6 +134,12 @@ function renderSystemInfoTiles(info) {
 }
 
 function renderSystemInfoGraphs(info) {
+    // Check if Chart.js is loaded
+    if (typeof Chart === 'undefined') {
+        console.error('Chart.js is not loaded');
+        return;
+    }
+    
     // Prepare history
     if (systemInfoHistory.length >= MAX_HISTORY) systemInfoHistory.shift();
     systemInfoHistory.push({
@@ -145,59 +151,147 @@ function renderSystemInfoGraphs(info) {
     const labels = systemInfoHistory.map(x => x.time.toLocaleTimeString());
     const cpuData = systemInfoHistory.map(x => x.cpu);
     const ramData = systemInfoHistory.map(x => x.ram);
+    
     // CPU Chart
-    if (!cpuChart) {
-        const ctx = document.getElementById('cpu-usage-chart').getContext('2d');
-        cpuChart = new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: labels,
-                datasets: [{
-                    label: 'CPU Usage (%)',
-                    data: cpuData,
-                    borderColor: '#42a5f5',
-                    backgroundColor: 'rgba(66,165,245,0.1)',
-                    fill: true,
-                    tension: 0.2
-                }]
-            },
-            options: {
-                responsive: true,
-                plugins: { legend: { display: false } },
-                scales: { y: { min: 0, max: 100 } }
+    try {
+        const cpuCanvas = document.getElementById('cpu-usage-chart');
+        if (!cpuCanvas) {
+            console.error('CPU chart canvas not found');
+            return;
+        }
+        
+        if (!cpuChart) {
+            const ctx = cpuCanvas.getContext('2d');
+            if (!ctx) {
+                console.error('Could not get 2D context for CPU chart');
+                return;
             }
-        });
-    } else {
-        cpuChart.data.labels = labels;
-        cpuChart.data.datasets[0].data = cpuData;
-        cpuChart.update();
+            
+            cpuChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'CPU Usage (%)',
+                        data: cpuData,
+                        borderColor: '#42a5f5',
+                        backgroundColor: 'rgba(66,165,245,0.1)',
+                        fill: true,
+                        tension: 0.2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { 
+                        legend: { display: false },
+                        title: {
+                            display: true,
+                            text: 'CPU Usage Over Time',
+                            color: 'var(--text-primary)',
+                            font: { size: 14, weight: 'bold' }
+                        }
+                    },
+                    scales: { 
+                        y: { 
+                            min: 0, 
+                            max: 100,
+                            title: {
+                                display: true,
+                                text: 'Usage (%)',
+                                color: 'var(--text-secondary)'
+                            }
+                        },
+                        x: { 
+                            display: true,
+                            title: {
+                                display: true,
+                                text: 'Time',
+                                color: 'var(--text-secondary)'
+                            }
+                        }
+                    }
+                }
+            });
+            console.log('CPU chart initialized successfully');
+        } else {
+            cpuChart.data.labels = labels;
+            cpuChart.data.datasets[0].data = cpuData;
+            cpuChart.update();
+        }
+    } catch (error) {
+        console.error('Error initializing CPU chart:', error);
     }
+    
     // RAM Chart
-    if (!ramChart) {
-        const ctx = document.getElementById('ram-usage-chart').getContext('2d');
-        ramChart = new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: labels,
-                datasets: [{
-                    label: 'RAM Usage (%)',
-                    data: ramData,
-                    borderColor: '#66bb6a',
-                    backgroundColor: 'rgba(102,187,106,0.1)',
-                    fill: true,
-                    tension: 0.2
-                }]
-            },
-            options: {
-                responsive: true,
-                plugins: { legend: { display: false } },
-                scales: { y: { min: 0, max: 100 } }
+    try {
+        const ramCanvas = document.getElementById('ram-usage-chart');
+        if (!ramCanvas) {
+            console.error('RAM chart canvas not found');
+            return;
+        }
+        
+        if (!ramChart) {
+            const ctx = ramCanvas.getContext('2d');
+            if (!ctx) {
+                console.error('Could not get 2D context for RAM chart');
+                return;
             }
-        });
-    } else {
-        ramChart.data.labels = labels;
-        ramChart.data.datasets[0].data = ramData;
-        ramChart.update();
+            
+            ramChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'RAM Usage (%)',
+                        data: ramData,
+                        borderColor: '#66bb6a',
+                        backgroundColor: 'rgba(102,187,106,0.1)',
+                        fill: true,
+                        tension: 0.2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { 
+                        legend: { display: false },
+                        title: {
+                            display: true,
+                            text: 'RAM Usage Over Time',
+                            color: 'var(--text-primary)',
+                            font: { size: 14, weight: 'bold' }
+                        }
+                    },
+                    scales: { 
+                        y: { 
+                            min: 0, 
+                            max: 100,
+                            title: {
+                                display: true,
+                                text: 'Usage (%)',
+                                color: 'var(--text-secondary)'
+                            }
+                        },
+                        x: { 
+                            display: true,
+                            title: {
+                                display: true,
+                                text: 'Time',
+                                color: 'var(--text-secondary)'
+                            }
+                        }
+                    }
+                }
+            });
+            console.log('RAM chart initialized successfully');
+        } else {
+            ramChart.data.labels = labels;
+            ramChart.data.datasets[0].data = ramData;
+            ramChart.update();
+        }
+    } catch (error) {
+        console.error('Error initializing RAM chart:', error);
     }
 }
 
@@ -205,26 +299,85 @@ async function updateSystemInfoSection() {
     const systemInfoContent = document.getElementById('system-info-content');
     try {
         const info = await fetchSystemInfo();
-        // Tiles
-        let html = renderSystemInfoTiles(info);
-        // Graphs
-        html += `
-            <div class="metrics-graphs">
-                <canvas id="cpu-usage-chart" height="80"></canvas>
-                <canvas id="ram-usage-chart" height="80"></canvas>
-            </div>
-        `;
-        // Raw system info card (always open)
-        html += `
-            <div class="system-info-card">
-                <h3>Raw System Information</h3>
-                <pre class="json-content">${highlightJSON(JSON.stringify(info, null, 2))}</pre>
-            </div>
-        `;
-        systemInfoContent.innerHTML = html;
-        renderSystemInfoGraphs(info);
+        
+        // Check if this is the first load (no existing content)
+        const isFirstLoad = !systemInfoContent.querySelector('.metrics-graphs');
+        
+        if (isFirstLoad) {
+            // First load - create all HTML content
+            let html = renderSystemInfoTiles(info);
+            // Graphs
+            html += `
+                <div class="metrics-graphs">
+                    <div class="chart-container">
+                        <canvas id="cpu-usage-chart" height="80"></canvas>
+                        <div class="chart-label">CPU Usage Over Time</div>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="ram-usage-chart" height="80"></canvas>
+                        <div class="chart-label">RAM Usage Over Time</div>
+                    </div>
+                </div>
+            `;
+            // Raw system info card (always open)
+            html += `
+                <div class="system-info-card">
+                    <h3>Raw System Information</h3>
+                    <pre class="json-content">${highlightJSON(JSON.stringify(info, null, 2))}</pre>
+                </div>
+            `;
+            systemInfoContent.innerHTML = html;
+            // Small delay to ensure canvas elements are created
+            setTimeout(() => {
+                renderSystemInfoGraphs(info);
+            }, 100);
+        } else {
+            // Subsequent updates - only update tiles and raw data, preserve charts
+            const tilesHtml = renderSystemInfoTiles(info);
+            const tilesContainer = systemInfoContent.querySelector('.metrics-tiles');
+            if (tilesContainer) {
+                tilesContainer.outerHTML = tilesHtml;
+            }
+            
+            // Update raw system info
+            const rawInfoContainer = systemInfoContent.querySelector('.system-info-card pre');
+            if (rawInfoContainer) {
+                rawInfoContainer.innerHTML = highlightJSON(JSON.stringify(info, null, 2));
+            }
+            
+            // Update chart data without recreating charts
+            updateChartData(info);
+        }
     } catch (error) {
         systemInfoContent.innerHTML = `<div class="error">Error loading system information: ${error.message}</div>`;
+    }
+}
+
+function updateChartData(info) {
+    // Prepare history
+    if (systemInfoHistory.length >= MAX_HISTORY) systemInfoHistory.shift();
+    systemInfoHistory.push({
+        time: new Date(),
+        cpu: info.cpu.usage.overall_percent,
+        ram: info.memory.ram.usage_percent
+    });
+    
+    // Prepare data
+    const labels = systemInfoHistory.map(x => x.time.toLocaleTimeString());
+    const cpuData = systemInfoHistory.map(x => x.cpu);
+    const ramData = systemInfoHistory.map(x => x.ram);
+    
+    // Update existing charts
+    if (cpuChart) {
+        cpuChart.data.labels = labels;
+        cpuChart.data.datasets[0].data = cpuData;
+        cpuChart.update('none'); // Update without animation for better performance
+    }
+    
+    if (ramChart) {
+        ramChart.data.labels = labels;
+        ramChart.data.datasets[0].data = ramData;
+        ramChart.update('none'); // Update without animation for better performance
     }
 }
 
@@ -388,8 +541,33 @@ function addSidepaneMessage(content, sender, processingTime = null) {
         }
     });
     
-    // Convert \n to <br> tags and use innerHTML to preserve line breaks
-    messageDiv.innerHTML = content.replace(/\n/g, '<br>');
+    // Parse markdown for AI messages, keep plain text for user messages
+    if (sender === 'ai' && typeof marked !== 'undefined') {
+        try {
+            // Configure marked options for security and styling
+            marked.setOptions({
+                breaks: true, // Convert line breaks to <br>
+                gfm: true,    // GitHub Flavored Markdown
+                sanitize: false, // We'll handle sanitization with DOMPurify if needed
+                highlight: function(code, lang) {
+                    // Basic syntax highlighting (could be enhanced with highlight.js)
+                    return `<pre><code class="language-${lang}">${code}</code></pre>`;
+                }
+            });
+            
+            // Parse markdown to HTML
+            const htmlContent = marked.parse(content);
+            messageDiv.innerHTML = htmlContent;
+        } catch (error) {
+            console.error('Markdown parsing error:', error);
+            // Fallback to plain text if markdown parsing fails
+            messageDiv.innerHTML = content.replace(/\n/g, '<br>');
+        }
+    } else {
+        // For user messages or if marked is not available, use plain text
+        messageDiv.innerHTML = content.replace(/\n/g, '<br>');
+    }
+    
     messageDiv.appendChild(copyBtn);
     
     // Add processing time for AI messages

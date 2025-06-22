@@ -216,6 +216,14 @@ class TestChatPage:
         
         assert response.status_code == 200
         assert "chat" in response.text.lower()
+    
+    def test_chat_page_includes_markdown_support(self, authenticated_admin_client):
+        """Test chat page includes markdown library for formatting."""
+        response = authenticated_admin_client.get("/chat")
+        
+        assert response.status_code == 200
+        assert "marked.min.js" in response.text
+        assert "marked" in response.text
 
 
 class TestFavicon:
