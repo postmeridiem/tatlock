@@ -117,6 +117,9 @@
 }
 
 * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
     transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
 }
 
@@ -126,7 +129,10 @@ body {
     padding: 0;
     background-color: var(--bg-primary);
     color: var(--text-primary);
-    min-height: 100vh;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
 }
 
 /* Header Bar */
@@ -339,8 +345,11 @@ body {
 /* Main Layout - Left Pane Navigator / Right Page Pane */
 .main-layout {
     display: flex;
-    height: calc(100vh - 60px);
+    flex: 1;
     background: var(--bg-primary);
+    height: calc(100vh - var(--header-height));
+    overflow: hidden;
+    margin-top: 0;
 }
 
 .sidebar-nav {
@@ -350,10 +359,12 @@ body {
     padding: 20px 0;
     overflow-y: auto;
     flex-shrink: 0;
+    height: 100%;
 }
 
 .nav-section {
     margin-bottom: 30px;
+    padding: 0;
 }
 
 .nav-title {
@@ -392,6 +403,7 @@ body {
     padding: 30px;
     position: relative;
     overflow-y: auto;
+    height: 100%;
 }
 
 /* Right Chat Sidepane */
@@ -402,6 +414,8 @@ body {
     display: flex;
     flex-direction: column;
     box-shadow: var(--shadow-light);
+    order: 1; /* Place after main content */
+    height: 100%;
 }
 
 .chat-sidepane-header {
@@ -845,7 +859,7 @@ table tr:last-child td, .user-table tr:last-child td {
     .main-layout {
         display: flex !important;
         flex-direction: column !important;
-        height: 100vh !important;
+        flex: 1 !important;
         overflow: hidden !important;
     }
     
@@ -932,7 +946,8 @@ table tr:last-child td, .user-table tr:last-child td {
     /* Ensure body doesn't scroll */
     body {
         overflow: hidden !important;
-        height: 100vh !important;
+        display: flex !important;
+        flex-direction: column !important;
     }
     
     /* Make sure header stays on top */
@@ -2007,4 +2022,5 @@ table tr:last-child td, .user-table tr:last-child td {
 
 [data-theme="dark"] .listening-dots span {
     background: var(--highlight-cyan);
-} 
+}
+

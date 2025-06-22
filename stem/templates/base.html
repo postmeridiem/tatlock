@@ -34,20 +34,18 @@
         {% include 'components/header.html' %}
     {% endif %}
     
-    <!-- Main content -->
-    <main class="main-content">
-        {% block content %}{% endblock %}
-    </main>
-    
-    <!-- Chat sidebar (if enabled) -->
-    {% if show_chat_sidebar %}
-        {% include 'components/chat_sidebar.html' %}
-    {% endif %}
-    
-    <!-- Footer (skip for login page) -->
-    {% if not hide_footer %}
-        {% include 'components/footer.html' %}
-    {% endif %}
+    <!-- Main layout container -->
+    <div class="main-layout">
+        <!-- Chat sidebar (if enabled) -->
+        {% if show_chat_sidebar %}
+            {% include 'components/chat_sidebar.html' %}
+        {% endif %}
+        
+        <!-- Main content -->
+        <main class="main-content">
+            {% block content %}{% endblock %}
+        </main>
+    </div>
     
     <!-- Scripts -->
     {% block scripts %}{% endblock %}

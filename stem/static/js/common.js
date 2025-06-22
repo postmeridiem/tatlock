@@ -517,6 +517,99 @@ function highlightActivePage() {
     }
 }
 
+// Theme toggle functionality
+function toggleTheme() {
+    const html = document.documentElement;
+    const currentTheme = html.getAttribute('data-theme');
+    const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+    
+    html.setAttribute('data-theme', newTheme);
+    localStorage.setItem('theme', newTheme);
+    
+    // Update theme toggle checkbox if it exists
+    const themeToggle = document.getElementById('theme-toggle');
+    if (themeToggle) {
+        themeToggle.checked = newTheme === 'light';
+    }
+}
+
+// Prevent default anchor link scrolling behavior
+function setupAnchorLinkHandling() {
+    // Handle clicks on anchor links
+    document.addEventListener('click', function(e) {
+        const link = e.target.closest('a[href^="#"]');
+        if (link) {
+            e.preventDefault();
+            
+            const targetId = link.getAttribute('href').substring(1);
+            scrollToElement(targetId);
+        }
+    });
+    
+    // Handle direct URL navigation with hash
+    if (window.location.hash) {
+        // Wait for DOM to be fully loaded
+        setTimeout(() => {
+            const targetId = window.location.hash.substring(1);
+            scrollToElement(targetId);
+        }, 100);
+    }
+    
+    // Handle hash changes (back/forward navigation)
+    window.addEventListener('hashchange', function() {
+        if (window.location.hash) {
+            const targetId = window.location.hash.substring(1);
+            scrollToElement(targetId);
+        }
+    });
+}
+
+// Scroll to element within the appropriate scrollable container
+function scrollToElement(targetId) {
+    const targetElement = document.getElementById(targetId);
+    
+    if (targetElement) {
+        // Find the scrollable container that contains the target element
+        const scrollableContainer = findScrollableContainer(targetElement);
+        
+        if (scrollableContainer) {
+            // Calculate the position relative to the scrollable container
+            const containerRect = scrollableContainer.getBoundingClientRect();
+            const targetRect = targetElement.getBoundingClientRect();
+            const scrollTop = scrollableContainer.scrollTop;
+            
+            // Calculate the target position within the container
+            const targetPosition = scrollTop + (targetRect.top - containerRect.top) - 20; // 20px offset
+            
+            // Smooth scroll to the target within the container
+            scrollableContainer.scrollTo({
+                top: targetPosition,
+                behavior: 'smooth'
+            });
+        }
+    }
+}
+
+// Find the scrollable container that contains the given element
+function findScrollableContainer(element) {
+    let parent = element.parentElement;
+    
+    while (parent) {
+        const style = window.getComputedStyle(parent);
+        const overflowY = style.overflowY;
+        
+        // Check if this container is scrollable
+        if (overflowY === 'auto' || overflowY === 'scroll') {
+            return parent;
+        }
+        
+        parent = parent.parentElement;
+    }
+    
+    // If no scrollable container found, return the main content area
+    return document.querySelector('.main-content');
+}
+
 // Initialize common functionality
 document.addEventListener('DOMContentLoaded', function() {
     // Create user dropdown
@@ -534,4 +627,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Highlight active page in navigation
     highlightActivePage();
+    
+    // Setup anchor link handling
+    setupAnchorLinkHandling();
 }); 
