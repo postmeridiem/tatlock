@@ -311,7 +311,7 @@ function sendSidepaneMessage() {
         
         // Add AI response
         const aiResponse = data.response || 'I apologize, but I encountered an error processing your request.';
-        addSidepaneMessage(aiResponse, 'ai');
+        addSidepaneMessage(aiResponse, 'ai', data.processing_time);
         
         // Add to conversation history
         sidepaneHistory.push({ role: 'assistant', content: aiResponse });
@@ -351,7 +351,7 @@ function sendSidepaneMessage() {
     });
 }
 
-function addSidepaneMessage(content, sender) {
+function addSidepaneMessage(content, sender, processingTime = null) {
     const messageDiv = document.createElement('div');
     messageDiv.className = `chat-message ${sender}`;
     
@@ -391,6 +391,15 @@ function addSidepaneMessage(content, sender) {
     // Convert \n to <br> tags and use innerHTML to preserve line breaks
     messageDiv.innerHTML = content.replace(/\n/g, '<br>');
     messageDiv.appendChild(copyBtn);
+    
+    // Add processing time for AI messages
+    if (sender === 'ai' && processingTime !== null) {
+        const timeDiv = document.createElement('div');
+        timeDiv.className = 'processing-time';
+        timeDiv.textContent = `${processingTime.toFixed(1)}s`;
+        messageDiv.appendChild(timeDiv);
+    }
+    
     sidepaneMessages.appendChild(messageDiv);
     sidepaneMessages.scrollTop = sidepaneMessages.scrollHeight;
 }

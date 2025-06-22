@@ -32,6 +32,7 @@ class ChatResponse(BaseModel):
     topic: str = Field(..., description="The AI's classification of the topic")
     history: List[ChatMessage] = Field(..., description="The full updated conversation history.")
     conversation_id: str = Field(..., description="Conversation ID for grouping related messages.")
+    processing_time: float = Field(..., description="Processing time in seconds.")
 
 # Admin Models
 class CreateUserRequest(BaseModel):

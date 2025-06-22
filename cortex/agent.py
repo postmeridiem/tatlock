@@ -8,6 +8,7 @@ import ollama
 import json
 import re
 import logging
+import time
 from datetime import date, datetime
 import uuid
 
@@ -60,8 +61,9 @@ def process_chat_interaction(user_message: str, history: list[dict], username: s
         username (str): The username for user-specific database access. Defaults to "admin".
         conversation_id (str | None): Conversation ID for grouping messages. Defaults to None.
     Returns:
-        dict: The agent's response, topic, and updated history.
+        dict: The agent's response, topic, updated history, and processing time.
     """
+    start_time = time.time()
 
     base_instructions = get_base_instructions(username)
 
@@ -266,9 +268,12 @@ Do not attempt to call any more tools - provide a final response analyzing the s
     except Exception as e:
         logger.error(f"Error during saving interaction: {e}")
 
+    processing_time = time.time() - start_time
+    processing_time = round(processing_time, 1)
     return {
         "response": final_content,
         "topic": topic_str,
         "history": final_history,
-        "conversation_id": conversation_id or datetime.now().strftime('%Y-%m-%d-%H-%M-%S')
+        "conversation_id": conversation_id or datetime.now().strftime('%Y-%m-%d-%H-%M-%S'),
+        "processing_time": processing_time
     }
