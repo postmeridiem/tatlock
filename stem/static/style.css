@@ -2123,6 +2123,124 @@ table tr:last-child td, .user-table tr:last-child td {
     padding-bottom: 10px;
 }
 
+/* Memory Management */
+.memory-controls {
+    margin-bottom: 20px;
+}
+
+.search-input {
+    width: 100%;
+    padding: 10px 15px;
+    border-radius: 5px;
+    border: 1px solid var(--border-color);
+    background-color: var(--bg-tertiary);
+    color: var(--text-primary);
+    font-size: 1rem;
+}
+
+.conversation-list-container {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.conversation-item {
+    background-color: var(--bg-tertiary);
+    padding: 15px;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.convo-topic {
+    font-weight: bold;
+    font-size: 1.1rem;
+    color: var(--text-primary);
+}
+
+.convo-summary {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+.convo-meta {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+
+.convo-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.convo-actions .view-btn,
+.convo-actions .delete-btn {
+    padding: 5px 15px;
+    border-radius: 5px;
+    border: none;
+    cursor: pointer;
+    font-weight: 500;
+}
+
+.convo-actions .view-btn {
+    background-color: var(--accent-color);
+    color: white;
+}
+
+.convo-actions .delete-btn {
+    background-color: var(--danger-color);
+    color: white;
+}
+
+.conversation-messages {
+    max-height: 60vh;
+    overflow-y: auto;
+    padding: 10px;
+    background-color: var(--bg-primary);
+    border-radius: 5px;
+}
+
+.message-bubble {
+    padding: 10px;
+    border-radius: 8px;
+    margin-bottom: 10px;
+    max-width: 80%;
+}
+
+.message-bubble.user {
+    background-color: var(--accent-color);
+    color: white;
+    margin-left: auto;
+}
+
+.message-bubble.ai {
+    background-color: var(--bg-tertiary);
+    color: var(--text-primary);
+    margin-right: auto;
+}
+
+.message-role {
+    font-weight: bold;
+    font-size: 0.8rem;
+    margin-bottom: 5px;
+    text-transform: uppercase;
+}
+
+.message-timestamp {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    text-align: right;
+    margin-top: 5px;
+}
+
+.modal-content.large {
+    width: 80%;
+    max-width: 900px;
+}
+
 /* Admin Dashboard Specifics */
 .section {
     background-color: var(--bg-secondary);

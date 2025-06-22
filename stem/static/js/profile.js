@@ -250,6 +250,7 @@ function initializeProfile() {
     console.log('Profile page initializing...');
     loadProfileInfo();
     setupPasswordEventListeners();
+    initializeMemoryManagement();
     
     // Initialize chat with profile-specific settings
     new TatlockChat({
@@ -317,6 +318,129 @@ function setupPasswordEventListeners() {
                 snackbar.error('Error changing password: ' + error.message);
             }
         });
+    }
+}
+
+/**
+ * Initializes the memory management section.
+ */
+function initializeMemoryManagement() {
+    const searchInput = document.getElementById('memory-search');
+    if (searchInput) {
+        searchInput.addEventListener('keyup', (event) => {
+            if (event.key === 'Enter') {
+                loadConversations(event.target.value);
+            }
+        });
+    }
+    loadConversations();
+}
+
+async function loadConversations(searchTerm = '') {
+    const conversationListDiv = document.getElementById('conversation-list');
+    conversationListDiv.innerHTML = '<div class="loading">Loading conversations...</div>';
+
+    try {
+        let url = '/hippocampus/longterm/conversations';
+        if (searchTerm) {
+            url += `?search=${encodeURIComponent(searchTerm)}`;
+        }
+        const response = await fetch(url, { credentials: 'include' });
+
+        if (!response.ok) {
+            throw new Error(`Failed to fetch conversations: ${response.statusText}`);
+        }
+
+        const conversations = await response.json();
+        renderConversations(conversations);
+    } catch (error) {
+        conversationListDiv.innerHTML = `<div class="error-message">${error.message}</div>`;
+    }
+}
+
+function renderConversations(conversations) {
+    const conversationListDiv = document.getElementById('conversation-list');
+    if (conversations.length === 0) {
+        conversationListDiv.innerHTML = '<p>No conversations found.</p>';
+        return;
+    }
+
+    let html = '';
+    conversations.forEach(convo => {
+        html += `
+            <div class="conversation-item" id="convo-${convo.id}">
+                <div class="convo-topic">${convo.topic || 'No Topic'}</div>
+                <div class="convo-summary">${convo.summary || 'No summary available.'}</div>
+                <div class="convo-meta">
+                    <span>Last Activity: ${new Date(convo.last_activity).toLocaleString()}</span>
+                </div>
+                <div class="convo-actions">
+                    <button class="view-btn" onclick="viewConversation('${convo.id}')">View</button>
+                    <button class="delete-btn" onclick="deleteConversation('${convo.id}')">Delete</button>
+                </div>
+            </div>
+        `;
+    });
+    conversationListDiv.innerHTML = html;
+}
+
+async function viewConversation(conversationId) {
+    const modalContent = document.getElementById('conversationModalContent');
+    const modalTitle = document.getElementById('conversationModalTitle');
+    modalContent.innerHTML = '<div class="loading">Loading messages...</div>';
+    
+    document.getElementById('conversationModal').style.display = 'flex';
+
+    try {
+        const response = await fetch(`/hippocampus/longterm/conversation/${conversationId}/messages`, { credentials: 'include' });
+        if (!response.ok) throw new Error('Failed to fetch messages.');
+        
+        const messages = await response.json();
+        modalTitle.textContent = `Conversation: ${messages.length > 0 ? messages[0].timestamp.split('T')[0] : ''}`;
+
+        let html = '';
+        messages.forEach(msg => {
+            html += `
+                <div class="message-bubble ${msg.role}">
+                    <div class="message-role">${msg.role}</div>
+                    <div class="message-content">${msg.content}</div>
+                    <div class="message-timestamp">${new Date(msg.timestamp).toLocaleString()}</div>
+                </div>
+            `;
+        });
+        modalContent.innerHTML = html;
+    } catch (error) {
+        modalContent.innerHTML = `<div class="error-message">${error.message}</div>`;
+    }
+}
+
+function closeConversationModal() {
+    document.getElementById('conversationModal').style.display = 'none';
+}
+
+async function deleteConversation(conversationId) {
+    if (!confirm('Are you sure you want to delete this entire conversation? This action cannot be undone.')) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`/hippocampus/longterm/conversation/${conversationId}`, {
+            method: 'DELETE',
+            credentials: 'include'
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to delete conversation.');
+        }
+
+        // Remove the conversation from the view
+        const convoDiv = document.getElementById(`convo-${conversationId}`);
+        if (convoDiv) {
+            convoDiv.remove();
+        }
+        showSnackbar('Conversation deleted successfully.', 'success');
+    } catch (error) {
+        showSnackbar(error.message, 'error');
     }
 }
 

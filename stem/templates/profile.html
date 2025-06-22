@@ -13,7 +13,8 @@
 {% block content %}
 {% set nav_items = [
     {'id': 'profile', 'text': 'Profile', 'active': True},
-    {'id': 'change-password', 'text': 'Change Password'}
+    {'id': 'change-password', 'text': 'Change Password'},
+    {'id': 'memory-management', 'text': 'Memory Management'}
 ] %}
 {{ render_nav('Profile', nav_items) }}
 
@@ -67,6 +68,17 @@
             <button type="submit" class="button">Change Password</button>
         </form>
     </div>
+
+    <!-- Memory Management -->
+    <div id="memory-management" class="section" style="display: none;">
+        <div class="section-title">Memory Management</div>
+        <div class="memory-controls">
+            <input type="text" id="memory-search" class="search-input" placeholder="Search conversations...">
+        </div>
+        <div id="conversation-list" class="conversation-list-container">
+            <div class="loading">Loading conversations...</div>
+        </div>
+    </div>
 </div>
 {% endblock %}
 
@@ -83,6 +95,19 @@
     }
 </style>
 {% endblock %}
+
+<!-- Conversation Detail Modal -->
+<div id="conversationModal" class="modal">
+    <div class="modal-content large">
+        <h2 id="conversationModalTitle">Conversation Details</h2>
+        <div id="conversationModalContent" class="conversation-messages">
+            <!-- Messages will be loaded here -->
+        </div>
+        <div class="modal-buttons">
+            <button type="button" class="cancel-btn" onclick="closeConversationModal()">Close</button>
+        </div>
+    </div>
+</div>
 
 <!-- Snackbar Container -->
 {% include 'components/snackbar.html' %}
