@@ -1,6 +1,6 @@
 # Tatlock
 
-Tatlock is a modular, brain-inspired conversational AI platform with built-in authentication, security, and comprehensive user management. It provides a context-aware, tool-using agent with persistent memory, extensible skills, and a modern web interface with Material Design aesthetics.
+Tatlock is a modular, brain-inspired conversational AI platform with built-in authentication, security, and comprehensive user management. It provides a context-aware, tool-using agent with persistent memory, extensible skills, and a modern web interface with Material Design aesthetics. It is intended to be used as the core of home automation as well as be a privacy minded solution, since all models run locally and the datastore is on disk.
 
 ## Features
 
