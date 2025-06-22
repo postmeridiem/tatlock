@@ -2090,3 +2090,41 @@ table tr:last-child td, .user-table tr:last-child td {
     background: var(--text-secondary);
 }
 
+.graph-container {
+    flex: 1;
+    min-width: 300px;
+    background-color: var(--bg-tertiary);
+    padding: 15px;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+}
+
+.chart-label {
+    text-align: center;
+    margin-top: 10px;
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+}
+
+.system-info-card {
+    background-color: var(--bg-tertiary);
+    padding: 15px;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    margin-top: 20px;
+}
+
+.system-info-card h3 {
+    margin-top: 0;
+    margin-bottom: 10px;
+    font-size: 1.1rem;
+    color: var(--text-primary);
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 10px;
+}
+
+/* Admin Dashboard Specifics */
+.section {
+    background-color: var(--bg-secondary);
+}
+

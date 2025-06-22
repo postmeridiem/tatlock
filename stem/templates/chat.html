@@ -250,19 +250,64 @@
     <div id="system-info" class="section" style="display: none;">
         <div class="section-title">System Information</div>
         <div id="system-info-content">
-            <div class="loading">Loading system information...</div>
+            <div id="system-info-tiles" class="metrics-tiles">
+                <div class="tile metric-tile">
+                    <div class="tile-title">CPU Usage</div>
+                    <div class="tile-value" id="cpu-usage-percent">--%</div>
+                    <div class="tile-desc">Cores: <span id="cpu-core-count">--</span></div>
+                </div>
+                <div class="tile metric-tile">
+                    <div class="tile-title">RAM Usage</div>
+                    <div class="tile-value" id="ram-usage-percent">--%</div>
+                    <div class="tile-desc"><span id="ram-used">--</span>GB / <span id="ram-total">--</span>GB</div>
+                </div>
+                <div class="tile metric-tile">
+                    <div class="tile-title">Disk Usage</div>
+                    <div class="tile-value" id="disk-usage-percent">--%</div>
+                    <div class="tile-desc"><span id="disk-used">--</span>GB / <span id="disk-total">--</span>GB</div>
+                </div>
+                <div class="tile metric-tile">
+                    <div class="tile-title">Uptime</div>
+                    <div class="tile-value" id="system-uptime">--</div>
+                    <div class="tile-desc">Processes: <span id="process-count">--</span></div>
+                </div>
+                <div class="tile metric-tile">
+                    <div class="tile-title">Network</div>
+                    <div class="tile-value" id="network-sent">--GB sent</div>
+                    <div class="tile-desc" id="network-recv">--GB recv</div>
+                </div>
+            </div>
+            <div class="metrics-graphs">
+                <div class="graph-container">
+                    <canvas id="cpu-usage-chart"></canvas>
+                    <div class="chart-label">CPU Usage Over Time</div>
+                </div>
+                <div class="graph-container">
+                    <canvas id="ram-usage-chart"></canvas>
+                    <div class="chart-label">RAM Usage Over Time</div>
+                </div>
+            </div>
+            <div class="system-info-card">
+                <h3>Raw System Information</h3>
+                <pre id="system-info-raw" class="json-content"></pre>
+            </div>
+            <div id="system-info-error" class="error-message" style="display: none;"></div>
         </div>
     </div>
     
     <!-- Benchmark -->
     <div id="benchmark" class="section" style="display: none;">
-        <div class="section-title">Benchmark</div>
+        <div class="section-title">Performance Benchmark</div>
         <div class="benchmark-controls">
-            <input type="text" id="benchmark-query" class="chat-input" placeholder="Enter a query to benchmark...">
-            <button id="run-benchmark-btn" class="button">Run Benchmark</button>
+            <button id="run-comprehensive-benchmark" class="button">Run Comprehensive Benchmark</button>
+            <button id="run-llm-benchmark" class="button">LLM Benchmark Only</button>
+            <button id="run-tools-benchmark" class="button">Tools Benchmark Only</button>
         </div>
-        <div class="benchmark-results">
-            <!-- Results will be displayed here -->
+        <div id="benchmark-content">
+            <div class="benchmark-placeholder">
+                <p>Click a benchmark button above to start performance testing.</p>
+                <p>This will test LLM response times and tool execution performance.</p>
+            </div>
         </div>
     </div>
 </div>

@@ -124,49 +124,46 @@ async function fetchSystemInfo() {
     return await response.json();
 }
 
-function renderSystemInfoTiles(info) {
+function updateSystemInfoDOM(info) {
+    // Helper to update text content
+    const updateText = (id, text) => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = text;
+    };
+
+    // Update tiles
     const cpu = info.cpu;
+    updateText('cpu-usage-percent', `${cpu.usage.overall_percent}%`);
+    updateText('cpu-core-count', cpu.count.logical);
+
     const ram = info.memory.ram;
+    updateText('ram-usage-percent', `${ram.usage_percent}%`);
+    updateText('ram-used', ram.used_gb);
+    updateText('ram-total', ram.total_gb);
+
     const disk = info.disk.root_partition;
+    updateText('disk-usage-percent', `${disk.usage_percent}%`);
+    updateText('disk-used', disk.used_gb);
+    updateText('disk-total', disk.total_gb);
+
     const uptime = info.uptime;
-    const net = info.network;
-    
-    // Format uptime without seconds for display
     const uptimeDisplay = uptime.days > 0 ? 
         `${uptime.days}d ${uptime.hours}h ${uptime.minutes}m` :
         uptime.hours > 0 ? 
             `${uptime.hours}h ${uptime.minutes}m` :
             `${uptime.minutes}m`;
-    
-    return `
-        <div class="metrics-tiles">
-            <div class="tile metric-tile">
-                <div class="tile-title">CPU Usage</div>
-                <div class="tile-value">${cpu.usage.overall_percent}%</div>
-                <div class="tile-desc">Cores: ${cpu.count.logical}</div>
-            </div>
-            <div class="tile metric-tile">
-                <div class="tile-title">RAM Usage</div>
-                <div class="tile-value">${ram.usage_percent}%</div>
-                <div class="tile-desc">${ram.used_gb}GB / ${ram.total_gb}GB</div>
-            </div>
-            <div class="tile metric-tile">
-                <div class="tile-title">Disk Usage</div>
-                <div class="tile-value">${disk.usage_percent}%</div>
-                <div class="tile-desc">${disk.used_gb}GB / ${disk.total_gb}GB</div>
-                </div>
-            <div class="tile metric-tile">
-                <div class="tile-title">Uptime</div>
-                <div class="tile-value">${uptimeDisplay}</div>
-                <div class="tile-desc">Processes: ${info.processes.total}</div>
-            </div>
-            <div class="tile metric-tile">
-                <div class="tile-title">Network</div>
-                <div class="tile-value">${net.bytes_sent_gb}GB sent</div>
-                <div class="tile-desc">${net.bytes_recv_gb}GB recv</div>
-            </div>
-            </div>
-        `;
+    updateText('system-uptime', uptimeDisplay);
+    updateText('process-count', info.processes.total);
+
+    const net = info.network;
+    updateText('network-sent', `${net.bytes_sent_gb}GB sent`);
+    updateText('network-recv', `${net.bytes_recv_gb}GB recv`);
+
+    // Update raw info
+    const rawInfoEl = document.getElementById('system-info-raw');
+    if (rawInfoEl) {
+        rawInfoEl.innerHTML = highlightJSON(JSON.stringify(info, null, 2));
+    }
 }
 
 function renderSystemInfoGraphs(info) {
@@ -235,7 +232,13 @@ function renderSystemInfoGraphs(info) {
                             title: {
                                 display: true,
                                 text: 'Usage (%)',
-                                color: 'var(--text-secondary)'
+                                color: 'var(--text-primary)'
+                            },
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.2)'
+                            },
+                            ticks: {
+                                color: 'rgba(255, 255, 255, 0.7)'
                             }
                         },
                         x: { 
@@ -243,7 +246,13 @@ function renderSystemInfoGraphs(info) {
                             title: {
                                 display: true,
                                 text: 'Time',
-                                color: 'var(--text-secondary)'
+                                color: 'var(--text-primary)'
+                            },
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.2)'
+                            },
+                            ticks: {
+                                color: 'rgba(255, 255, 255, 0.7)'
                             }
                         }
                     }
@@ -251,12 +260,12 @@ function renderSystemInfoGraphs(info) {
             });
             console.log('CPU chart initialized successfully');
         } else {
-            cpuChart.data.labels = labels;
-            cpuChart.data.datasets[0].data = cpuData;
-            cpuChart.update();
+            updateChartData(cpuChart, labels, cpuData);
         }
-    } catch (error) {
-        console.error('Error initializing CPU chart:', error);
+    } catch(err) {
+        console.error("Error rendering CPU chart:", err);
+        if (cpuChart) cpuChart.destroy();
+        cpuChart = null;
     }
     
     // RAM Chart
@@ -306,7 +315,13 @@ function renderSystemInfoGraphs(info) {
                             title: {
                                 display: true,
                                 text: 'Usage (%)',
-                                color: 'var(--text-secondary)'
+                                color: 'var(--text-primary)'
+                            },
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.2)'
+                            },
+                            ticks: {
+                                color: 'rgba(255, 255, 255, 0.7)'
                             }
                         },
                         x: { 
@@ -314,7 +329,13 @@ function renderSystemInfoGraphs(info) {
                             title: {
                                 display: true,
                                 text: 'Time',
-                                color: 'var(--text-secondary)'
+                                color: 'var(--text-primary)'
+                            },
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.2)'
+                            },
+                            ticks: {
+                                color: 'rgba(255, 255, 255, 0.7)'
                             }
                         }
                     }
@@ -322,98 +343,47 @@ function renderSystemInfoGraphs(info) {
             });
             console.log('RAM chart initialized successfully');
         } else {
-            ramChart.data.labels = labels;
-            ramChart.data.datasets[0].data = ramData;
-            ramChart.update();
+            updateChartData(ramChart, labels, ramData);
         }
-    } catch (error) {
-        console.error('Error initializing RAM chart:', error);
+    } catch(err) {
+        console.error("Error rendering RAM chart:", err);
+        if (ramChart) ramChart.destroy();
+        ramChart = null;
     }
 }
 
 async function updateSystemInfoSection() {
-    const systemInfoContent = document.getElementById('system-info-content');
+    const errorDiv = document.getElementById('system-info-error');
+
     try {
         const info = await fetchSystemInfo();
         
-        // Check if this is the first load (no existing content)
-        const isFirstLoad = !systemInfoContent.querySelector('.metrics-graphs');
-        
-        if (isFirstLoad) {
-            // First load - create all HTML content
-            let html = renderSystemInfoTiles(info);
-            // Graphs
-            html += `
-                <div class="metrics-graphs">
-                    <div class="chart-container">
-                        <canvas id="cpu-usage-chart" height="80"></canvas>
-                        <div class="chart-label">CPU Usage Over Time</div>
-                    </div>
-                    <div class="chart-container">
-                        <canvas id="ram-usage-chart" height="80"></canvas>
-                        <div class="chart-label">RAM Usage Over Time</div>
-                    </div>
-                </div>
-            `;
-            // Raw system info card (always open)
-            html += `
-                <div class="system-info-card">
-                    <h3>Raw System Information</h3>
-                    <pre class="json-content">${highlightJSON(JSON.stringify(info, null, 2))}</pre>
-                </div>
-            `;
-            systemInfoContent.innerHTML = html;
-            // Small delay to ensure canvas elements are created
-            setTimeout(() => {
-                renderSystemInfoGraphs(info);
-            }, 100);
-        } else {
-            // Subsequent updates - only update tiles and raw data, preserve charts
-            const tilesHtml = renderSystemInfoTiles(info);
-            const tilesContainer = systemInfoContent.querySelector('.metrics-tiles');
-            if (tilesContainer) {
-                tilesContainer.outerHTML = tilesHtml;
-            }
-            
-            // Update raw system info
-            const rawInfoContainer = systemInfoContent.querySelector('.system-info-card pre');
-            if (rawInfoContainer) {
-                rawInfoContainer.innerHTML = highlightJSON(JSON.stringify(info, null, 2));
-            }
-            
-            // Update chart data without recreating charts
-            updateChartData(info);
+        if (errorDiv.style.display !== 'none') {
+            errorDiv.style.display = 'none';
         }
-    } catch (error) {
-        systemInfoContent.innerHTML = `<div class="error">Error loading system information: ${error.message}</div>`;
+
+        // Update the DOM with new data
+        updateSystemInfoDOM(info);
+        
+        // Render or update charts
+        renderSystemInfoGraphs(info);
+        
+    } catch (err) {
+        if (errorDiv) {
+            errorDiv.textContent = `Error loading system information: ${err.message}`;
+            errorDiv.style.display = 'block';
+        }
+    } finally {
+        // Schedule next update
+        setTimeout(updateSystemInfoSection, 5000);
     }
 }
 
-function updateChartData(info) {
-    // Prepare history
-    if (systemInfoHistory.length >= MAX_HISTORY) systemInfoHistory.shift();
-    systemInfoHistory.push({
-        time: new Date(),
-        cpu: info.cpu.usage.overall_percent,
-        ram: info.memory.ram.usage_percent
-    });
-    
-    // Prepare data
-    const labels = systemInfoHistory.map(x => x.time.toLocaleTimeString());
-    const cpuData = systemInfoHistory.map(x => x.cpu);
-    const ramData = systemInfoHistory.map(x => x.ram);
-    
-    // Update existing charts
-    if (cpuChart) {
-        cpuChart.data.labels = labels;
-        cpuChart.data.datasets[0].data = cpuData;
-        cpuChart.update('none'); // Update without animation for better performance
-    }
-    
-    if (ramChart) {
-        ramChart.data.labels = labels;
-        ramChart.data.datasets[0].data = ramData;
-        ramChart.update('none'); // Update without animation for better performance
+function updateChartData(chart, labels, data) {
+    if (chart) {
+        chart.data.labels = labels;
+        chart.data.datasets[0].data = data;
+        chart.update();
     }
 }
 
@@ -451,31 +421,49 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // Load initial server log entries
 async function loadServerLog() {
-    // Initialize the log container
-    const jsonContainer = document.getElementById('json-container');
-    if (jsonContainer) {
-        // Clear any existing content
-        jsonContainer.innerHTML = '';
+    try {
+        const response = await fetch('/admin/get-interaction-log', { credentials: 'include' });
+        if (!response.ok) throw new Error('Failed to fetch server log');
+        const logs = await response.json();
         
-        // Add a welcome message to indicate the log is ready
-        addLogEntry('Debug console initialized. Server interactions will be logged here.', 'info');
+        // Clear existing log on reload
+        clearLog();
+        
+        // Add entries in reverse order so latest is on top
+        logs.reverse().forEach(log => {
+            let type = log.level.toLowerCase();
+            if (type === 'tool_call') type = 'tool-call';
+            if (type === 'tool_response') type = 'tool-response';
+            
+            addLogEntry(log.message, type, log.data);
+        });
+
+    } catch (error) {
+        addLogEntry(`Error loading server log: ${error.message}`, 'error');
     }
 }
 
 // Initialize system info section and start polling
 function initializeSystemInfo() {
-    // Load initial system info
+    // Start the update loop - the HTML is now static in the template
     updateSystemInfoSection();
-    
-    // Start polling for system info updates every 10 seconds
-    setInterval(updateSystemInfoSection, 10000);
 }
 
 // Initialize benchmark section
 function initializeBenchmarks() {
-    // The benchmark functionality is already set up in setupDebugEventListeners()
-    // This function can be used for any additional benchmark initialization if needed
-    console.log('Benchmark section initialized');
+    const comprehensiveBtn = document.getElementById('run-comprehensive-benchmark');
+    const llmBtn = document.getElementById('run-llm-benchmark');
+    const toolsBtn = document.getElementById('run-tools-benchmark');
+
+    if (comprehensiveBtn) {
+        comprehensiveBtn.addEventListener('click', () => runBenchmark('comprehensive'));
+    }
+    if (llmBtn) {
+        llmBtn.addEventListener('click', () => runBenchmark('llm'));
+    }
+    if (toolsBtn) {
+        toolsBtn.addEventListener('click', () => runBenchmark('tools'));
+    }
 }
 
 function checkAuthenticationStatus() {

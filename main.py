@@ -229,19 +229,6 @@ async def logout_page(request: Request):
     # Redirect to root (which will redirect to login since user is now logged out)
     return RedirectResponse(url="/", status_code=302)
 
-@app.get("/test-layout", tags=["debug"], response_class=HTMLResponse)
-async def test_layout_page(request: Request):
-    """
-    Temporary test page to verify layout is working correctly.
-    No authentication required.
-    """
-    context = get_common_context(request)
-    context['show_chat_sidebar'] = True
-    context['welcome_message'] = 'Test layout - Chat sidebar should be on the left'
-    context['is_authenticated'] = True  # Temporarily set to true for testing
-    context['user'] = {'username': 'testuser', 'first_name': 'Test', 'last_name': 'User'}
-    return render_page("test_layout.html", context)
-
 # --- Exception Handlers ---
 @app.exception_handler(HTTPException)
 async def http_exception_handler(request: Request, exc: HTTPException):
@@ -310,15 +297,10 @@ async def read_root(request: Request):
 @app.get("/chat", tags=["html"],  response_class=HTMLResponse)
 async def chat_page(request: Request, user: dict = Depends(get_current_user)):
     """
-    Debug console page.
-    Requires authentication.
+    Main chat page. Requires authentication.
     """
-    logger.info("/chat endpoint called")
-    logger.info(f"/chat endpoint - user: {user}")
     if user is None:
-        logger.warning("/chat endpoint - no user, redirecting to login")
         return RedirectResponse(url="/login", status_code=302)
-    logger.info(f"/chat endpoint - rendering chat page for user: {user['username']}")
     return get_chat_page(request, user)
 
 @app.get("/profile")
