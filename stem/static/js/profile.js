@@ -3,22 +3,6 @@
 // Profile management
 let currentSection = 'profile-info';
 
-// Password toggle functionality
-function togglePassword(inputId) {
-    const input = document.getElementById(inputId);
-    const button = input.nextElementSibling;
-    
-    if (input.type === 'password') {
-        input.type = 'text';
-        button.innerHTML = '<span class="material-icons">visibility_off</span>';
-        button.title = 'Hide password';
-    } else {
-        input.type = 'password';
-        button.innerHTML = '<span class="material-icons">visibility</span>';
-        button.title = 'Show password';
-    }
-}
-
 function showProfileSection(sectionId) {
     // Hide all sections
     document.querySelectorAll('.section').forEach(section => {

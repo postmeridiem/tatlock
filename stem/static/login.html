@@ -147,7 +147,12 @@
                 
                 <div class="form-group">
                     <label for="password">Password</label>
-                    <input type="password" id="password" name="password" required autocomplete="current-password">
+                    <div class="password-input-container">
+                        <input type="password" id="password" name="password" required autocomplete="current-password">
+                        <button type="button" class="password-toggle" onclick="togglePassword('password')" title="Show/Hide password">
+                            <span class="material-icons">visibility</span>
+                        </button>
+                    </div>
                 </div>
                 
                 <button type="submit" class="login-btn" id="loginBtn">
@@ -160,6 +165,7 @@
         </div>
     </div>
     
+    <script src="/static/js/common.js"></script>
     <script>
         document.getElementById('loginForm').addEventListener('submit', async function(e) {
             e.preventDefault();
