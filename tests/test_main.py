@@ -232,6 +232,13 @@ class TestChatPage:
         assert response.status_code == 200
         assert "logo-tatlock-transparent.png" in response.text
         assert "logo-image" in response.text
+    
+    def test_chat_page_includes_shared_chat_js(self, authenticated_admin_client):
+        """Test chat page includes the shared chat.js file."""
+        response = authenticated_admin_client.get("/chat")
+        
+        assert response.status_code == 200
+        assert "chat.js" in response.text
 
 
 class TestFavicon:
@@ -381,4 +388,54 @@ class TestAdminPage:
         
         assert response.status_code == 200
         assert "logo-tatlock-transparent.png" in response.text
-        assert "logo-image" in response.text 
+        assert "logo-image" in response.text
+    
+    def test_admin_page_includes_chat_functionality(self, authenticated_admin_client):
+        """Test admin page includes chat functionality."""
+        response = authenticated_admin_client.get("/admin/dashboard")
+        
+        assert response.status_code == 200
+        assert "chat-sidepane" in response.text
+        assert "chat-input" in response.text
+        assert "marked.min.js" in response.text
+    
+    def test_admin_page_includes_shared_chat_js(self, authenticated_admin_client):
+        """Test admin page includes the shared chat.js file."""
+        response = authenticated_admin_client.get("/admin/dashboard")
+        
+        assert response.status_code == 200
+        assert "chat.js" in response.text
+
+
+class TestProfilePage:
+    """Test profile page endpoint."""
+    
+    def test_profile_page_requires_auth(self, client):
+        """Test profile page requires authentication."""
+        response = client.get("/profile", follow_redirects=False)
+        
+        assert response.status_code == 302
+        assert "/login" in response.headers["location"]
+    
+    def test_profile_page_with_auth(self, authenticated_admin_client):
+        """Test profile page with authentication."""
+        response = authenticated_admin_client.get("/profile")
+        
+        assert response.status_code == 200
+        assert "profile" in response.text.lower()
+    
+    def test_profile_page_includes_chat_functionality(self, authenticated_admin_client):
+        """Test profile page includes chat functionality."""
+        response = authenticated_admin_client.get("/profile")
+        
+        assert response.status_code == 200
+        assert "chat-sidepane" in response.text
+        assert "chat-input" in response.text
+        assert "marked.min.js" in response.text
+    
+    def test_profile_page_includes_shared_chat_js(self, authenticated_admin_client):
+        """Test profile page includes the shared chat.js file."""
+        response = authenticated_admin_client.get("/profile")
+        
+        assert response.status_code == 200
+        assert "chat.js" in response.text 

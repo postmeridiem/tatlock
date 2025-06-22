@@ -384,203 +384,9 @@ function updateChartData(info) {
 // Poll every 10 seconds
 setInterval(updateSystemInfoSection, 10000);
 
-// Sidepane chat functionality
-const sidepaneInput = document.getElementById('sidepane-input');
-const sidepaneSendBtn = document.getElementById('sidepane-send-btn');
-const sidepaneMessages = document.getElementById('sidepane-messages');
-
-// Sidepane chat input handling
-sidepaneInput.addEventListener('input', () => {
-    sidepaneSendBtn.disabled = !sidepaneInput.value.trim();
-    // Auto-resize textarea
-    sidepaneInput.style.height = 'auto';
-    sidepaneInput.style.height = Math.min(sidepaneInput.scrollHeight, 100) + 'px';
-});
-
-sidepaneInput.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-        e.preventDefault();
-        sendSidepaneMessage();
-    }
-});
-
-sidepaneSendBtn.addEventListener('click', sendSidepaneMessage);
-
-// Sidepane chat conversation history
-let sidepaneHistory = [];
-let sidepaneConversationId = null;
-
-function sendSidepaneMessage() {
-    const message = sidepaneInput.value.trim();
-    if (!message) return;
-    
-    // Add user message to sidepane chat
-    addSidepaneMessage(message, 'user');
-    
-    // Add to conversation history
-    sidepaneHistory.push({ role: 'user', content: message });
-    
-    // Log the outgoing message to debug console
-    addLogEntry('Sidepane chat message sent', 'tool-call', {
-        message: message,
-        history: sidepaneHistory
-    });
-    
-    // Clear input
-    sidepaneInput.value = '';
-    sidepaneInput.style.height = 'auto';
-    sidepaneSendBtn.disabled = true;
-    
-    // Show typing indicator
-    const typingDiv = document.createElement('div');
-    typingDiv.className = 'chat-message ai';
-    typingDiv.innerHTML = '<em>Typing...</em>';
-    sidepaneMessages.appendChild(typingDiv);
-    sidepaneMessages.scrollTop = sidepaneMessages.scrollHeight;
-    
-    // Prepare request data
-    const requestData = { 
-        message: message, 
-        history: sidepaneHistory,
-        conversation_id: sidepaneConversationId
-    };
-    
-    // Send to Tatlock
-    fetch('/cortex', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',  // Include session cookies
-        body: JSON.stringify(requestData)
-    })
-    .then(response => {
-        if (!response.ok) {
-            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-        }
-        return response.json();
-    })
-    .then(data => {
-        // Remove typing indicator
-        sidepaneMessages.removeChild(typingDiv);
-        
-        // Add AI response
-        const aiResponse = data.response || 'I apologize, but I encountered an error processing your request.';
-        addSidepaneMessage(aiResponse, 'ai', data.processing_time);
-        
-        // Add to conversation history
-        sidepaneHistory.push({ role: 'assistant', content: aiResponse });
-        
-        // Update conversation ID from response
-        if (data.conversation_id) {
-            sidepaneConversationId = data.conversation_id;
-        }
-        
-        // Log the response to debug console
-        addLogEntry('Sidepane chat response received', 'tool-response', {
-            response: aiResponse,
-            fullResponse: data,
-            history: sidepaneHistory
-        });
-        
-        // Keep history manageable (last 20 messages)
-        if (sidepaneHistory.length > 20) {
-            sidepaneHistory = sidepaneHistory.slice(-20);
-        }
-    })
-    .catch(error => {
-        // Remove typing indicator
-        sidepaneMessages.removeChild(typingDiv);
-        
-        // Add error message
-        addSidepaneMessage('Sorry, I encountered an error. Please try again.', 'ai');
-        
-        // Log the error to debug console
-        addLogEntry('Sidepane chat error', 'error', {
-            error: error.message,
-            message: message,
-            stack: error.stack
-        });
-        
-        console.error('Sidepane chat error:', error);
-    });
-}
-
-function addSidepaneMessage(content, sender, processingTime = null) {
-    const messageDiv = document.createElement('div');
-    messageDiv.className = `chat-message ${sender}`;
-    
-    // Create copy button
-    const copyBtn = document.createElement('button');
-    copyBtn.className = 'copy-btn';
-    copyBtn.innerHTML = '<span class="material-icons">content_copy</span>';
-    copyBtn.title = 'Copy message';
-    
-    // Add click handler for copy functionality
-    copyBtn.addEventListener('click', async (e) => {
-        e.stopPropagation();
-        try {
-            await navigator.clipboard.writeText(content);
-            // Show feedback (you could add a toast notification here)
-            copyBtn.innerHTML = '<span class="material-icons">check</span>';
-            setTimeout(() => {
-                copyBtn.innerHTML = '<span class="material-icons">content_copy</span>';
-            }, 1000);
-        } catch (err) {
-            console.error('Failed to copy message:', err);
-            // Fallback for older browsers
-            const textArea = document.createElement('textarea');
-            textArea.value = content;
-            document.body.appendChild(textArea);
-            textArea.select();
-            document.execCommand('copy');
-            document.body.removeChild(textArea);
-            
-            copyBtn.innerHTML = '<span class="material-icons">check</span>';
-            setTimeout(() => {
-                copyBtn.innerHTML = '<span class="material-icons">content_copy</span>';
-            }, 1000);
-        }
-    });
-    
-    // Parse markdown for AI messages, keep plain text for user messages
-    if (sender === 'ai' && typeof marked !== 'undefined') {
-        try {
-            // Configure marked options for security and styling
-            marked.setOptions({
-                breaks: true, // Convert line breaks to <br>
-                gfm: true,    // GitHub Flavored Markdown
-                sanitize: false, // We'll handle sanitization with DOMPurify if needed
-                highlight: function(code, lang) {
-                    // Basic syntax highlighting (could be enhanced with highlight.js)
-                    return `<pre><code class="language-${lang}">${code}</code></pre>`;
-                }
-            });
-            
-            // Parse markdown to HTML
-            const htmlContent = marked.parse(content);
-            messageDiv.innerHTML = htmlContent;
-        } catch (error) {
-            console.error('Markdown parsing error:', error);
-            // Fallback to plain text if markdown parsing fails
-            messageDiv.innerHTML = content.replace(/\n/g, '<br>');
-        }
-    } else {
-        // For user messages or if marked is not available, use plain text
-        messageDiv.innerHTML = content.replace(/\n/g, '<br>');
-    }
-    
-    messageDiv.appendChild(copyBtn);
-    
-    // Add processing time for AI messages
-    if (sender === 'ai' && processingTime !== null) {
-        const timeDiv = document.createElement('div');
-        timeDiv.className = 'processing-time';
-        timeDiv.textContent = `${processingTime.toFixed(1)}s`;
-        messageDiv.appendChild(timeDiv);
-    }
-    
-    sidepaneMessages.appendChild(messageDiv);
-    sidepaneMessages.scrollTop = sidepaneMessages.scrollHeight;
-}
+// Chat functionality - now handled by shared chat.js
+// The chat functionality has been moved to stem/static/js/chat.js
+// and is initialized in the DOMContentLoaded event with logging enabled
 
 // Event listeners for debug controls
 clearLogBtn.addEventListener('click', clearLog);
@@ -589,8 +395,15 @@ exportLogBtn.addEventListener('click', exportLog);
 // Initialize debug console
 document.addEventListener('DOMContentLoaded', function() {
     setupDebugEventListeners();
-    updateSystemInfoSection();
-    checkAuthenticationStatus();
+    loadServerLog();
+    initializeSystemInfo();
+    initializeBenchmarks();
+    
+    // Initialize chat with logging enabled for debug page
+    initializeChat({
+        enableLogging: true,
+        logFunction: addToInteractionLog
+    });
 });
 
 function checkAuthenticationStatus() {

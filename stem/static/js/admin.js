@@ -10,6 +10,11 @@ document.addEventListener('DOMContentLoaded', function() {
     loadRoles();
     loadGroups();
     setupAdminEventListeners();
+    
+    // Initialize chat with logging disabled for admin page
+    initializeChat({
+        enableLogging: false
+    });
 });
 
 function setupAdminEventListeners() {
@@ -533,4 +538,8 @@ window.onclick = function(event) {
     if (event.target === groupModal) {
         closeGroupModal();
     }
-} 
+}
+
+// Chat functionality - now handled by shared chat.js
+// The chat functionality has been moved to stem/static/js/chat.js
+// and is initialized above with logging disabled 

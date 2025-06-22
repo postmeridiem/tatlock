@@ -124,6 +124,11 @@ async function loadEditProfileForm() {
 document.addEventListener('DOMContentLoaded', function() {
     loadProfileInfo();
     setupProfileEventListeners();
+    
+    // Initialize chat with logging disabled for profile page
+    initializeChat({
+        enableLogging: false
+    });
 }); 
 
 function setupProfileEventListeners() {
@@ -197,4 +202,8 @@ function setupProfileEventListeners() {
             }
         });
     }
-} 
+}
+
+// Chat functionality - now handled by shared chat.js
+// The chat functionality has been moved to stem/static/js/chat.js
+// and is initialized above with logging disabled 
