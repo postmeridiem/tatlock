@@ -29,6 +29,9 @@ SYSTEM_DB_PATH = os.getenv("SYSTEM_DB", "hippocampus/system.db")     # Authentic
 # --- Server Configuration ---
 PORT = int(os.getenv("PORT", "8000"))
 
+# --- Security Configuration ---
+ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "http://localhost:8000").split(",")
+
 # --- Error Checking ---
 if not OPENWEATHER_API_KEY:
     logger.warning("WARNING: OPENWEATHER_API_KEY environment variable not set. Weather functionality will be disabled.")

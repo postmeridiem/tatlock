@@ -35,9 +35,11 @@ from fastapi.security import HTTPBasicCredentials
 from fastapi.security import HTTPBasic
 from starlette.middleware.sessions import SessionMiddleware
 from fastapi.openapi.utils import get_openapi
+from fastapi.middleware.trustedhost import TrustedHostMiddleware
+from fastapi.middleware.cors import CORSMiddleware
 from config import (
     OPENWEATHER_API_KEY, GOOGLE_API_KEY, GOOGLE_CSE_ID, 
-    OLLAMA_MODEL, SYSTEM_DB_PATH, PORT
+    OLLAMA_MODEL, SYSTEM_DB_PATH, PORT, ALLOWED_ORIGINS
 )
 from parietal.hardware import get_comprehensive_system_info
 
@@ -54,7 +56,12 @@ logging.basicConfig(
 )
 
 # Get secret key from environment variable with fallback
-SECRET_KEY = os.getenv("STARLETTE_SECRET", "this-is-not-a-secret-key")
+SECRET_KEY = os.getenv("STARLETTE_SECRET")
+if not SECRET_KEY:
+    raise ValueError(
+        "STARLETTE_SECRET environment variable must be set. "
+        "Please run ./install_tatlock.sh or create a .env file with STARLETTE_SECRET."
+    )
 
 # --- FastAPI App ---
 app = FastAPI(
@@ -98,6 +105,16 @@ app.openapi = custom_openapi
 
 # Add session middleware for session-based authentication
 app.add_middleware(SessionMiddleware, secret_key=SECRET_KEY)
+
+# Add security headers middleware
+app.add_middleware(TrustedHostMiddleware, allowed_hosts=["localhost", "127.0.0.1"])
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=ALLOWED_ORIGINS,
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PUT", "DELETE"],
+    allow_headers=["*"],
+)
 
 # Mount static files directory (HTML, CSS, JS, Material Icons)
 mount_static_files(app)

@@ -162,6 +162,24 @@ body {
     color: #fff;
 }
 
+.header-bar .nav {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+.header-bar .nav a {
+    color: white;
+    text-decoration: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    transition: background-color 0.3s ease;
+}
+
+.header-bar .nav a:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
 /* Responsive logo design */
 @media (max-width: 768px) {
     .header-bar .logo-text {
@@ -175,11 +193,11 @@ body {
     .header-bar {
         padding: 0 20px; /* Reduce padding on mobile */
     }
-}
-
-/* Hide header navigation links on mobile, keep user dropdown */
-.header-bar .nav {
-    display: none !important;
+    
+    /* Hide header navigation links on mobile, keep user dropdown */
+    .header-bar .nav {
+        display: none !important;
+    }
 }
 
 .header-bar .user-info {

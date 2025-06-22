@@ -357,6 +357,9 @@ DATABASE_ROOT=hippocampus/
 # Server Configuration
 PORT=8000
 
+# Security Configuration
+ALLOWED_ORIGINS=http://localhost:8000
+
 # Security
 STARLETTE_SECRET=$STARLETTE_SECRET
 EOF
