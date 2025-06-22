@@ -1099,6 +1099,16 @@ def create_initial_admin():
         # Add groups
         security_manager.add_user_to_group("admin", "users")
         security_manager.add_user_to_group("admin", "admins")
+        
+        # Create admin directories for hippocampus shortterm storage
+        try:
+            from pathlib import Path
+            admin_dir = Path("hippocampus") / "shortterm" / "admin"
+            images_dir = admin_dir / "images"
+            images_dir.mkdir(parents=True, exist_ok=True)
+            logger.info(f"Created admin directories: {images_dir}")
+        except Exception as e:
+            logger.warning(f"Failed to create admin directories: {e}")
     else:
         logger.info("Admin user already exists or creation failed")
 

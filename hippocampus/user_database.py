@@ -113,4 +113,19 @@ def execute_user_query(username: str, query: str, params: tuple = ()) -> list[di
     finally:
         conn.close()
     
-    return results 
+    return results
+
+
+def get_user_image_path(username: str, session_id: str, ext: str = 'png') -> str:
+    """
+    Get the per-user, per-session image storage path.
+    Args:
+        username (str): The username.
+        session_id (str): The session ID.
+        ext (str): File extension (default: 'png').
+    Returns:
+        str: Path to the image file for this user/session.
+    """
+    base_dir = os.path.join('hippocampus', 'shortterm', username, 'images')
+    os.makedirs(base_dir, exist_ok=True)
+    return os.path.join(base_dir, f"{session_id}.{ext}") 

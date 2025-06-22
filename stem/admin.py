@@ -6,6 +6,9 @@ Provides admin endpoints for user management, statistics, and system administrat
 """
 
 import logging
+import os
+import shutil
+from pathlib import Path
 from fastapi import APIRouter, HTTPException, Depends, Request
 from fastapi.responses import HTMLResponse
 from stem.security import get_current_user, require_admin_role, security_manager
@@ -18,6 +21,58 @@ from stem.models import (
 
 # Set up logging for this module
 logger = logging.getLogger(__name__)
+
+def create_user_directories(username: str) -> bool:
+    """
+    Create user directories for hippocampus shortterm image storage.
+    
+    Args:
+        username (str): The username to create directories for
+        
+    Returns:
+        bool: True if successful, False otherwise
+    """
+    try:
+        # Create user directory and images subdirectory in shortterm
+        user_dir = Path("hippocampus") / "shortterm" / username
+        images_dir = user_dir / "images"
+        
+        # Create directories
+        images_dir.mkdir(parents=True, exist_ok=True)
+        
+        logger.info(f"Created user directories for {username}: {images_dir}")
+        return True
+        
+    except Exception as e:
+        logger.error(f"Error creating user directories for {username}: {e}")
+        return False
+
+def delete_user_directories(username: str) -> bool:
+    """
+    Delete user directories for hippocampus shortterm image storage.
+    
+    Args:
+        username (str): The username to delete directories for
+        
+    Returns:
+        bool: True if successful, False otherwise
+    """
+    try:
+        # Get user directory path in shortterm
+        user_dir = Path("hippocampus") / "shortterm" / username
+        
+        if user_dir.exists():
+            # Remove the entire user directory and all contents
+            shutil.rmtree(user_dir)
+            logger.info(f"Deleted user directories for {username}: {user_dir}")
+        else:
+            logger.info(f"User directories for {username} do not exist, skipping deletion")
+        
+        return True
+        
+    except Exception as e:
+        logger.error(f"Error deleting user directories for {username}: {e}")
+        return False
 
 # Create admin router
 admin_router = APIRouter(prefix="/admin", tags=["admin"])
@@ -164,6 +219,10 @@ async def create_user(request: CreateUserRequest, current_user: dict = Depends(r
         for group in request.groups:
             security_manager.add_user_to_group(request.username, group)
         
+        # Create user directories for hippocampus shortterm image storage
+        if not create_user_directories(request.username):
+            logger.warning(f"Failed to create user directories for {request.username}, but user was created successfully")
+        
         # Get updated user info
         user_info = security_manager.get_user_by_username(request.username)
         if not user_info:
@@ -276,6 +335,10 @@ async def delete_user(username: str, current_user: dict = Depends(require_admin_
         
         if not success:
             raise HTTPException(status_code=500, detail="Failed to delete user")
+        
+        # Delete user directories for hippocampus shortterm image storage
+        if not delete_user_directories(username):
+            logger.warning(f"Failed to delete user directories for {username}, but user was deleted successfully")
         
         return {"message": f"User {user['username']} deleted successfully"}
     except HTTPException:

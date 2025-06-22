@@ -22,7 +22,7 @@ import os
 import logging
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Depends, Request, Form, status, WebSocket, WebSocketDisconnect
-from fastapi.responses import HTMLResponse, RedirectResponse, FileResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, FileResponse, JSONResponse
 import uvicorn
 from cortex.agent import process_chat_interaction
 from stem.static import mount_static_files, get_chat_page, get_profile_page, get_login_page
@@ -45,6 +45,8 @@ from config import (
 from parietal.hardware import get_comprehensive_system_info
 from temporal.voice_service import VoiceService
 from contextlib import asynccontextmanager
+import base64
+from hippocampus.user_database import get_user_image_path
 
 # Load environment variables from .env file
 load_dotenv()
@@ -97,7 +99,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="Tatlock",
     description="As a child I used to play board games against a bucket with a face painted on it.",
-    version="3.0.0",
+    version="0.1.0",
     redoc_url=None,  # Disable ReDoc for security
     lifespan=lifespan
 )
@@ -212,6 +214,19 @@ async def logout_page(request: Request):
     
     # Redirect to root (which will redirect to login since user is now logged out)
     return RedirectResponse(url="/", status_code=302)
+
+@app.get("/test-layout", tags=["debug"], response_class=HTMLResponse)
+async def test_layout_page(request: Request):
+    """
+    Temporary test page to verify layout is working correctly.
+    No authentication required.
+    """
+    context = get_common_context(request)
+    context['show_chat_sidebar'] = True
+    context['welcome_message'] = 'Test layout - Chat sidebar should be on the left'
+    context['is_authenticated'] = True  # Temporarily set to true for testing
+    context['user'] = {'username': 'testuser', 'first_name': 'Test', 'last_name': 'User'}
+    return render_page("test_layout.html", context)
 
 # --- Exception Handlers ---
 @app.exception_handler(HTTPException)
@@ -359,6 +374,35 @@ async def websocket_voice_endpoint(websocket: WebSocket):
         import logging
         logging.getLogger(__name__).error(f"WebSocket error: {e}")
         await websocket.close(code=1011)
+
+@app.get("/hippocampus/shortterm/files/get", tags=["api"])
+async def get_user_file(username: str, session_id: str, current_user: dict = Depends(get_current_user)):
+    """
+    Authenticated endpoint to get a user's session image file as base64.
+    Args:
+        username (str): The username (must match current user or require admin)
+        session_id (str): The session ID
+    Returns:
+        JSON with filename and base64-encoded PNG data
+    """
+    # Only allow user to access their own files (unless admin)
+    if username != current_user["username"] and not current_user.get("is_admin", False):
+        raise HTTPException(status_code=403, detail="Not authorized to access this file.")
+    
+    file_path = get_user_image_path(username, session_id, ext="png")
+    if not os.path.exists(file_path):
+        raise HTTPException(status_code=404, detail="File not found.")
+    
+    with open(file_path, "rb") as f:
+        data = f.read()
+        b64 = base64.b64encode(data).decode("utf-8")
+    
+    return JSONResponse({
+        "filename": os.path.basename(file_path),
+        "data": b64,
+        "encoding": "base64",
+        "content_type": "image/png"
+    })
 
 # This allows running the app directly with `python main.py`
 if __name__ == "__main__":

@@ -11,6 +11,8 @@ import logging
 import time
 from datetime import date, datetime
 import uuid
+import asyncio
+import inspect
 
 # Import from our new, organized modules
 from config import OLLAMA_MODEL
@@ -28,7 +30,9 @@ from stem.tools import (
     execute_get_topic_statistics,
     execute_get_user_conversations,
     execute_get_conversation_details,
-    execute_search_conversations
+    execute_search_conversations,
+    execute_screenshot_from_url,
+    execute_analyze_file
 )
 from hippocampus.remember import save_interaction
 
@@ -49,8 +53,24 @@ AVAILABLE_TOOLS = {
     "get_user_conversations": execute_get_user_conversations,
     "get_conversation_details": execute_get_conversation_details,
     "search_conversations": execute_search_conversations,
+    "screenshot_from_url": execute_screenshot_from_url,
+    "analyze_file": execute_analyze_file
 }
 
+def run_async(coro):
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        loop = None
+    if loop and loop.is_running():
+        try:
+            import nest_asyncio
+            nest_asyncio.apply()
+        except ImportError:
+            raise RuntimeError("nest_asyncio is required to run async tools in a running event loop. Please install it with 'pip install nest_asyncio'.")
+        return loop.run_until_complete(coro)
+    else:
+        return asyncio.run(coro)
 
 def process_chat_interaction(user_message: str, history: list[dict], username: str = "admin", conversation_id: str | None = None) -> dict:
     """
@@ -201,7 +221,11 @@ Do not attempt to call any more tools - provide a final response analyzing the s
                         function_args['username'] = username
                     
                     try:
-                        output = tool_function(**function_args)
+                        # Check if the tool function is async
+                        if inspect.iscoroutinefunction(tool_function):
+                            output = run_async(tool_function(**function_args))
+                        else:
+                            output = tool_function(**function_args)
                         tool_outputs.append({"role": "tool", "tool_call_id": tool_call_id, "content": json.dumps(output)})
                     except Exception as e:
                         failed_tools.append(f"{function_name}: {str(e)}")

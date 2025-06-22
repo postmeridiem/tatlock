@@ -6,6 +6,7 @@ Tests authentication, protected endpoints, admin functionality, and error handli
 
 import pytest
 from fastapi.testclient import TestClient
+from tests.conftest import cleanup_user_data
 
 
 class TestAPIAuthentication:
@@ -207,6 +208,9 @@ class TestAdminUserCRUD:
         assert user["email"] == "newuser@test.com"
         assert "user" in user["roles"]
         assert "users" in user["groups"]
+        
+        # Cleanup
+        cleanup_user_data(username)
     
     def test_get_user(self, authenticated_admin_client, test_user):
         """Test getting a specific user."""
@@ -271,6 +275,9 @@ class TestAdminUserCRUD:
         # Verify user is deleted
         get_response = authenticated_admin_client.get(f"/admin/users/{username}")
         assert get_response.status_code == 404
+        
+        # Cleanup
+        cleanup_user_data(username)
 
 
 class TestAdminRoleCRUD:

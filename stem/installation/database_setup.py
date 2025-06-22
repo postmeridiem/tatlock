@@ -164,7 +164,9 @@ def create_default_rise_and_shine(cursor: sqlite3.Cursor) -> None:
         "You can provide conversation summaries and statistics. Use get_conversation_summary when users want a detailed overview of a specific conversation. Use get_topic_statistics to show overall conversation patterns and topic frequency.",
         "You can help users find and search through their conversation history. Use get_user_conversations to show recent conversations, get_conversation_details for specific conversation info, and search_conversations when users want to find conversations by keywords.",
         "You have access to weather forecast information. When users ask about weather, weather forecasts, or planning activities based on weather, use the get_weather_forecast tool to provide accurate, up-to-date weather information for any city. if no city is specified use the personal information tool to get the user's hometown",
-        "You have access to web search capabilities. When users ask about current events, recent information, or topics that require up-to-date knowledge beyond your training data, use the web_search tool to find the most current information available."
+        "You have access to web search capabilities. When users ask about current events, recent information, or topics that require up-to-date knowledge beyond your training data, use the web_search tool to find the most current information available.",
+        "You have access to screenshot capabilities. When users ask you to capture or analyze a webpage, use the screenshot_from_url tool to save a full-page screenshot of the URL to their shortterm storage. Always use a descriptive session_id that relates to the user's request.",
+        "You can analyze files stored in the user's shortterm storage. After taking a screenshot, use the analyze_file tool to interpret and summarize the image content, providing insights relevant to the original user prompt. This helps you understand visual content and provide meaningful analysis."
     ]
     
     for instruction in instructions:

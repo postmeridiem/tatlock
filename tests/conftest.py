@@ -6,6 +6,8 @@ import os
 import tempfile
 import pytest
 import sqlite3
+import shutil
+from pathlib import Path
 from unittest.mock import patch, MagicMock
 
 # Patch SYSTEM_DB_PATH before any app/security_manager import
@@ -17,6 +19,68 @@ from fastapi.testclient import TestClient
 from main import app
 from stem.security import SecurityManager
 from stem.installation.database_setup import create_system_db_tables, create_longterm_db_tables
+from hippocampus.user_database import get_user_database_path, delete_user_database
+
+
+def cleanup_user_data(username: str):
+    """
+    Clean up all user data including database and directories.
+    
+    Args:
+        username (str): The username to clean up
+    """
+    try:
+        # Delete user database
+        db_path = get_user_database_path(username)
+        if os.path.exists(db_path):
+            os.remove(db_path)
+        
+        # Delete user directories
+        user_dir = Path("hippocampus") / "shortterm" / username
+        if user_dir.exists():
+            shutil.rmtree(user_dir)
+            
+    except Exception as e:
+        # Log but don't fail the test
+        print(f"Warning: Failed to cleanup user data for {username}: {e}")
+
+
+@pytest.fixture(scope="session", autouse=True)
+def cleanup_test_users():
+    """
+    Clean up any test users that might have been created during testing.
+    This runs at the end of the test session.
+    """
+    yield
+    
+    # Clean up test users that might have been created
+    test_usernames = []
+    
+    # Check longterm directory for test databases
+    longterm_dir = Path("hippocampus/longterm")
+    if longterm_dir.exists():
+        for db_file in longterm_dir.glob("*.db"):
+            username = db_file.stem
+            # Clean up test users (those with test-related names)
+            if any(prefix in username.lower() for prefix in ['test', 'admin_', 'user_', 'temp_']):
+                test_usernames.append(username)
+    
+    # Clean up each test user
+    for username in test_usernames:
+        cleanup_user_data(username)
+
+
+@pytest.fixture(autouse=True)
+def cleanup_after_test():
+    """
+    Clean up after each test to ensure isolation.
+    This fixture runs automatically for each test.
+    """
+    yield
+    
+    # This will be called after each test
+    # Individual tests can use cleanup_user_data() if they create specific users
+    pass
 
 
 @pytest.fixture(scope="session")
@@ -69,13 +133,19 @@ def admin_user(security_manager):
     security_manager.create_user(username, 'Admin', 'User', 'admin123', 'admin@test.com')
     security_manager.add_user_to_role(username, 'admin')
     security_manager.add_user_to_group(username, 'admins')
-    return {
+    
+    user_data = {
         'username': username,
         'password': 'admin123',
         'first_name': 'Admin',
         'last_name': 'User',
         'email': 'admin@test.com'
     }
+    
+    yield user_data
+    
+    # Clean up after test
+    cleanup_user_data(username)
 
 
 @pytest.fixture
@@ -89,13 +159,19 @@ def test_user(security_manager):
     security_manager.create_user(username, 'Test', 'User', 'password123', 'test@test.com')
     security_manager.add_user_to_role(username, 'user')
     security_manager.add_user_to_group(username, 'users')
-    return {
+    
+    user_data = {
         'username': username,
         'password': 'password123',
         'first_name': 'Test',
         'last_name': 'User',
         'email': 'test@test.com'
     }
+    
+    yield user_data
+    
+    # Clean up after test
+    cleanup_user_data(username)
 
 
 @pytest.fixture
