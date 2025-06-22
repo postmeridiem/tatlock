@@ -224,6 +224,14 @@ class TestChatPage:
         assert response.status_code == 200
         assert "marked.min.js" in response.text
         assert "marked" in response.text
+    
+    def test_chat_page_includes_logo(self, authenticated_admin_client):
+        """Test chat page includes the Tatlock logo."""
+        response = authenticated_admin_client.get("/chat")
+        
+        assert response.status_code == 200
+        assert "logo-tatlock-transparent.png" in response.text
+        assert "logo-image" in response.text
 
 
 class TestFavicon:
@@ -347,4 +355,30 @@ class TestMiddleware:
         
         # Check if session cookie is set
         cookies = response.cookies
-        assert "session" in cookies 
+        assert "session" in cookies
+
+
+class TestAdminPage:
+    """Test admin page endpoint."""
+    
+    def test_admin_page_requires_auth(self, client):
+        """Test admin page requires authentication."""
+        response = client.get("/admin/dashboard", follow_redirects=False)
+        
+        assert response.status_code == 302
+        assert "/login" in response.headers["location"]
+    
+    def test_admin_page_with_auth(self, authenticated_admin_client):
+        """Test admin page with authentication."""
+        response = authenticated_admin_client.get("/admin/dashboard")
+        
+        assert response.status_code == 200
+        assert "admin" in response.text.lower()
+    
+    def test_admin_page_includes_logo(self, authenticated_admin_client):
+        """Test admin page includes the Tatlock logo."""
+        response = authenticated_admin_client.get("/admin/dashboard")
+        
+        assert response.status_code == 200
+        assert "logo-tatlock-transparent.png" in response.text
+        assert "logo-image" in response.text 

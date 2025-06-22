@@ -144,9 +144,36 @@ body {
 }
 
 .header-bar .logo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
     font-size: 1.5em;
     font-weight: bold;
     letter-spacing: 1px;
+}
+
+.header-bar .logo-image {
+    height: 40px;
+    width: auto;
+}
+
+.header-bar .logo-text {
+    color: white;
+}
+
+/* Responsive logo design */
+@media (max-width: 768px) {
+    .header-bar .logo-text {
+        display: none; /* Hide text on mobile, show only logo */
+    }
+    
+    .header-bar .logo-image {
+        height: 35px; /* Slightly smaller on mobile */
+    }
+    
+    .header-bar {
+        padding: 0 20px; /* Reduce padding on mobile */
+    }
 }
 
 .header-bar .nav {
