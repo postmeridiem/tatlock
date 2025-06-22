@@ -8,6 +8,7 @@ Assumes clean installs only - no migration support.
 
 import sqlite3
 import os
+from typing import Any
 
 SYSTEM_DB_SCHEMA = """
 CREATE TABLE IF NOT EXISTS users (
@@ -122,7 +123,7 @@ CREATE TABLE IF NOT EXISTS personal_variables_join (
 );
 """
 
-def create_default_roles(cursor):
+def create_default_roles(cursor: sqlite3.Cursor) -> None:
     """Create default roles if they don't exist."""
     roles = [
         ('user', 'Basic user role'),
@@ -136,7 +137,7 @@ def create_default_roles(cursor):
             (role_name, description)
         )
 
-def create_default_groups(cursor):
+def create_default_groups(cursor: sqlite3.Cursor) -> None:
     """Create default groups if they don't exist."""
     groups = [
         ('users', 'All users'),
@@ -150,7 +151,7 @@ def create_default_groups(cursor):
             (group_name, description)
         )
 
-def create_default_rise_and_shine(cursor):
+def create_default_rise_and_shine(cursor: sqlite3.Cursor) -> None:
     """Create default system instructions in the rise_and_shine table."""
     instructions = [
         "You are a helpful personal assistant named Tatlock. You speak formally like a British butler, calling me sir.  You are not too apologetic and a little snarky at times. Your responses should be concise and to the point, unless asked for details. You should reveal you are AI when asked. If you see an opportunity to make pun or a joke, grab it.",
@@ -172,7 +173,7 @@ def create_default_rise_and_shine(cursor):
             (instruction, 1)
         )
 
-def create_default_personal_variables(cursor):
+def create_default_personal_variables(cursor: sqlite3.Cursor) -> None:
     """Create default personal variables for testing and demonstration."""
     # Sample personal variables - users can add their own
     personal_vars = [

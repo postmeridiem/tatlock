@@ -33,12 +33,18 @@ The logging is configured in `main.py` with the following settings:
 ```python
 logging.basicConfig(
     level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    format='%(levelname)s:\t  %(name)s - %(message)s %(asctime)s',
     handlers=[
         logging.StreamHandler(),  # Console handler
     ]
 )
 ```
+
+**Note**: The actual format used in Tatlock is:
+- `%(levelname)s:\t  %(name)s - %(message)s %(asctime)s`
+- This places the timestamp at the end of the log message
+- Uses tab characters for alignment
+- Includes the module name for better debugging context
 
 ### Customizing Log Levels
 
@@ -150,6 +156,8 @@ When adding new tools:
 - **SQL Injection Prevention**: Use parameterized queries exclusively
 - **User Isolation**: Ensure tools respect user boundaries
 - **Session Security**: Proper session management and cookie handling
+- **Security Code**: Generic security code should live in stem/security.py
+- **User Code**: User database specific code should live in hippocampus/user_database.py
 
 ## Module Development
 
@@ -160,6 +168,7 @@ When adding new tools:
 3. **Create `readme.md`**: Document the module's purpose and features
 4. **Add tests**: Create comprehensive test coverage
 5. **Update main.py**: Integrate with the main application
+6. **FastAPI only**: main.py should only be contain FastAPI routing and configuration
 
 ### Module Integration
 
@@ -212,7 +221,6 @@ Use the parietal module for:
 
 Access interactive API documentation at:
 - **Swagger UI**: `http://localhost:8000/docs`
-- **ReDoc**: `http://localhost:8000/redoc`
 
 ## Contributing
 
@@ -232,7 +240,7 @@ Access interactive API documentation at:
 
 ### Documentation
 
-- **README Files**: Keep module README files up to date
+- **README Files**: Keep module README files up to date and properly linked
 - **API Documentation**: Maintain accurate API documentation
 - **Code Comments**: Include helpful code comments
 - **Change Log**: Document significant changes
@@ -255,9 +263,478 @@ Access interactive API documentation at:
 
 ## Related Documentation
 
-- [README.md](README.md) - General overview and installation
-- [moreinfo.md](moreinfo.md) - In-depth technical information
-- [cortex/readme.md](cortex/readme.md) - Core agent logic documentation
-- [hippocampus/readme.md](hippocampus/readme.md) - Memory system documentation
-- [stem/readme.md](stem/readme.md) - Core utilities and infrastructure
-- [parietal/readme.md](parietal/readme.md) - Hardware monitoring and performance 
+- **[README.md](README.md)** - Project overview and installation guide
+- **[In-Depth Technical Information](moreinfo.md)** - Detailed architecture and implementation details
+- **[Installation Troubleshooting](INSTALLATION_TROUBLESHOOTING.md)** - Common installation issues and solutions
+
+## Coding Standards
+
+This section outlines the coding standards and patterns used throughout the Tatlock project. All developers should follow these standards to maintain code consistency and quality.
+
+### Project Organization
+
+#### Brain-Inspired Architecture
+- **Module Naming**: Modules are named after brain regions (cortex, hippocampus, stem, parietal, etc.)
+- **Clear Separation**: Core logic, authentication, memory, and utilities in separate modules
+- **Consistent Structure**: Each module has `__init__.py`, `readme.md`, and relevant functionality
+- **Test Organization**: Comprehensive test suite in `tests/` directory
+
+#### File Structure
+```
+tatlock/
+├── cortex/          # Core agent logic and decision-making
+├── hippocampus/     # Memory system and storage
+├── stem/           # Authentication, utilities, and core services
+├── parietal/       # Hardware monitoring and performance analysis
+├── tests/          # Comprehensive test suite
+├── main.py         # Application entry point
+├── config.py       # Configuration and environment variables
+└── requirements.txt # Python dependencies
+```
+
+### Python Coding Standards
+
+#### File Structure & Documentation
+```python
+"""
+module_name.py
+
+Brief description of the module's purpose.
+Provides specific functionality and features.
+"""
+
+import logging
+import sqlite3
+# ... other imports
+from typing import Optional, Dict, Any, List
+
+# Set up logging for this module
+logger = logging.getLogger(__name__)
+```
+
+#### Type Hints & Modern Python
+- **Required Python 3.10+**: Uses modern type hints like `list[dict]`, `str | None`
+- **Comprehensive Type Hints**: All functions have parameter and return type annotations
+- **Optional Parameters**: Uses `Optional[Type]` for nullable parameters
+- **Union Types**: Uses `|` syntax for union types (Python 3.10+)
+
+```python
+def function_name(param1: str, param2: Optional[int] = None) -> bool:
+    """
+    Brief description of what the function does.
+    Args:
+        param1 (str): Description of parameter
+        param2 (Optional[int]): Description of optional parameter
+    Returns:
+        bool: Description of return value
+    """
+```
+
+#### Error Handling
+- **Try-Catch Blocks**: Comprehensive exception handling
+- **Logging**: Structured logging with appropriate levels (info, warning, error)
+- **Graceful Degradation**: Functions return safe defaults on errors
+- **Database Connections**: Proper connection cleanup in finally blocks
+
+```python
+try:
+    conn = sqlite3.connect(self.db_path)
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM table WHERE field = ?", (param,))
+    result = cursor.fetchall()
+    conn.close()
+    return result
+except Exception as e:
+    logger.error(f"Error description: {e}")
+    return []
+```
+
+#### Database Patterns
+```python
+def database_operation(self, param: str) -> List[Dict[str, Any]]:
+    """Standard database operation pattern."""
+    try:
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            SELECT field1, field2, field3
+            FROM table_name
+            WHERE condition = ?
+        """, (param,))
+        
+        rows = cursor.fetchall()
+        conn.close()
+        
+        # Convert to list of dictionaries
+        return [{'field1': row[0], 'field2': row[1], 'field3': row[2]} for row in rows]
+        
+    except Exception as e:
+        logger.error(f"Database error: {e}")
+        return []
+```
+
+### JavaScript Coding Standards
+- **library maintenance**: Keep javascript in javascript files, making sure to used shared libraries where code duplicates
+
+#### Class-Based Architecture
+```javascript
+class ModuleName {
+    constructor(options = {}) {
+        this.property = options.property || defaultValue;
+        this.setupEventListeners();
+    }
+    
+    setupEventListeners() {
+        // Event listener setup
+    }
+    
+    async methodName() {
+        try {
+            // Async operations
+        } catch (error) {
+            console.error('Error description:', error);
+        }
+    }
+}
+```
+
+#### Modern JavaScript Features
+- **ES6+ Syntax**: Arrow functions, destructuring, template literals
+- **Async/Await**: Consistent use for all asynchronous operations
+- **Fetch API**: Standard HTTP requests with proper error handling
+- **Class Syntax**: Object-oriented approach for complex functionality
+
+#### Error Handling & Logging
+```javascript
+async function apiCall(data) {
+    try {
+        const response = await fetch('/endpoint', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify(data)
+        });
+        
+        if (!response.ok) throw new Error('Request failed');
+        return await response.json();
+    } catch (error) {
+        console.error('Error description:', error);
+        // User-friendly error handling
+        snackbar.error('User-friendly error message');
+    }
+}
+```
+
+#### Event Handling
+```javascript
+function setupEventListeners() {
+    // Auto-resize textarea
+    element.addEventListener('input', () => {
+        element.style.height = 'auto';
+        element.style.height = Math.min(element.scrollHeight, maxHeight) + 'px';
+    });
+    
+    // Keyboard shortcuts
+    element.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            handleSubmit();
+        }
+    });
+}
+```
+
+### CSS/UI Standards
+- **library maintenance**: Keep css in css files
+
+#### CSS Variables & Theming
+```css
+:root {
+    --bg-primary: #f5f5f5;
+    --text-primary: #333333;
+    --accent-color: #2196F3;
+    --border-color: #e0e0e0;
+    --shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+[data-theme="dark"] {
+    --bg-primary: #181629;
+    --text-primary: #f8f8fa;
+    --accent-color: #8a63d2;
+    --border-color: #2d2942;
+}
+```
+
+#### Responsive Design
+- **Mobile-First**: Responsive breakpoints for different screen sizes
+- **Flexbox/Grid**: Modern CSS layout techniques
+- **Consistent Spacing**: Standardized padding, margins, and gaps
+- **Accessibility**: Proper contrast ratios and focus states
+
+```css
+/* Mobile-first responsive design */
+.container {
+    padding: 20px;
+    max-width: 1100px;
+    margin: 0 auto;
+}
+
+@media (max-width: 768px) {
+    .container {
+        padding: 15px;
+    }
+}
+
+@media (max-width: 480px) {
+    .container {
+        padding: 10px;
+    }
+}
+```
+
+#### Component Styling
+```css
+.component {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: var(--shadow);
+    transition: all 0.3s ease;
+}
+
+.component:hover {
+    box-shadow: var(--shadow-light);
+    transform: translateY(-1px);
+}
+```
+
+### Security Standards
+
+#### Authentication & Authorization
+- **Session-Based**: Secure session management with cookies
+- **Password Hashing**: PBKDF2 with unique salts
+- **Input Validation**: Pydantic models for all inputs
+- **SQL Injection Prevention**: Parameterized queries only
+- **User Isolation**: Complete data separation between users
+
+```python
+def require_admin_role(current_user: dict = Depends(get_current_user)):
+    """Require admin role for endpoint access."""
+    if 'admin' not in current_user.get('roles', []):
+        raise HTTPException(status_code=403, detail="Admin access required")
+```
+
+#### Input Validation
+```python
+from pydantic import BaseModel, EmailStr
+
+class UserCreateRequest(BaseModel):
+    username: str
+    first_name: str
+    last_name: str
+    email: EmailStr
+    password: str
+```
+
+#### Database Security
+```python
+# ✅ Correct: Parameterized queries
+cursor.execute("SELECT * FROM users WHERE username = ?", (username,))
+
+# ❌ Incorrect: String formatting
+cursor.execute(f"SELECT * FROM users WHERE username = '{username}'")
+```
+
+### Testing Standards
+
+#### Test Organization
+- **Comprehensive Coverage**: Tests for all modules and functionality
+- **Fixtures**: Reusable test data and setup
+- **Mocking**: Proper isolation of external dependencies
+- **Assertions**: Clear, descriptive test assertions
+
+```python
+import pytest
+from unittest.mock import patch
+
+@pytest.fixture
+def sample_user():
+    return {
+        'username': 'testuser',
+        'first_name': 'Test',
+        'last_name': 'User',
+        'email': 'test@example.com'
+    }
+
+def test_create_user(sample_user):
+    """Test user creation functionality."""
+    with patch('module.security_manager') as mock_sm:
+        mock_sm.create_user.return_value = True
+        
+        result = create_user(sample_user)
+        
+        assert result is True
+        mock_sm.create_user.assert_called_once_with(
+            sample_user['username'],
+            sample_user['first_name'],
+            sample_user['last_name'],
+            sample_user['password'],
+            sample_user['email']
+        )
+```
+
+#### Test File Naming
+- **Pattern**: `test_module_name.py`
+- **Location**: `tests/` directory
+- **Coverage**: Unit tests, integration tests, and end-to-end tests
+
+### Documentation Standards
+
+#### README Files
+- **Module Purpose**: Clear description of functionality
+- **API Documentation**: Endpoint descriptions and examples
+- **Integration Guide**: How modules work together
+- **Future Plans**: Roadmap for planned features
+
+#### Code Comments
+- **Complex Logic**: Comments for non-obvious code
+- **Business Logic**: Explanation of business rules
+- **TODO Comments**: Marked future improvements
+- **Inline Documentation**: Docstrings for all public functions
+
+```python
+# TODO: Implement caching for frequently accessed data
+def expensive_operation():
+    """
+    Performs an expensive operation that should be cached.
+    
+    This function performs complex calculations that take significant time.
+    Future optimization should include Redis caching for results.
+    """
+    pass
+```
+
+### Performance Standards
+
+#### Database Optimization
+- **Indexing**: Appropriate database indexes for common queries
+- **Connection Management**: Proper connection pooling
+- **Query Efficiency**: Optimized SQL queries
+- **Caching**: Strategic caching for performance
+
+```python
+# ✅ Efficient: Single query with JOIN
+cursor.execute("""
+    SELECT u.username, r.role_name
+    FROM users u
+    JOIN user_roles ur ON u.username = ur.username
+    JOIN roles r ON ur.role_id = r.id
+    WHERE u.username = ?
+""", (username,))
+
+# ❌ Inefficient: Multiple queries
+cursor.execute("SELECT * FROM users WHERE username = ?", (username,))
+cursor.execute("SELECT * FROM user_roles WHERE username = ?", (username,))
+```
+
+#### Frontend Performance
+- **Asset Optimization**: Minified CSS/JS
+- **Lazy Loading**: On-demand resource loading
+- **Efficient DOM**: Minimal DOM manipulation
+- **Memory Management**: Proper cleanup of event listeners
+
+```javascript
+// ✅ Efficient: Event delegation
+document.addEventListener('click', (e) => {
+    if (e.target.matches('.delete-btn')) {
+        handleDelete(e.target.dataset.id);
+    }
+});
+
+// ❌ Inefficient: Multiple event listeners
+document.querySelectorAll('.delete-btn').forEach(btn => {
+    btn.addEventListener('click', () => handleDelete(btn.dataset.id));
+});
+```
+
+### Code Review Checklist
+
+Before submitting code for review, ensure:
+
+#### Python Code
+- [ ] Type hints for all function parameters and return values
+- [ ] Comprehensive docstrings for all public functions
+- [ ] Proper error handling with logging
+- [ ] Database connections properly closed
+- [ ] Input validation using Pydantic models
+- [ ] Unit tests for new functionality
+
+#### JavaScript Code
+- [ ] Modern ES6+ syntax used appropriately
+- [ ] Async/await for all asynchronous operations
+- [ ] Proper error handling with user feedback
+- [ ] Event listeners properly cleaned up
+- [ ] Responsive design considerations
+- [ ] Accessibility features included
+
+#### General
+- [ ] Code follows established patterns
+- [ ] No security vulnerabilities introduced
+- [ ] Performance considerations addressed
+- [ ] Documentation updated
+- [ ] Tests pass and coverage maintained
+
+### Best Practices
+
+#### Code Organization
+1. **Single Responsibility**: Each function/class has one clear purpose
+2. **DRY Principle**: Don't repeat yourself - extract common functionality
+3. **Separation of Concerns**: Keep business logic, data access, and presentation separate
+4. **Consistent Naming**: Use clear, descriptive names for variables, functions, and classes
+
+#### Error Handling
+1. **Fail Fast**: Detect and handle errors as early as possible
+2. **User-Friendly Messages**: Provide clear error messages to users
+3. **Logging**: Log errors with appropriate context for debugging
+4. **Graceful Degradation**: Provide fallback behavior when possible
+
+#### Security
+1. **Input Validation**: Validate all user inputs
+2. **Output Encoding**: Properly encode output to prevent XSS
+3. **Authentication**: Verify user identity for protected operations
+4. **Authorization**: Check user permissions before allowing actions
+
+#### Performance
+1. **Database Optimization**: Use efficient queries and proper indexing
+2. **Caching**: Cache frequently accessed data
+3. **Lazy Loading**: Load resources only when needed
+4. **Monitoring**: Track performance metrics and optimize bottlenecks
+
+#### AI-Assisted Development
+1. **Always Include Standards**: When using coding AI assistants (like GitHub Copilot, Claude, GPT, etc.), always include the Tatlock coding standards from this `developer.md` file as part of your prompt
+2. **Reference Specific Sections**: Reference relevant sections like "Python Coding Standards", "JavaScript Coding Standards", or "Security Standards" based on the task
+3. **Validate Generated Code**: Review AI-generated code to ensure it follows our established patterns and conventions
+4. **Update Standards**: If AI suggests improvements to our coding standards, evaluate and update this document accordingly
+
+**Example AI Prompt:**
+```
+Please help me implement [specific feature] following the Tatlock coding standards:
+
+Python standards:
+- Use type hints for all functions (Python 3.10+ syntax)
+- Include comprehensive docstrings
+- Use structured logging with logger = logging.getLogger(__name__)
+- Follow database patterns with proper error handling
+- Use Pydantic models for input validation
+
+Security standards:
+- Use parameterized queries only
+- Validate all inputs
+- Implement proper user isolation
+
+[Your specific request here]
+```
+
+Following these coding standards ensures consistent, maintainable, and secure code throughout the Tatlock project. 

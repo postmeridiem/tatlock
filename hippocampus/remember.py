@@ -110,20 +110,20 @@ def save_interaction(user_prompt: str, llm_reply: str, full_llm_history: list[di
             conn.close()
 
 
-def update_conversation_topics(conn: sqlite3.Connection, conversation_id: str, topic_id: int, timestamp: str):
+def update_conversation_topics(conn: sqlite3.Connection, conversation_id: str, topic_id: int, timestamp: str) -> None:
     """
-    Update the conversation_topics relationship when a new interaction is saved.
+    Update conversation_topics relationship with new topic occurrence.
     Args:
         conn (sqlite3.Connection): Database connection.
         conversation_id (str): The conversation ID.
         topic_id (int): The topic ID.
-        timestamp (str): The timestamp of the interaction.
+        timestamp (str): The timestamp of the occurrence.
     """
     cursor = conn.cursor()
     try:
         # Check if this conversation-topic relationship already exists
         cursor.execute("""
-            SELECT first_occurrence, last_occurrence, topic_count 
+            SELECT first_occurrence, last_occurrence, topic_count
             FROM conversation_topics 
             WHERE conversation_id = ? AND topic_id = ?
         """, (conversation_id, topic_id))
@@ -132,15 +132,12 @@ def update_conversation_topics(conn: sqlite3.Connection, conversation_id: str, t
         
         if existing:
             # Update existing relationship
-            first_occurrence = min(existing[0], timestamp)
-            last_occurrence = max(existing[1], timestamp)
-            topic_count = existing[2] + 1
-            
+            first_occurrence, last_occurrence, count = existing
             cursor.execute("""
                 UPDATE conversation_topics 
-                SET first_occurrence = ?, last_occurrence = ?, topic_count = ?
+                SET last_occurrence = ?, topic_count = topic_count + 1
                 WHERE conversation_id = ? AND topic_id = ?
-            """, (first_occurrence, last_occurrence, topic_count, conversation_id, topic_id))
+            """, (timestamp, conversation_id, topic_id))
         else:
             # Create new relationship
             cursor.execute("""

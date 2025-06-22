@@ -17,17 +17,17 @@ def mount_static_files(app: FastAPI):
     """
     app.mount("/static", StaticFiles(directory="stem/static"), name="static")
 
-def get_login_page():
+def get_login_page() -> str:
     """Get the login HTML page."""
     with open("stem/static/login.html", "r") as f:
         return f.read()
 
-def get_chat_page():
+def get_chat_page() -> str:
     """Get the chat interface HTML page."""
     with open("stem/static/chat.html", "r") as f:
         return f.read()
 
-def get_profile_page():
+def get_profile_page() -> str:
     """Get the user profile HTML page."""
     with open("stem/static/profile.html", "r") as f:
         return f.read()
