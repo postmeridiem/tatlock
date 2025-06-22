@@ -33,6 +33,7 @@ from stem.models import (
 from stem.admin import admin_router
 from stem.profile import profile_router
 from hippocampus.hippocampus import router as hippocampus_router
+from parietal.parietal import router as parietal_router
 from fastapi.security import HTTPBasicCredentials
 from fastapi.security import HTTPBasic
 from starlette.middleware.sessions import SessionMiddleware
@@ -43,7 +44,6 @@ from config import (
     OPENWEATHER_API_KEY, GOOGLE_API_KEY, GOOGLE_CSE_ID, 
     OLLAMA_MODEL, SYSTEM_DB_PATH, PORT, ALLOWED_ORIGINS, HOSTNAME
 )
-from parietal.hardware import get_comprehensive_system_info
 from temporal.voice_service import VoiceService
 from contextlib import asynccontextmanager
 import base64
@@ -169,6 +169,9 @@ app.include_router(profile_router)
 
 # Include longterm management router for conversation history
 app.include_router(hippocampus_router)
+
+# Include parietal router for hardware monitoring and benchmarking
+app.include_router(parietal_router)
 
 # Serve favicon.ico from the new location
 @app.get("/favicon.ico", include_in_schema=False)
@@ -324,50 +327,6 @@ async def profile_page(request: Request, user: dict = Depends(get_current_user))
         raise HTTPException(status_code=401, detail="Not authenticated")
     return get_profile_page(request, user)
 
-@app.get("/parietal/system-info", tags=["api"])
-async def system_info_api(user: dict = Depends(get_current_user)):
-    """
-    Returns comprehensive system and hardware information for the debug console.
-    Requires authentication.
-    """
-    if user is None:
-        raise HTTPException(status_code=401, detail="Not authenticated")
-    return get_comprehensive_system_info()
-
-@app.post("/parietal/benchmark", tags=["api"])
-async def benchmark_api(user: dict = Depends(get_current_user)):
-    """
-    Runs comprehensive benchmark tests for LLM and tool performance.
-    Requires authentication.
-    """
-    if user is None:
-        raise HTTPException(status_code=401, detail="Not authenticated")
-    from parietal.hardware import run_comprehensive_benchmark
-    return run_comprehensive_benchmark()
-
-@app.post("/parietal/benchmark/llm", tags=["api"])
-async def llm_benchmark_api(user: dict = Depends(get_current_user)):
-    """
-    Runs LLM-specific benchmark tests.
-    Requires authentication.
-    """
-    if user is None:
-        raise HTTPException(status_code=401, detail="Not authenticated")
-    from parietal.hardware import run_llm_benchmark
-    return run_llm_benchmark()
-
-@app.post("/parietal/benchmark/tools", tags=["api"])
-async def tools_benchmark_api(user: dict = Depends(get_current_user)):
-    """
-    Runs tool-specific benchmark tests.
-    Requires authentication.
-    """
-    if user is None:
-        raise HTTPException(status_code=401, detail="Not authenticated")
-    from parietal.hardware import run_tool_benchmark
-    return run_tool_benchmark()
-
-# --- Temporal Voice Service ---
 @app.websocket("/ws/voice")
 async def websocket_voice_endpoint(websocket: WebSocket):
     """
