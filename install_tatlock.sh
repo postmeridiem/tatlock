@@ -709,7 +709,7 @@ echo "- system.db is ready in the hippocampus/ directory. User memory databases 
 # --- Create admin user if not exists ---
 echo "[8/10] Checking for admin account..."
         # Check if admin user already exists
-        admin_exists=$(PYTHONPATH="$PROJECT_ROOT" $PYTHON_CMD -c "from stem.security import security_manager; print('yes' if security_manager.authenticate_user('admin', 'breaker') else 'no')")
+        admin_exists=$(PYTHONPATH="$PROJECT_ROOT" $PYTHON_CMD -c "from stem.security import security_manager; print('yes' if security_manager.authenticate_user('admin', 'admin123') else 'no')")
 if [ "$admin_exists" = "no" ]; then
     echo "No admin account found. Let's create one."
     read -p "Enter admin username [admin]: " admin_user

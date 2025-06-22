@@ -33,6 +33,7 @@
             <div class="nav-section">
                 <div class="nav-title">Debug</div>
                 <a href="#server-log" class="nav-item active" onclick="showSection('server-log')">Server Log</a>
+                <a href="#benchmark" class="nav-item" onclick="showSection('benchmark')">Benchmark</a>
                 <a href="#system-info" class="nav-item" onclick="showSection('system-info')">System Info</a>
             </div>
         </div>
@@ -57,6 +58,22 @@
                 <div class="section-title">System Information</div>
                 <div id="system-info-content">
                     <div class="loading">Loading system information...</div>
+                </div>
+            </div>
+            
+            <!-- Benchmark -->
+            <div id="benchmark" class="section" style="display: none;">
+                <div class="section-title">Performance Benchmark</div>
+                <div class="benchmark-controls">
+                    <button id="run-comprehensive-benchmark" class="button">Run Comprehensive Benchmark</button>
+                    <button id="run-llm-benchmark" class="button">LLM Benchmark Only</button>
+                    <button id="run-tools-benchmark" class="button">Tools Benchmark Only</button>
+                </div>
+                <div id="benchmark-content">
+                    <div class="benchmark-placeholder">
+                        <p>Click a benchmark button above to start performance testing.</p>
+                        <p>This will test LLM response times and tool execution performance.</p>
+                    </div>
                 </div>
             </div>
         </div>

@@ -1282,11 +1282,169 @@ table tr:last-child td, .user-table tr:last-child td {
   font-weight: 600;
 }
 .system-info-card pre {
-  background: #0d1117;
-  border-radius: 0.5rem;
-  padding: 1rem;
+  background: var(--bg-tertiary);
+  padding: 15px;
+  border-radius: 4px;
   overflow-x: auto;
-  font-size: 0.85rem;
-  line-height: 1.4;
-  margin: 0;
+  font-size: 12px;
+  margin: 10px 0;
+}
+
+/* Benchmark Section Styles */
+.benchmark-controls {
+    margin-bottom: 20px;
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.benchmark-placeholder {
+    text-align: center;
+    color: var(--text-secondary);
+    padding: 40px 20px;
+}
+
+.benchmark-results {
+    background: var(--bg-secondary);
+    border-radius: 8px;
+    padding: 20px;
+    border: 1px solid var(--border-color);
+}
+
+.benchmark-timestamp {
+    color: var(--text-muted);
+    font-size: 12px;
+    margin-bottom: 15px;
+    font-style: italic;
+}
+
+.benchmark-overview {
+    background: var(--bg-tertiary);
+    padding: 15px;
+    border-radius: 6px;
+    margin-bottom: 20px;
+    border-left: 4px solid var(--accent-color);
+}
+
+.benchmark-overview h3 {
+    margin: 0 0 10px 0;
+    color: var(--text-primary);
+}
+
+.benchmark-section {
+    margin-bottom: 25px;
+    padding: 15px;
+    background: var(--bg-tertiary);
+    border-radius: 6px;
+}
+
+.benchmark-section h4 {
+    margin: 0 0 15px 0;
+    color: var(--text-primary);
+    border-bottom: 2px solid var(--accent-color);
+    padding-bottom: 8px;
+}
+
+.benchmark-section h5 {
+    margin: 15px 0 10px 0;
+    color: var(--text-secondary);
+}
+
+.benchmark-summary {
+    background: var(--bg-secondary);
+    padding: 12px;
+    border-radius: 4px;
+    margin-bottom: 15px;
+    border: 1px solid var(--border-color);
+}
+
+.benchmark-summary p {
+    margin: 5px 0;
+}
+
+.benchmark-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 10px 0;
+    background: var(--bg-secondary);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.benchmark-table th,
+.benchmark-table td {
+    padding: 10px;
+    text-align: left;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.benchmark-table th {
+    background: var(--accent-color);
+    color: white;
+    font-weight: bold;
+}
+
+.benchmark-table tr:hover {
+    background: var(--bg-tertiary);
+}
+
+.benchmark-table .success {
+    color: var(--success-color);
+    font-weight: bold;
+}
+
+.benchmark-table .error {
+    color: var(--error-color);
+    font-weight: bold;
+}
+
+.benchmark-bottlenecks,
+.benchmark-recommendations {
+    background: var(--bg-secondary);
+    padding: 12px;
+    border-radius: 4px;
+    margin: 10px 0;
+    border-left: 4px solid var(--warning-color);
+}
+
+.benchmark-recommendations {
+    border-left-color: var(--accent-color);
+}
+
+.benchmark-bottlenecks ul,
+.benchmark-recommendations ul {
+    margin: 8px 0;
+    padding-left: 20px;
+}
+
+.benchmark-bottlenecks li,
+.benchmark-recommendations li {
+    margin: 5px 0;
+    color: var(--text-primary);
+}
+
+/* Performance Grade Colors */
+.grade-excellent {
+    color: var(--success-color);
+    font-weight: bold;
+}
+
+.grade-good {
+    color: #4CAF50;
+    font-weight: bold;
+}
+
+.grade-fair {
+    color: var(--warning-color);
+    font-weight: bold;
+}
+
+.grade-poor {
+    color: var(--error-color);
+    font-weight: bold;
+}
+
+.grade-unknown {
+    color: var(--text-muted);
+    font-weight: bold;
 } 

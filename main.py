@@ -254,6 +254,33 @@ async def system_info_api(current_user: dict = Depends(get_current_user)):
     """
     return get_comprehensive_system_info()
 
+@app.post("/parietal/benchmark", tags=["api"])
+async def benchmark_api(current_user: dict = Depends(get_current_user)):
+    """
+    Runs comprehensive benchmark tests for LLM and tool performance.
+    Requires authentication.
+    """
+    from parietal.hardware import run_comprehensive_benchmark
+    return run_comprehensive_benchmark()
+
+@app.post("/parietal/benchmark/llm", tags=["api"])
+async def llm_benchmark_api(current_user: dict = Depends(get_current_user)):
+    """
+    Runs LLM-specific benchmark tests.
+    Requires authentication.
+    """
+    from parietal.hardware import run_llm_benchmark
+    return run_llm_benchmark()
+
+@app.post("/parietal/benchmark/tools", tags=["api"])
+async def tools_benchmark_api(current_user: dict = Depends(get_current_user)):
+    """
+    Runs tool-specific benchmark tests.
+    Requires authentication.
+    """
+    from parietal.hardware import run_tool_benchmark
+    return run_tool_benchmark()
+
 # This allows running the app directly with `python main.py`
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=PORT)

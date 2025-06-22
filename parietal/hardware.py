@@ -357,46 +357,394 @@ def get_comprehensive_system_info() -> Dict[str, Any]:
         return {"error": f"Failed to get comprehensive system info: {str(e)}"}
 def check_system_health() -> Dict[str, Any]:
     """
-    Perform a system health check and return status indicators.
+    Perform a basic system health check.
     Returns:
-        dict: System health status with warnings and recommendations.
+        dict: System health status and recommendations.
     """
     try:
         health_status = {
-            "timestamp": datetime.now().isoformat(),
             "overall_status": "healthy",
-            "warnings": [],
+            "checks": {},
             "recommendations": []
         }
-        # Check memory usage
-        memory = get_memory_status()
-        if memory.get("ram", {}).get("usage_percent", 0) > 90:
-            health_status["warnings"].append("High memory usage (>90%)")
-            health_status["overall_status"] = "warning"
-        elif memory.get("ram", {}).get("usage_percent", 0) > 80:
-            health_status["recommendations"].append("Consider monitoring memory usage (>80%)")
-        # Check disk usage
-        disk = get_disk_space_info("/")
-        if disk.get("usage_percent", 0) > 95:
-            health_status["warnings"].append("Critical disk usage (>95%)")
-            health_status["overall_status"] = "critical"
-        elif disk.get("usage_percent", 0) > 90:
-            health_status["warnings"].append("High disk usage (>90%)")
-            health_status["overall_status"] = "warning"
-        elif disk.get("usage_percent", 0) > 80:
-            health_status["recommendations"].append("Consider monitoring disk usage (>80%)")
+        
         # Check CPU usage
-        cpu = get_cpu_info()
-        if cpu.get("usage", {}).get("overall_percent", 0) > 90:
-            health_status["warnings"].append("High CPU usage (>90%)")
+        cpu_percent = psutil.cpu_percent(interval=1)
+        if cpu_percent > 90:
+            health_status["checks"]["cpu"] = {"status": "warning", "message": f"High CPU usage: {cpu_percent}%"}
+            health_status["recommendations"].append("Consider closing unnecessary applications")
+        else:
+            health_status["checks"]["cpu"] = {"status": "good", "message": f"CPU usage: {cpu_percent}%"}
+        
+        # Check memory usage
+        memory = psutil.virtual_memory()
+        if memory.percent > 90:
+            health_status["checks"]["memory"] = {"status": "warning", "message": f"High memory usage: {memory.percent}%"}
+            health_status["recommendations"].append("Consider freeing up memory or adding more RAM")
+        else:
+            health_status["checks"]["memory"] = {"status": "good", "message": f"Memory usage: {memory.percent}%"}
+        
+        # Check disk usage
+        disk = psutil.disk_usage('/')
+        if disk.percent > 90:
+            health_status["checks"]["disk"] = {"status": "warning", "message": f"High disk usage: {disk.percent}%"}
+            health_status["recommendations"].append("Consider freeing up disk space")
+        else:
+            health_status["checks"]["disk"] = {"status": "good", "message": f"Disk usage: {disk.percent}%"}
+        
+        # Check if any warnings were found
+        warnings = [check for check in health_status["checks"].values() if check["status"] == "warning"]
+        if warnings:
             health_status["overall_status"] = "warning"
-        # Check load average (Linux)
-        if platform.system() == "Linux":
-            load_avg = cpu.get("load_average", {})
-            cpu_count = cpu.get("count", {}).get("logical", 1)
-            if load_avg.get("5min", 0) > cpu_count * 2:
-                health_status["warnings"].append("High system load")
-                health_status["overall_status"] = "warning"
+        
         return health_status
     except Exception as e:
-        return {"error": f"Failed to perform system health check: {str(e)}"} 
+        return {"error": f"Failed to check system health: {str(e)}"}
+def run_llm_benchmark() -> Dict[str, Any]:
+    """
+    Run a benchmark test for LLM performance.
+    Returns:
+        dict: Benchmark results including response times and analysis.
+    """
+    import time
+    import ollama
+    from config import OLLAMA_MODEL
+    
+    benchmark_results = {
+        "timestamp": datetime.now().isoformat(),
+        "model": OLLAMA_MODEL,
+        "tests": {},
+        "summary": {},
+        "analysis": {}
+    }
+    
+    try:
+        # Test 1: Simple response time
+        start_time = time.time()
+        response = ollama.chat(
+            model=OLLAMA_MODEL,
+            messages=[{"role": "user", "content": "Say 'Hello' and nothing else."}]
+        )
+        simple_time = time.time() - start_time
+        
+        benchmark_results["tests"]["simple_response"] = {
+            "time_seconds": round(simple_time, 3),
+            "status": "success",
+            "response_length": len(response['message']['content'])
+        }
+        
+        # Test 2: Complex reasoning
+        start_time = time.time()
+        response = ollama.chat(
+            model=OLLAMA_MODEL,
+            messages=[{"role": "user", "content": "Explain quantum computing in 2 sentences."}]
+        )
+        complex_time = time.time() - start_time
+        
+        benchmark_results["tests"]["complex_reasoning"] = {
+            "time_seconds": round(complex_time, 3),
+            "status": "success",
+            "response_length": len(response['message']['content'])
+        }
+        
+        # Test 3: Tool calling (if available)
+        try:
+            start_time = time.time()
+            response = ollama.chat(
+                model=OLLAMA_MODEL,
+                messages=[{"role": "user", "content": "What's the weather like today?"}],
+                tools=[{
+                    "type": "function",
+                    "function": {
+                        "name": "get_weather_forecast",
+                        "description": "Get weather forecast for a city",
+                        "parameters": {
+                            "type": "object",
+                            "properties": {
+                                "city": {"type": "string", "description": "City name"}
+                            },
+                            "required": ["city"]
+                        }
+                    }
+                }]
+            )
+            tool_time = time.time() - start_time
+            
+            benchmark_results["tests"]["tool_calling"] = {
+                "time_seconds": round(tool_time, 3),
+                "status": "success",
+                "has_tool_calls": bool(response['message'].get('tool_calls')),
+                "response_length": len(response['message']['content'])
+            }
+        except Exception as e:
+            benchmark_results["tests"]["tool_calling"] = {
+                "time_seconds": 0,
+                "status": "failed",
+                "error": str(e)
+            }
+        
+        # Calculate summary statistics
+        successful_tests = [test for test in benchmark_results["tests"].values() if test["status"] == "success"]
+        if successful_tests:
+            times = [test["time_seconds"] for test in successful_tests]
+            benchmark_results["summary"] = {
+                "total_tests": len(benchmark_results["tests"]),
+                "successful_tests": len(successful_tests),
+                "average_time": round(sum(times) / len(times), 3),
+                "min_time": round(min(times), 3),
+                "max_time": round(max(times), 3),
+                "total_time": round(sum(times), 3)
+            }
+            
+            # Performance analysis
+            avg_time = benchmark_results["summary"]["average_time"]
+            if avg_time < 2.0:
+                performance_grade = "Excellent"
+                performance_note = "Very fast response times"
+            elif avg_time < 5.0:
+                performance_grade = "Good"
+                performance_note = "Acceptable response times"
+            elif avg_time < 10.0:
+                performance_grade = "Fair"
+                performance_note = "Response times could be improved"
+            else:
+                performance_grade = "Poor"
+                performance_note = "Response times are too slow"
+            
+            benchmark_results["analysis"] = {
+                "performance_grade": performance_grade,
+                "performance_note": performance_note,
+                "recommendations": []
+            }
+            
+            if avg_time > 5.0:
+                benchmark_results["analysis"]["recommendations"].append("Consider using a faster model or optimizing system resources")
+            if benchmark_results["tests"].get("tool_calling", {}).get("status") == "failed":
+                benchmark_results["analysis"]["recommendations"].append("Tool calling functionality may need configuration")
+        
+        return benchmark_results
+        
+    except Exception as e:
+        return {
+            "timestamp": datetime.now().isoformat(),
+            "model": OLLAMA_MODEL,
+            "error": f"Benchmark failed: {str(e)}",
+            "tests": {},
+            "summary": {},
+            "analysis": {}
+        }
+def run_tool_benchmark() -> Dict[str, Any]:
+    """
+    Run a benchmark test for tool performance.
+    Returns:
+        dict: Benchmark results for various tools.
+    """
+    import time
+    from stem.tools import (
+        execute_find_personal_variables,
+        execute_get_weather_forecast,
+        execute_web_search,
+        execute_recall_memories
+    )
+    
+    benchmark_results = {
+        "timestamp": datetime.now().isoformat(),
+        "tools": {},
+        "summary": {},
+        "analysis": {}
+    }
+    
+    try:
+        # Test personal variables tool
+        start_time = time.time()
+        try:
+            result = execute_find_personal_variables(searchkey="name")
+            tool_time = time.time() - start_time
+            benchmark_results["tools"]["personal_variables"] = {
+                "time_seconds": round(tool_time, 3),
+                "status": "success",
+                "result_size": len(str(result))
+            }
+        except Exception as e:
+            benchmark_results["tools"]["personal_variables"] = {
+                "time_seconds": 0,
+                "status": "failed",
+                "error": str(e)
+            }
+        
+        # Test memory recall tool
+        start_time = time.time()
+        try:
+            result = execute_recall_memories(keyword="test", username="admin")
+            tool_time = time.time() - start_time
+            benchmark_results["tools"]["memory_recall"] = {
+                "time_seconds": round(tool_time, 3),
+                "status": "success",
+                "result_size": len(str(result))
+            }
+        except Exception as e:
+            benchmark_results["tools"]["memory_recall"] = {
+                "time_seconds": 0,
+                "status": "failed",
+                "error": str(e)
+            }
+        
+        # Test weather tool (if API key available)
+        start_time = time.time()
+        try:
+            result = execute_get_weather_forecast(city="Rotterdam")
+            tool_time = time.time() - start_time
+            benchmark_results["tools"]["weather_forecast"] = {
+                "time_seconds": round(tool_time, 3),
+                "status": "success",
+                "result_size": len(str(result))
+            }
+        except Exception as e:
+            benchmark_results["tools"]["weather_forecast"] = {
+                "time_seconds": 0,
+                "status": "failed",
+                "error": str(e)
+            }
+        
+        # Test web search tool (if API key available)
+        start_time = time.time()
+        try:
+            result = execute_web_search(query="test")
+            tool_time = time.time() - start_time
+            benchmark_results["tools"]["web_search"] = {
+                "time_seconds": round(tool_time, 3),
+                "status": "success",
+                "result_size": len(str(result))
+            }
+        except Exception as e:
+            benchmark_results["tools"]["web_search"] = {
+                "time_seconds": 0,
+                "status": "failed",
+                "error": str(e)
+            }
+        
+        # Calculate summary statistics
+        successful_tools = [tool for tool in benchmark_results["tools"].values() if tool["status"] == "success"]
+        if successful_tools:
+            times = [tool["time_seconds"] for tool in successful_tools]
+            benchmark_results["summary"] = {
+                "total_tools": len(benchmark_results["tools"]),
+                "successful_tools": len(successful_tools),
+                "average_time": round(sum(times) / len(times), 3),
+                "min_time": round(min(times), 3),
+                "max_time": round(max(times), 3),
+                "total_time": round(sum(times), 3)
+            }
+            
+            # Performance analysis
+            avg_time = benchmark_results["summary"]["average_time"]
+            if avg_time < 0.5:
+                performance_grade = "Excellent"
+                performance_note = "Very fast tool execution"
+            elif avg_time < 2.0:
+                performance_grade = "Good"
+                performance_note = "Acceptable tool execution times"
+            elif avg_time < 5.0:
+                performance_grade = "Fair"
+                performance_note = "Tool execution could be faster"
+            else:
+                performance_grade = "Poor"
+                performance_note = "Tool execution is too slow"
+            
+            benchmark_results["analysis"] = {
+                "performance_grade": performance_grade,
+                "performance_note": performance_note,
+                "recommendations": []
+            }
+            
+            # Check for failed tools
+            failed_tools = [name for name, tool in benchmark_results["tools"].items() if tool["status"] == "failed"]
+            if failed_tools:
+                benchmark_results["analysis"]["recommendations"].append(f"Fix configuration for failed tools: {', '.join(failed_tools)}")
+            
+            if avg_time > 2.0:
+                benchmark_results["analysis"]["recommendations"].append("Consider optimizing tool execution or checking network connectivity")
+        
+        return benchmark_results
+        
+    except Exception as e:
+        return {
+            "timestamp": datetime.now().isoformat(),
+            "error": f"Tool benchmark failed: {str(e)}",
+            "tools": {},
+            "summary": {},
+            "analysis": {}
+        }
+def run_comprehensive_benchmark() -> Dict[str, Any]:
+    """
+    Run a comprehensive benchmark including LLM and tools.
+    Returns:
+        dict: Complete benchmark results with system analysis.
+    """
+    comprehensive_results = {
+        "timestamp": datetime.now().isoformat(),
+        "system_info": get_comprehensive_system_info(),
+        "llm_benchmark": run_llm_benchmark(),
+        "tool_benchmark": run_tool_benchmark(),
+        "overall_analysis": {}
+    }
+    
+    try:
+        # Overall performance analysis
+        llm_summary = comprehensive_results["llm_benchmark"].get("summary", {})
+        tool_summary = comprehensive_results["tool_benchmark"].get("summary", {})
+        
+        overall_analysis = {
+            "total_benchmark_time": 0,
+            "performance_grade": "Unknown",
+            "bottlenecks": [],
+            "recommendations": []
+        }
+        
+        if llm_summary and tool_summary:
+            total_time = llm_summary.get("total_time", 0) + tool_summary.get("total_time", 0)
+            overall_analysis["total_benchmark_time"] = round(total_time, 3)
+            
+            llm_avg = llm_summary.get("average_time", 0)
+            tool_avg = tool_summary.get("average_time", 0)
+            
+            # Determine overall grade
+            if llm_avg < 3.0 and tool_avg < 1.0:
+                overall_analysis["performance_grade"] = "Excellent"
+            elif llm_avg < 6.0 and tool_avg < 2.0:
+                overall_analysis["performance_grade"] = "Good"
+            elif llm_avg < 12.0 and tool_avg < 5.0:
+                overall_analysis["performance_grade"] = "Fair"
+            else:
+                overall_analysis["performance_grade"] = "Poor"
+            
+            # Identify bottlenecks
+            if llm_avg > 5.0:
+                overall_analysis["bottlenecks"].append("LLM response time is slow")
+            if tool_avg > 2.0:
+                overall_analysis["bottlenecks"].append("Tool execution is slow")
+            
+            # System resource analysis
+            system_info = comprehensive_results["system_info"]
+            cpu_usage = system_info.get("cpu", {}).get("usage", {}).get("overall_percent", 0)
+            memory_usage = system_info.get("memory", {}).get("ram", {}).get("usage_percent", 0)
+            
+            if cpu_usage > 80:
+                overall_analysis["bottlenecks"].append("High CPU usage may be affecting performance")
+            if memory_usage > 80:
+                overall_analysis["bottlenecks"].append("High memory usage may be affecting performance")
+            
+            # Generate recommendations
+            if overall_analysis["performance_grade"] in ["Fair", "Poor"]:
+                overall_analysis["recommendations"].append("Consider upgrading system resources or optimizing configuration")
+            if llm_avg > 5.0:
+                overall_analysis["recommendations"].append("Consider using a faster LLM model or optimizing model parameters")
+            if tool_avg > 2.0:
+                overall_analysis["recommendations"].append("Check network connectivity and API key configurations")
+        
+        comprehensive_results["overall_analysis"] = overall_analysis
+        return comprehensive_results
+        
+    except Exception as e:
+        comprehensive_results["error"] = f"Comprehensive benchmark failed: {str(e)}"
+        return comprehensive_results 

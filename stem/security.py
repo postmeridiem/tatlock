@@ -1089,7 +1089,7 @@ def create_initial_admin():
         username="admin",
         first_name="Administrator",
         last_name="User",
-        password="breaker",
+        password="admin123",
         email="admin@tatlock.local"
     ):
         # Add roles
