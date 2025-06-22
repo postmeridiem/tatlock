@@ -276,7 +276,6 @@ def execute_get_weather_forecast(city: str, start_date: str | None = None, end_d
     Returns:
         dict: Status and weather data or error message.
     """
-    logger.info(f"Executing weather query for: {city}, {start_date}, {end_date}")
     
     # Check if API key is configured
     if not OPENWEATHER_API_KEY:
@@ -333,7 +332,6 @@ def execute_web_search(query: str) -> dict:
     Returns:
         dict: Status and search results or error message.
     """
-    logger.info(f"Executing web search for: {query}")
     
     # Check if API keys are configured
     if not GOOGLE_API_KEY or not GOOGLE_CSE_ID:
