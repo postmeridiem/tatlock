@@ -5,6 +5,10 @@
 
 set -e
 
+# Color definitions
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
+
 # --- Check if we're in the correct directory ---
 if [ ! -f "main.py" ] || [ ! -d "stem" ] || [ ! -d "hippocampus" ]; then
     echo "Error: This script must be run from the Tatlock project root directory."
@@ -118,7 +122,7 @@ check_package_manager() {
 check_package_manager
 
 # --- Install system dependencies ---
-echo "[1/10] Installing system dependencies..."
+echo -e "${BLUE}[1/10] Installing system dependencies...${NC}"
 
 # Function to check Python version
 check_python_version() {
@@ -451,7 +455,7 @@ install_system_dependencies() {
 install_system_dependencies
 
 # --- Create and activate Python virtual environment ---
-echo "[2/10] Creating Python virtual environment..."
+echo -e "${BLUE}[2/10] Creating Python virtual environment...${NC}"
 
 # Function to find the correct Python executable
 find_python_executable() {
@@ -562,7 +566,7 @@ fi
 if command -v ollama &> /dev/null; then
     echo "Ollama is already installed, skipping installation."
 else
-    echo "[3/10] Installing Ollama..."
+    echo -e "${BLUE}[3/10] Installing Ollama...${NC}"
     
     # Use different installation methods based on system
     if [[ "$SYSTEM" == "macos_arm" || "$SYSTEM" == "macos_intel" ]]; then
@@ -614,7 +618,7 @@ else
     ollama rm "ebdm/gemma3-enhanced:12b"
 fi
 
-echo "[4/10] Installing Python dependencies..."
+echo -e "${BLUE}[4/10] Installing Python dependencies...${NC}"
 
 # Ensure we're using the virtual environment's pip
 if [ -f ".venv/bin/pip" ]; then
@@ -646,7 +650,7 @@ if ! $PIP_CMD install -r requirements.txt; then
 fi
 
 # --- Create .env file with configuration ---
-echo "[5/10] Creating environment configuration file..."
+echo -e "${BLUE}[5/10] Creating environment configuration file...${NC}"
 
 # Check if .env file already exists
 if [ -f ".env" ]; then
@@ -705,7 +709,7 @@ else
 fi
 
 # --- Download Material Icons for offline use ---
-echo "[6/10] Downloading Material Icons for offline web interface..."
+echo -e "${BLUE}[6/10] Downloading Material Icons for offline web interface...${NC}"
 
 # Store the project root directory
 PROJECT_ROOT=$(pwd)
@@ -726,7 +730,7 @@ fi
 cd "$PROJECT_ROOT"
 
 # --- Initialize databases ---
-echo "[7/10] Initializing databases..."
+echo -e "${BLUE}[7/10] Initializing databases...${NC}"
 if ! PYTHONPATH="$PROJECT_ROOT" $PYTHON_CMD -c "from stem.installation.database_setup import create_system_db_tables; create_system_db_tables('hippocampus/system.db')"; then
     echo "Error: Failed to initialize databases."
     echo "Current directory: $(pwd)"
@@ -737,7 +741,7 @@ fi
 echo "- system.db is ready in the hippocampus/ directory. User memory databases will be created automatically when users are added."
 
 # --- Create admin user if not exists ---
-echo "[8/10] Checking for admin account..."
+echo -e "${BLUE}[8/10] Checking for admin account...${NC}"
         # Check if admin user already exists
         admin_exists=$(PYTHONPATH="$PROJECT_ROOT" $PYTHON_CMD -c "from stem.security import security_manager; print('yes' if security_manager.authenticate_user('admin', 'admin123') else 'no')")
 if [ "$admin_exists" = "no" ]; then
@@ -778,7 +782,7 @@ else
 fi
 
 # --- Install as auto-starting service ---
-echo "[9/10] Service installation..."
+echo -e "${BLUE}[9/10] Service installation...${NC}"
 
 echo "Would you like to install Tatlock as an auto-starting service?"
 echo "This will make Tatlock start automatically when the system boots."
