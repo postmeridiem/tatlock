@@ -16,4 +16,31 @@ function togglePassword(inputId) {
         icon.textContent = 'visibility';
         toggleBtn.title = 'Show password';
     }
+}
+
+// Show/hide sections in pages with multiple sections (admin dashboard, chat, etc.)
+function showSection(sectionId) {
+    // Hide all sections
+    const sections = document.querySelectorAll('.section');
+    sections.forEach(section => {
+        section.style.display = 'none';
+    });
+    
+    // Remove active class from all nav items
+    const navItems = document.querySelectorAll('.nav-item');
+    navItems.forEach(item => {
+        item.classList.remove('active');
+    });
+    
+    // Show the selected section
+    const selectedSection = document.getElementById(sectionId);
+    if (selectedSection) {
+        selectedSection.style.display = 'block';
+    }
+    
+    // Add active class to the clicked nav item
+    const activeNavItem = document.querySelector(`[onclick="showSection('${sectionId}')"]`);
+    if (activeNavItem) {
+        activeNavItem.classList.add('active');
+    }
 } 
