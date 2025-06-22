@@ -9,6 +9,32 @@ const autoScrollToggle = document.getElementById('auto-scroll');
 // Log entries storage
 let logEntries = [];
 
+// Add chat interactions to the debug log - define this before DOMContentLoaded
+function addToInteractionLog(type, data) {
+    let message = '';
+    let logType = 'info';
+    
+    switch (type) {
+        case 'User Message':
+            message = `User sent message: "${data.message}"`;
+            logType = 'user';
+            break;
+        case 'AI Response':
+            message = `AI responded (${data.processing_time}s): "${data.response.substring(0, 100)}${data.response.length > 100 ? '...' : ''}"`;
+            logType = 'ai';
+            break;
+        case 'Chat Error':
+            message = `Chat error: ${data.error}`;
+            logType = 'error';
+            break;
+        default:
+            message = `${type}: ${JSON.stringify(data)}`;
+            logType = 'info';
+    }
+    
+    addLogEntry(message, logType, data);
+}
+
 function addLogEntry(content, type = 'info', data = null) {
     // Only log chat-related entries
     if (type === 'tool-call' || type === 'tool-response' || type === 'error') {
@@ -118,7 +144,7 @@ function renderSystemInfoTiles(info) {
                 <div class="tile-title">Disk Usage</div>
                 <div class="tile-value">${disk.usage_percent}%</div>
                 <div class="tile-desc">${disk.used_gb}GB / ${disk.total_gb}GB</div>
-            </div>
+                </div>
             <div class="tile metric-tile">
                 <div class="tile-title">Uptime</div>
                 <div class="tile-value">${uptimeDisplay}</div>
@@ -129,8 +155,8 @@ function renderSystemInfoTiles(info) {
                 <div class="tile-value">${net.bytes_sent_gb}GB sent</div>
                 <div class="tile-desc">${net.bytes_recv_gb}GB recv</div>
             </div>
-        </div>
-    `;
+            </div>
+        `;
 }
 
 function renderSystemInfoGraphs(info) {
@@ -400,11 +426,43 @@ document.addEventListener('DOMContentLoaded', function() {
     initializeBenchmarks();
     
     // Initialize chat with logging enabled for debug page
-    initializeChat({
-        enableLogging: true,
-        logFunction: addToInteractionLog
-    });
+    // Add a small delay to ensure all scripts are loaded
+    setTimeout(() => {
+        initializeChat({
+            enableLogging: true,
+            logFunction: addToInteractionLog
+        });
+    }, 100);
 });
+
+// Load initial server log entries
+async function loadServerLog() {
+    // Initialize the log container
+    const jsonContainer = document.getElementById('json-container');
+    if (jsonContainer) {
+        // Clear any existing content
+        jsonContainer.innerHTML = '';
+        
+        // Add a welcome message to indicate the log is ready
+        addLogEntry('Debug console initialized. Server interactions will be logged here.', 'info');
+    }
+}
+
+// Initialize system info section and start polling
+function initializeSystemInfo() {
+    // Load initial system info
+    updateSystemInfoSection();
+    
+    // Start polling for system info updates every 10 seconds
+    setInterval(updateSystemInfoSection, 10000);
+}
+
+// Initialize benchmark section
+function initializeBenchmarks() {
+    // The benchmark functionality is already set up in setupDebugEventListeners()
+    // This function can be used for any additional benchmark initialization if needed
+    console.log('Benchmark section initialized');
+}
 
 function checkAuthenticationStatus() {
     // Try to fetch a protected endpoint to check authentication

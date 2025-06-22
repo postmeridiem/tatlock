@@ -239,6 +239,20 @@ class TestChatPage:
         
         assert response.status_code == 200
         assert "chat.js" in response.text
+    
+    def test_chat_page_includes_mobile_responsive_css(self, authenticated_admin_client):
+        response = authenticated_admin_client.get("/chat")
+        assert response.status_code == 200
+        # Check that the CSS file is included
+        assert 'style.css' in response.text
+        
+        # Check the CSS file directly for mobile responsive styles
+        css_response = authenticated_admin_client.get("/static/style.css")
+        assert css_response.status_code == 200
+        css_content = css_response.text
+        assert '@media (max-width: 768px)' in css_content
+        assert 'display: none !important' in css_content
+        assert 'position: fixed' in css_content
 
 
 class TestFavicon:
