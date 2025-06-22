@@ -791,29 +791,8 @@ else
     echo "- Using existing .env file"
 fi
 
-# --- Download Material Icons for offline use ---
-echo -e "${BLUE}[6/10] Downloading Material Icons for offline web interface...${NC}"
-
-# Store the project root directory
-PROJECT_ROOT=$(pwd)
-
-mkdir -p stem/static/fonts
-cd stem/static/fonts
-if ! wget -O material-icons.woff2 "https://fonts.gstatic.com/s/materialicons/v140/flUhRq6tzZclQEJ-Vdg-IuiaDsNcIhQ8tQ.woff2"; then
-    echo "Warning: Failed to download Material Icons WOFF2. Continuing without it."
-fi
-if ! wget -O material-icons.woff "https://cdn.jsdelivr.net/npm/@mdi/font@7.2.96/fonts/materialdesignicons-webfont.woff"; then
-    echo "Warning: Failed to download Material Icons WOFF. Continuing without it."
-fi
-if ! wget -O material-icons.ttf "https://cdn.jsdelivr.net/npm/@mdi/font@7.2.96/fonts/materialdesignicons-webfont.ttf"; then
-    echo "Warning: Failed to download Material Icons TTF. Continuing without it."
-fi
-
-# Return to project root directory
-cd "$PROJECT_ROOT"
-
 # --- Initialize databases ---
-echo -e "${BLUE}[7/10] Initializing databases...${NC}"
+echo -e "${BLUE}[6/10] Initializing databases...${NC}"
 
 # Ensure hippocampus directory exists
 if [ ! -d "hippocampus" ]; then
@@ -831,7 +810,7 @@ fi
 echo "- system.db is ready in the hippocampus/ directory. User memory databases will be created automatically when users are added."
 
 # --- Create admin user if not exists ---
-echo -e "${BLUE}[8/10] Checking for admin account...${NC}"
+echo -e "${BLUE}[7/10] Checking for admin account...${NC}"
         # Check if admin user already exists
         admin_exists=$(PYTHONPATH="$PROJECT_ROOT" $PYTHON_CMD -c "from stem.security import security_manager; import sqlite3; conn = sqlite3.connect(security_manager.db_path); cursor = conn.cursor(); cursor.execute('SELECT username FROM users WHERE username = ?', ('admin',)); result = cursor.fetchone(); conn.close(); print('yes' if result else 'no')")
 if [ "$admin_exists" = "no" ]; then
@@ -965,7 +944,7 @@ except Exception as e:
 fi
 
 # --- Install as auto-starting service ---
-echo -e "${BLUE}[9/10] Service installation...${NC}"
+echo -e "${BLUE}[8/10] Service installation...${NC}"
 
 echo "Would you like to install Tatlock as an auto-starting service?"
 echo "This will make Tatlock start automatically when the system boots."
