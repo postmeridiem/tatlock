@@ -32,6 +32,7 @@ from stem.models import (
 )
 from stem.admin import admin_router
 from stem.profile import profile_router
+from hippocampus.hippocampus import router as hippocampus_router
 from fastapi.security import HTTPBasicCredentials
 from fastapi.security import HTTPBasic
 from starlette.middleware.sessions import SessionMiddleware
@@ -165,6 +166,9 @@ app.include_router(admin_router)
 
 # Include profile router for user profile management
 app.include_router(profile_router)
+
+# Include longterm management router for conversation history
+app.include_router(hippocampus_router)
 
 # Serve favicon.ico from the new location
 @app.get("/favicon.ico", include_in_schema=False)
@@ -395,37 +399,6 @@ async def websocket_voice_endpoint(websocket: WebSocket):
         import logging
         logging.getLogger(__name__).error(f"WebSocket error: {e}")
         await websocket.close(code=1011)
-
-@app.get("/hippocampus/shortterm/files/get", tags=["api"])
-async def get_user_file(username: str, session_id: str, user: dict = Depends(get_current_user)):
-    """
-    Authenticated endpoint to get a user's session image file as base64.
-    Args:
-        username (str): The username (must match current user or require admin)
-        session_id (str): The session ID
-    Returns:
-        JSON with filename and base64-encoded PNG data
-    """
-    if user is None:
-        raise HTTPException(status_code=401, detail="Not authenticated")
-    # Only allow access to own files or admin
-    if username != user['username'] and (not user.get('roles') or 'admin' not in user.get('roles', [])):
-        raise HTTPException(status_code=403, detail="Not authorized to access this file")
-    
-    file_path = get_user_image_path(username, session_id, ext="png")
-    if not os.path.exists(file_path):
-        raise HTTPException(status_code=404, detail="File not found.")
-    
-    with open(file_path, "rb") as f:
-        data = f.read()
-        b64 = base64.b64encode(data).decode("utf-8")
-    
-    return JSONResponse({
-        "filename": os.path.basename(file_path),
-        "data": b64,
-        "encoding": "base64",
-        "content_type": "image/png"
-    })
 
 # This allows running the app directly with `python main.py`
 if __name__ == "__main__":

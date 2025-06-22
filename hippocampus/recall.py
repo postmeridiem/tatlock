@@ -232,45 +232,17 @@ def get_topic_statistics(username: str = "admin") -> list[dict]:
 
 
 # New conversation management functions
-def get_user_conversations(username: str, limit: int = 50) -> list[dict]:
+def get_user_conversations(username: str, limit: int = 50) -> list:
     """
-    Get all conversations for a user from their longterm database.
-    Args:
-        username (str): The username.
-        limit (int): Maximum number of conversations to return.
-    Returns:
-        list[dict]: List of conversation records.
+    Retrieves all conversations for a specific user.
     """
-    try:
-        db_path = ensure_user_database(username)
-        conn = sqlite3.connect(db_path)
-        cursor = conn.cursor()
-        
-        cursor.execute("""
-            SELECT conversation_id, title, started_at, last_activity, message_count
-            FROM conversations 
-            ORDER BY last_activity DESC
-            LIMIT ?
-        """, (limit,))
-        
-        rows = cursor.fetchall()
-        conversations = []
-        
-        for row in rows:
-            conversations.append({
-                'conversation_id': row[0],
-                'title': row[1],
-                'started_at': row[2],
-                'last_activity': row[3],
-                'message_count': row[4]
-            })
-        
-        conn.close()
-        return conversations
-        
-    except sqlite3.Error as e:
-        logger.error(f"Error getting conversations for user '{username}': {e}")
-        return []
+    query = """
+        SELECT id, start_time, last_activity, topic, summary
+        FROM conversations
+        ORDER BY last_activity DESC
+        LIMIT ?;
+    """
+    return execute_user_query(username, query, (limit,))
 
 
 def get_conversation_details(conversation_id: str, username: str) -> dict | None:
@@ -334,45 +306,38 @@ def get_conversation_details(conversation_id: str, username: str) -> dict | None
         return None
 
 
-def search_conversations(username: str, query: str, limit: int = 20) -> list[dict]:
+def search_conversations(username: str, search_term: str, limit: int = 50) -> list:
     """
-    Search conversations by title or content.
-    Args:
-        username (str): The username.
-        query (str): Search query.
-        limit (int): Maximum number of results.
-    Returns:
-        list[dict]: List of matching conversations.
+    Searches conversations by topic or summary for a specific user.
     """
-    try:
-        # Search in user's longterm database by title
-        db_path = ensure_user_database(username)
-        conn = sqlite3.connect(db_path)
-        cursor = conn.cursor()
-        
-        cursor.execute("""
-            SELECT conversation_id, title, started_at, last_activity, message_count
-            FROM conversations 
-            WHERE (title LIKE ? OR conversation_id LIKE ?)
-            ORDER BY last_activity DESC
-            LIMIT ?
-        """, (f'%{query}%', f'%{query}%', limit))
-        
-        rows = cursor.fetchall()
-        conversations = []
-        
-        for row in rows:
-            conversations.append({
-                'conversation_id': row[0],
-                'title': row[1],
-                'started_at': row[2],
-                'last_activity': row[3],
-                'message_count': row[4]
-            })
-        
-        conn.close()
-        return conversations
-        
-    except sqlite3.Error as e:
-        logger.error(f"Error searching conversations for user '{username}': {e}")
-        return []
+    query = """
+        SELECT id, start_time, last_activity, topic, summary
+        FROM conversations
+        WHERE topic LIKE ? OR summary LIKE ?
+        ORDER BY last_activity DESC
+        LIMIT ?;
+    """
+    like_term = f"%{search_term}%"
+    return execute_user_query(username, query, (like_term, like_term, limit))
+
+
+def get_conversation_messages(username: str, conversation_id: str) -> list:
+    """
+    Retrieves all messages for a specific conversation.
+    """
+    query = "SELECT id, role, content, timestamp FROM memories WHERE conversation_id = ? ORDER BY timestamp;"
+    return execute_user_query(username, query, (conversation_id,))
+
+
+def delete_conversation(username: str, conversation_id: str) -> None:
+    """
+    Deletes a conversation and its related messages for a specific user.
+    """
+    # First, verify the conversation belongs to the user to prevent unauthorized deletion
+    convo_check = execute_user_query(username, "SELECT id FROM conversations WHERE id = ?", (conversation_id,))
+    if not convo_check:
+        raise ValueError("Conversation not found or access denied.")
+
+    # Delete messages and then the conversation entry (no fetch needed)
+    execute_user_query(username, "DELETE FROM memories WHERE conversation_id = ?", (conversation_id,))
+    execute_user_query(username, "DELETE FROM conversations WHERE id = ?", (conversation_id,))

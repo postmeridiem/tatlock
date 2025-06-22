@@ -556,6 +556,142 @@ When adding new tools:
 - **Error Handling**: Implement proper error handling and logging
 - **Documentation**: Maintain clear API documentation
 
+### Module Route Organization
+
+**Preferred Pattern**: Consolidate all module-related routes into a single central router file within each module. This promotes clean separation, maintainability, and follows the brain-inspired architecture.
+
+#### Central Router Pattern
+
+Each module should have a main router file (e.g., `hippocampus/hippocampus.py`) that consolidates all related endpoints:
+
+```python
+# hippocampus/hippocampus.py
+from fastapi import APIRouter, Depends, HTTPException, Query
+from typing import List, Optional
+from stem.security import get_current_user
+from stem.models import UserModel
+from hippocampus import recall
+import os
+from fastapi.responses import FileResponse
+
+# Central router for all hippocampus-related endpoints
+router = APIRouter(
+    prefix="/hippocampus",
+    tags=["hippocampus"],
+    dependencies=[Depends(get_current_user)]
+)
+
+# --- Long-Term Memory Management ---
+@router.get("/longterm/conversations", response_model=List[dict])
+async def get_user_conversations(
+    search: Optional[str] = Query(None, description="Search term to filter conversations"),
+    user: UserModel = Depends(get_current_user)
+):
+    """Get all conversations for the current user, with optional search."""
+    # Implementation here
+    pass
+
+# --- Short-Term Memory / File Management ---
+@router.get("/shortterm/files/get")
+async def get_user_file(
+    username: str, 
+    session_id: str, 
+    user: UserModel = Depends(get_current_user)
+):
+    """Get a specific file for a user from their session directory."""
+    # Implementation here
+    pass
+```
+
+#### Integration in main.py
+
+Import and include the module router in `main.py`:
+
+```python
+# main.py
+from hippocampus.hippocampus import router as hippocampus_router
+
+# Include module router
+app.include_router(hippocampus_router)
+```
+
+#### Benefits
+
+- **Clean Separation**: All module routes are contained within the module
+- **Consistent Organization**: Uniform pattern across all modules
+- **Easy Maintenance**: Single file to manage all module endpoints
+- **Clear Dependencies**: Module-specific imports and dependencies
+- **Scalable**: Easy to add new endpoints without cluttering main.py
+- **Testable**: Module routes can be tested independently
+- **Documentation**: API documentation is automatically grouped by module
+
+#### Module Router Structure
+
+```
+module_name/
+├── __init__.py
+├── module_name.py          # Central router file
+├── tool1.py               # Individual tool implementations
+├── tool2.py               # Individual tool implementations
+├── database.py            # Database operations
+├── utilities.py           # Module utilities
+└── readme.md              # Module documentation
+```
+
+#### Route Organization Guidelines
+
+1. **Group Related Endpoints**: Use comments to separate different functional areas
+2. **Consistent Naming**: Use descriptive endpoint names that reflect functionality
+3. **Proper Authentication**: Include authentication dependencies where needed
+4. **Error Handling**: Implement consistent error handling across all endpoints
+5. **Documentation**: Include comprehensive docstrings for all endpoints
+6. **Type Safety**: Use Pydantic models for request/response validation
+
+#### Example Module Structure
+
+```python
+# Example: parietal/parietal.py
+from fastapi import APIRouter, Depends
+from stem.security import get_current_user
+
+router = APIRouter(
+    prefix="/parietal",
+    tags=["parietal"],
+    dependencies=[Depends(get_current_user)]
+)
+
+# --- Hardware Monitoring ---
+@router.get("/hardware/status")
+async def get_hardware_status():
+    """Get current hardware status and metrics."""
+    pass
+
+# --- Performance Analysis ---
+@router.get("/performance/benchmarks")
+async def get_performance_benchmarks():
+    """Get system performance benchmarks."""
+    pass
+
+# --- System Health ---
+@router.get("/health/check")
+async def health_check():
+    """Perform system health check."""
+    pass
+```
+
+#### Migration from Scattered Routes
+
+When consolidating existing scattered routes:
+
+1. **Identify Module Routes**: Find all routes related to a specific module
+2. **Create Central Router**: Create the main module router file
+3. **Move Endpoints**: Transfer endpoints to the central router
+4. **Update Imports**: Update main.py to use the new router
+5. **Remove Old Files**: Delete any old route files that are no longer needed
+6. **Test Thoroughly**: Ensure all endpoints work correctly after migration
+
+This pattern ensures that `main.py` remains clean and focused on application configuration, while each module maintains its own routing logic in a centralized, maintainable way.
+
 ## Performance Optimization
 
 ### Database Optimization
