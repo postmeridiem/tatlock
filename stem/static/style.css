@@ -492,6 +492,21 @@ body {
     font-style: italic;
 }
 
+.chat-message.loading {
+    opacity: 0.7;
+    animation: pulse 1.5s ease-in-out infinite;
+}
+
+.chat-message.loading em {
+    color: var(--text-muted);
+    font-style: italic;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 0.7; }
+    50% { opacity: 1; }
+}
+
 .chat-sidepane-input {
     padding: 15px;
     border-top: 1px solid var(--border-color);

@@ -58,6 +58,13 @@ class TatlockChat {
         this.chatInput.style.height = 'auto';
         this.chatSendBtn.disabled = true;
         
+        // Add loading indicator
+        const loadingDiv = document.createElement('div');
+        loadingDiv.className = 'chat-message ai loading';
+        loadingDiv.innerHTML = '<em>pondering...</em>';
+        this.chatMessages.appendChild(loadingDiv);
+        this.chatMessages.scrollTop = this.chatMessages.scrollHeight;
+        
         try {
             // Send message to backend
             const response = await fetch('/cortex', {
@@ -88,6 +95,9 @@ class TatlockChat {
                 });
             }
             
+            // Remove loading indicator
+            this.chatMessages.removeChild(loadingDiv);
+            
             // Add AI response to chat
             if (data.response) {
                 this.addMessage(data.response, 'ai', data.processing_time);
@@ -102,6 +112,9 @@ class TatlockChat {
             if (this.enableLogging && this.logFunction) {
                 this.logFunction('Chat Error', { error: error.message });
             }
+            
+            // Remove loading indicator
+            this.chatMessages.removeChild(loadingDiv);
             
             this.addMessage('Sorry, I encountered an error. Please try again.', 'ai');
         }
@@ -184,7 +197,13 @@ class TatlockChat {
 
 // Initialize chat when DOM is loaded
 function initializeChat(options = {}) {
-    document.addEventListener('DOMContentLoaded', function() {
+    if (document.readyState === 'loading') {
+        // DOM is still loading, wait for it
+        document.addEventListener('DOMContentLoaded', function() {
+            new TatlockChat(options);
+        });
+    } else {
+        // DOM is already loaded, initialize immediately
         new TatlockChat(options);
-    });
+    }
 } 
