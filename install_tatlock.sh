@@ -398,11 +398,24 @@ install_system_dependencies() {
             
             # Install packages (excluding Python as we handled it above)
             echo "Installing required packages..."
-            if ! brew install sqlite curl wget; then
-                echo "Error: Failed to install required packages."
-                echo "Please check your Homebrew installation and try again."
-                exit 1
+            
+            # Handle keg-only packages properly on macOS
+            # sqlite and curl are keg-only on macOS but that's normal
+            if ! brew install sqlite curl wget 2>&1 | tee /tmp/brew_install.log; then
+                # Check if the error is just keg-only warnings (which are normal on macOS)
+                if grep -q "keg-only" /tmp/brew_install.log && ! grep -q "Error:" /tmp/brew_install.log; then
+                    echo "Note: Some packages are keg-only (normal on macOS). Installation successful."
+                    echo "The following packages are available but not symlinked:"
+                    echo "  - sqlite: Use system sqlite or add to PATH if needed"
+                    echo "  - curl: Use system curl or add to PATH if needed"
+                else
+                    echo "Error: Failed to install required packages."
+                    echo "Please check your Homebrew installation and try again."
+                    rm -f /tmp/brew_install.log
+                    exit 1
+                fi
             fi
+            rm -f /tmp/brew_install.log
             
             # On macOS, we need to ensure we're using the Homebrew Python
             if [[ "$SYSTEM" == "macos_arm" ]]; then
@@ -550,10 +563,24 @@ if command -v ollama &> /dev/null; then
     echo "Ollama is already installed, skipping installation."
 else
     echo "[3/10] Installing Ollama..."
-    if ! curl -fsSL https://ollama.ai/install.sh | sh; then
-        echo "Error: Failed to install Ollama."
-        echo "Please check your internet connection and try again."
-        exit 1
+    
+    # Use different installation methods based on system
+    if [[ "$SYSTEM" == "macos_arm" || "$SYSTEM" == "macos_intel" ]]; then
+        # On macOS, use Homebrew
+        echo "Installing Ollama via Homebrew on macOS..."
+        if ! brew install ollama; then
+            echo "Error: Failed to install Ollama via Homebrew."
+            echo "Please check your Homebrew installation and try again."
+            exit 1
+        fi
+    else
+        # On Linux, use the official install script
+        echo "Installing Ollama via official install script on Linux..."
+        if ! curl -fsSL https://ollama.ai/install.sh | sh; then
+            echo "Error: Failed to install Ollama."
+            echo "Please check your internet connection and try again."
+            exit 1
+        fi
     fi
 fi
 

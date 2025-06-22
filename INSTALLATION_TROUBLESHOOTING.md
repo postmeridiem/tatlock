@@ -283,20 +283,34 @@ sudo pacman -S --noconfirm python-pip sqlite base-devel curl wget
 ```
 
 ### Ollama Installation
+
+**On macOS:**
 ```bash
-curl -fsSL https://ollama.ai/install.sh | sh
+# Install via Homebrew (recommended)
+brew install ollama
+
+# Start Ollama service
+ollama serve &
 ```
 
 **On Linux:**
 ```bash
+# Install via official install script
+curl -fsSL https://ollama.ai/install.sh | sh
+
+# Enable and start service
 sudo systemctl enable ollama
 sudo systemctl start ollama
 ```
 
-**On macOS:**
+**On Arch Linux:**
 ```bash
-# Ollama runs as a user service on macOS
-ollama serve &
+# Install via pacman
+sudo pacman -S ollama
+
+# Enable and start service
+sudo systemctl enable ollama
+sudo systemctl start ollama
 ```
 
 ### Python Dependencies
@@ -701,14 +715,52 @@ launchctl load ~/Library/LaunchAgents/com.tatlock.plist
 
 ### macOS-Specific Issues
 
-**Apple Silicon (M1/M2) Issues:**
-- Ensure you're using the Homebrew Python: `/opt/homebrew/bin/python3`
-- Add Homebrew to your PATH in `~/.zshrc`
-- Some packages may need to be compiled for ARM64
+**Keg-only package warnings:**
+On macOS, you may see warnings about packages being "keg-only" during Homebrew installation:
 
-**Intel Mac Issues:**
-- Ensure you're using the Homebrew Python: `/usr/local/bin/python3`
-- Check that Homebrew is properly installed
+```
+sqlite is keg-only, which means it was not symlinked into /opt/homebrew,
+because macOS already provides this software and installing another version in
+parallel can cause all kinds of trouble.
+```
+
+**This is normal behavior on macOS!** The installation script now handles these warnings properly. These warnings occur because:
+
+- **sqlite**: macOS already provides SQLite, so Homebrew doesn't symlink its version
+- **curl**: macOS already provides curl, so Homebrew doesn't symlink its version
+
+**What this means:**
+- The packages are successfully installed
+- They're just not automatically added to your PATH
+- Tatlock will use the system versions (which work perfectly fine)
+- No action is required from you
+
+**If you need to use the Homebrew versions specifically:**
+```bash
+# Add to your shell profile (~/.zshrc or ~/.bash_profile)
+export PATH="/opt/homebrew/opt/sqlite/bin:$PATH"
+export PATH="/opt/homebrew/opt/curl/bin:$PATH"
+
+# For development (if you need the headers)
+export LDFLAGS="-L/opt/homebrew/opt/sqlite/lib"
+export CPPFLAGS="-I/opt/homebrew/opt/sqlite/include"
+export PKG_CONFIG_PATH="/opt/homebrew/opt/sqlite/lib/pkgconfig"
+```
+
+**Apple Silicon (M1/M2) specific issues:**
+- Ensure you're using the correct Python installation for your architecture
+- The installation script automatically detects and configures for Apple Silicon
+- If you encounter issues, try: `export PATH="/opt/homebrew/bin:$PATH"`
+
+**Homebrew not found:**
+```bash
+# Install Homebrew if not already installed
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+
+# For Apple Silicon, you may need to add to PATH
+echo 'export PATH="/opt/homebrew/bin:$PATH"' >> ~/.zshrc
+source ~/.zshrc
+```
 
 ### Yum/DNF Issues
 
