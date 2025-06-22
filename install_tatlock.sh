@@ -673,6 +673,61 @@ if [ -f ".env" ]; then
     read -p "Do you want to overwrite it? (y/N): " overwrite_env
     if [[ ! "$overwrite_env" =~ ^[Yy]$ ]]; then
         echo "Skipping .env file creation. Using existing .env file."
+        
+        # Offer to update HOSTNAME and PORT values
+        echo ""
+        echo -e "${CYAN}Server Configuration Update:${NC}"
+        echo -e "${CYAN}──────────────────────────────────────────────────────────────────────────────────${NC}"
+        echo "Would you like to update the server configuration (HOSTNAME and PORT)?"
+        read -p "Update server configuration? (y/N): " update_server_config
+        
+        if [[ "$update_server_config" =~ ^[Yy]$ ]]; then
+            # Read current values from .env file
+            current_hostname=$(grep "^HOSTNAME=" .env | cut -d'=' -f2 2>/dev/null || echo "localhost")
+            current_port=$(grep "^PORT=" .env | cut -d'=' -f2 2>/dev/null || echo "8000")
+            
+            echo ""
+            echo -e "${CYAN}Current Configuration:${NC}"
+            echo "HOSTNAME: $current_hostname"
+            echo "PORT: $current_port"
+            echo ""
+            echo -e "${CYAN}Enter new values (press Enter to keep current value):${NC}"
+            
+            read -p "Enter hostname [$current_hostname]: " hostname_input
+            hostname_input=${hostname_input:-$current_hostname}
+            read -p "Enter port [$current_port]: " port_input
+            port_input=${port_input:-$current_port}
+            
+            # Update the .env file with new values
+            if [ "$hostname_input" != "$current_hostname" ] || [ "$port_input" != "$current_port" ]; then
+                # Create a temporary file with updated values
+                temp_env=$(mktemp)
+                while IFS= read -r line; do
+                    if [[ "$line" =~ ^HOSTNAME= ]]; then
+                        echo "HOSTNAME=$hostname_input" >> "$temp_env"
+                    elif [[ "$line" =~ ^PORT= ]]; then
+                        echo "PORT=$port_input" >> "$temp_env"
+                    elif [[ "$line" =~ ^ALLOWED_ORIGINS= ]]; then
+                        echo "ALLOWED_ORIGINS=http://$hostname_input:$port_input" >> "$temp_env"
+                    else
+                        echo "$line" >> "$temp_env"
+                    fi
+                done < .env
+                
+                # Replace the original .env file
+                mv "$temp_env" .env
+                echo ""
+                echo -e "${GREEN}✓ Server configuration updated:${NC}"
+                echo "- HOSTNAME: $current_hostname → $hostname_input"
+                echo "- PORT: $current_port → $port_input"
+                echo "- ALLOWED_ORIGINS updated to match new configuration"
+            else
+                echo ""
+                echo "No changes made to server configuration."
+            fi
+        fi
+        echo -e "${CYAN}──────────────────────────────────────────────────────────────────────────────────${NC}"
+        echo ""
     else
         echo "Overwriting existing .env file..."
         # Continue with .env creation
@@ -689,6 +744,17 @@ if [ ! -f ".env" ] || [[ "$overwrite_env" =~ ^[Yy]$ ]]; then
         echo "Error: Failed to generate secret key with $PYTHON_CMD."
         exit 1
     fi
+
+    # Get server configuration from user
+    echo ""
+    echo -e "${CYAN}Server Configuration:${NC}"
+    echo -e "${CYAN}──────────────────────────────────────────────────────────────────────────────────${NC}"
+    read -p "Enter hostname [localhost]: " hostname_input
+    hostname_input=${hostname_input:-localhost}
+    read -p "Enter port [8000]: " port_input
+    port_input=${port_input:-8000}
+    echo -e "${CYAN}──────────────────────────────────────────────────────────────────────────────────${NC}"
+    echo ""
 
     # Create .env file with all required variables
     cat > .env << EOF
@@ -707,10 +773,11 @@ OLLAMA_MODEL=gemma3-cortex:latest
 DATABASE_ROOT=hippocampus/
 
 # Server Configuration
-PORT=8000
+HOSTNAME=$hostname_input
+PORT=$port_input
 
 # Security Configuration
-ALLOWED_ORIGINS=http://localhost:8000
+ALLOWED_ORIGINS=http://$hostname_input:$port_input
 
 # Security
 STARLETTE_SECRET=$STARLETTE_SECRET
@@ -718,6 +785,7 @@ EOF
 
     echo "- .env file created in root directory"
     echo "- STARLETTE_SECRET generated automatically"
+    echo "- Server configured to run on $hostname_input:$port_input"
     echo "- Please update OPENWEATHER_API_KEY, GOOGLE_API_KEY, and GOOGLE_CSE_ID with your actual API keys"
 else
     echo "- Using existing .env file"
@@ -909,6 +977,17 @@ if [[ "$install_service" =~ ^[Yy]$ ]]; then
     # Get the absolute path to the project directory
     SERVICE_DIR=$(pwd)
     
+    # Read HOSTNAME and PORT from .env file if it exists
+    if [ -f ".env" ]; then
+        # Source the .env file to get the variables
+        export $(grep -v '^#' .env | xargs)
+        SERVICE_HOSTNAME=${HOSTNAME:-localhost}
+        SERVICE_PORT=${PORT:-8000}
+    else
+        SERVICE_HOSTNAME="localhost"
+        SERVICE_PORT="8000"
+    fi
+    
     case $SYSTEM in
         "debian"|"rhel"|"arch")
             # Linux - Create systemd service
@@ -926,7 +1005,8 @@ Type=simple
 User=$USER
 WorkingDirectory=$SERVICE_DIR
 Environment=PATH=$SERVICE_DIR/.venv/bin:/usr/local/bin:/usr/bin:/bin
-Environment=PORT=8000
+Environment=HOSTNAME=$SERVICE_HOSTNAME
+Environment=PORT=$SERVICE_PORT
 ExecStart=$SERVICE_DIR/.venv/bin/python $SERVICE_DIR/main.py
 Restart=always
 RestartSec=10
@@ -946,6 +1026,7 @@ EOF
                 
                 echo "- Tatlock service installed and started"
                 echo "- Service will auto-start on boot"
+                echo "- Service configured to run on $SERVICE_HOSTNAME:$SERVICE_PORT"
                 echo "- Use 'sudo systemctl status tatlock' to check status"
                 echo "- Use 'sudo systemctl stop tatlock' to stop the service"
                 echo "- Use 'sudo systemctl start tatlock' to start the service"
@@ -989,8 +1070,10 @@ EOF
     <dict>
         <key>PATH</key>
         <string>$SERVICE_DIR/.venv/bin:/usr/local/bin:/usr/bin:/bin</string>
+        <key>HOSTNAME</key>
+        <string>$SERVICE_HOSTNAME</string>
         <key>PORT</key>
-        <string>8000</string>
+        <string>$SERVICE_PORT</string>
     </dict>
 </dict>
 </plist>
@@ -1002,6 +1085,7 @@ EOF
             
             echo "- Tatlock service installed and started"
             echo "- Service will auto-start on login"
+            echo "- Service configured to run on $SERVICE_HOSTNAME:$SERVICE_PORT"
             echo "- Use 'launchctl list | grep tatlock' to check status"
             echo "- Use 'launchctl unload ~/Library/LaunchAgents/com.tatlock.plist' to stop"
             echo "- Use 'launchctl load ~/Library/LaunchAgents/com.tatlock.plist' to start"

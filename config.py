@@ -27,6 +27,7 @@ GOOGLE_CSE_ID = os.getenv("GOOGLE_CSE_ID")  # CSE stands for Custom Search Engin
 SYSTEM_DB_PATH = os.getenv("SYSTEM_DB", "hippocampus/system.db")     # Authentication database
 
 # --- Server Configuration ---
+HOSTNAME = os.getenv("HOSTNAME", "localhost")
 PORT = int(os.getenv("PORT", "8000"))
 
 # --- Security Configuration ---
