@@ -14,6 +14,22 @@ CYAN='\033[0;36m'
 BOLD='\033[1m'
 NC='\033[0m' # No Color
 
+# --- Display Tatlock ASCII Art Logo ---
+echo -e "${BOLD}${CYAN}"
+echo "══════════════════════════════════════════════════════════════════════════════════════════"
+echo ""
+echo "               ████████╗ █████╗ ████████╗██╗      ██████╗  ██████╗██╗  ██╗"
+echo "               ╚══██╔══╝██╔══██╗╚══██╔══╝██║     ██╔═══██╗██╔════╝██║ ██╔╝"
+echo "                  ██║   ███████║   ██║   ██║     ██║   ██║██║     █████╔╝ "
+echo "                  ██║   ██╔══██║   ██║   ██║     ██║   ██║██║     ██╔═██╗ "
+echo "                  ██║   ██║  ██║   ██║   ███████╗╚██████╔╝╚██████╗██║  ██╗"
+echo "                  ╚═╝   ╚═╝  ╚═╝   ╚═╝   ╚══════╝ ╚═════╝  ╚═════╝╚═╝  ╚═╝"
+echo ""
+echo "                    Brain-Inspired Conversational AI Platform"
+echo "══════════════════════════════════════════════════════════════════════════════════════════"
+echo -e "${NC}"
+echo ""
+
 # --- Check if we're in the correct directory ---
 if [ ! -f "main.py" ] || [ ! -d "stem" ] || [ ! -d "hippocampus" ]; then
     echo -e "${RED}Error: This script must be run from the Tatlock project root directory.${NC}"
