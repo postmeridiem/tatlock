@@ -1,113 +1,218 @@
-# temporal
+# Temporal Module
 
-**Status: Planned for Future Development**
+The Temporal module handles voice processing, language understanding, and temporal context awareness. It serves as Tatlock's auditory and linguistic processing center, following the brain-inspired architecture where the temporal lobe handles language and time-based processing.
 
-This module is planned for auditory processing, language, and time context in Tatlock. The temporal lobe will help the agent understand and process auditory information, language patterns, and temporal relationships.
+## ✅ **Completed Features**
 
-## Planned Features
+### Voice Input System
+- **Microphone Button**: Added to chat interface for voice input
+- **Real-time Audio Streaming**: WebSocket-based audio transmission to backend
+- **Speech Recognition**: Whisper integration for speech-to-text conversion
+- **Keyword Detection**: "Tatlock" wake word detection in transcripts
+- **Auto-pause Processing**: Stops recording after 5 seconds of silence
+- **Temporal Context**: Tracks interaction history and time-based patterns
 
 ### Language Processing
-- **Natural Language Understanding**: Deep language comprehension and analysis
-- **Language Patterns**: Recognize and process linguistic patterns
-- **Multilingual Support**: Handle multiple languages and translations
-- **Language Learning**: Adapt to user's language preferences and patterns
+- **Intent Extraction**: Identifies user intent (query, command, reminder)
+- **Temporal References**: Resolves "today", "tomorrow", "now", etc.
+- **Urgency Detection**: Recognizes urgent requests
+- **Category Classification**: Weather, time, home automation queries
 
-### Auditory Processing
-- **Speech Recognition**: Process and understand spoken input
-- **Audio Analysis**: Understand audio content and context
-- **Voice Synthesis**: Generate natural-sounding speech responses
-- **Audio Context**: Understand audio environment and context
+## Components
+
+### Voice Processing
+- **Speech Recognition**: Real-time speech-to-text conversion using Whisper
+- **Text-to-Speech**: Natural voice responses (planned)
+- **Keyword Detection**: Always-on wake word detection (planned)
+- **Audio Streaming**: WebSocket-based real-time audio
+
+### Language Processing
+- **Context Awareness**: Temporal and conversational context tracking
+- **Language Understanding**: Advanced NLP and intent recognition
+- **Temporal Reasoning**: Time-based query processing and reference resolution
+
+### Hardware Integration
+- **Microphone Interface**: Cross-platform audio input (planned)
+- **Speaker Output**: Audio response system (planned)
+- **Home Automation**: Always-on voice assistant capabilities (planned)
+
+## Quick Start
+
+### 1. Test Basic Functionality
+```bash
+cd temporal
+python test_voice.py
+```
+
+### 2. Install Dependencies
+```bash
+pip install openai-whisper websockets
+```
+
+### 3. Integration with Tatlock
+```python
+from temporal.voice_service import VoiceService
+
+# Initialize voice service
+voice_service = VoiceService()
+
+# Initialize with Whisper model
+await voice_service.initialize()
+
+# Process voice command
+response = await voice_service.process_voice_command("What's the weather like today?")
+print(response)
+```
+
+### 4. Web Interface Usage
+1. Open the chat interface in your browser
+2. Click the microphone button (🎤) next to the chat input
+3. Say "Tatlock" followed by your command (e.g., "Tatlock what's the weather like today?")
+4. The system will automatically detect the keyword and insert your command
+5. Press Enter or click Send to submit
+
+## Architecture
 
 ### Temporal Context
-- **Time Understanding**: Process temporal relationships and sequences
-- **Event Sequencing**: Understand chronological order of events
-- **Temporal Memory**: Store and retrieve time-based information
-- **Time-based Reasoning**: Reason about time and temporal relationships
+- **Interaction History**: Tracks all voice interactions with timestamps
+- **Pattern Analysis**: Analyzes temporal patterns in user behavior
+- **Context Window**: Configurable time window for context retention
 
-## Technical Implementation Plan
+### Language Processor
+- **Temporal References**: Resolves "today", "tomorrow", "now", etc.
+- **Intent Extraction**: Identifies user intent and urgency
+- **Entity Recognition**: Extracts time, date, and other entities
 
-### Phase 1: Foundation
-- **Basic Language Processing**: Simple language understanding and processing
-- **Text-to-Speech**: Basic speech synthesis capabilities
-- **Time Context Integration**: Basic temporal context understanding
+### Voice Service
+- **Audio Transcription**: Converts speech to text using Whisper
+- **WebSocket Server**: Handles real-time audio streaming
+- **Cortex Integration**: Sends processed commands to Tatlock's agent system
 
-### Phase 2: Intelligence
-- **Advanced Language Understanding**: Deep language comprehension
-- **Speech Recognition**: Convert speech to text
-- **Temporal Reasoning**: Complex temporal relationship understanding
+## Configuration
 
-### Phase 3: Advanced Features
-- **Multilingual Processing**: Support for multiple languages
-- **Voice Personalization**: Personalized voice synthesis
-- **Temporal Learning**: Learn from temporal patterns and relationships
+### Environment Variables
+```bash
+# Voice Configuration
+ENABLE_TEMPORAL_VOICE=true
+TEMPORAL_WEBSOCKET_PORT=8765
+TEMPORAL_CONTEXT_WINDOW=24  # hours
+```
 
-## Integration Points
+### Integration with main.py
+```python
+# main.py
+from temporal.voice_service import VoiceService
 
-- **cortex**: Provide linguistic and temporal context for decision making
-- **hippocampus**: Store language patterns and temporal memories
-- **parietal**: Integrate temporal and spatial information
-- **thalamus**: Route linguistic and auditory information
-- **stem**: Access language processing tools and services
+# Initialize temporal voice service
+temporal_voice = VoiceService()
 
-## Data Models (Planned)
+@app.on_event("startup")
+async def startup_event():
+    # Initialize voice service
+    await temporal_voice.initialize()
+    
+    # Start WebSocket server
+    await temporal_voice.start_websocket_server()
+```
 
-### Language Information
-- **Language Models**: User-specific language models and preferences
-- **Linguistic Patterns**: Recognized language patterns and structures
-- **Translation Data**: Translation mappings and language pairs
-- **Language Context**: Contextual language information
+## WebSocket API
 
-### Temporal Data
-- **Time Patterns**: Recognized temporal patterns and relationships
-- **Event Sequences**: Chronological event sequences and relationships
-- **Temporal Memory**: Time-based memory and recall
-- **Schedule Data**: User schedules and temporal preferences
+### Endpoint: `/ws/voice`
+- **Authentication**: Requires valid session cookie
+- **Protocol**: WebSocket with binary audio streaming
+- **Audio Format**: WebM audio chunks with "audio:" prefix
+- **Response**: JSON with transcript, intent, and temporal context
 
-## API Integration (Planned)
+### Usage Example
+```javascript
+// Connect to voice WebSocket
+const ws = new WebSocket('ws://localhost:8000/ws/voice');
 
-### Endpoints
-- `POST /temporal/process-language` - Process and understand language input
-- `POST /temporal/synthesize-speech` - Generate speech from text
-- `POST /temporal/recognize-speech` - Convert speech to text
-- `GET /temporal/temporal-context` - Get temporal context information
-- `POST /temporal/translate` - Translate text between languages
+// Send audio chunk
+const audioChunk = new Blob([audioData], { type: 'audio/webm' });
+const prefix = new TextEncoder().encode('audio:');
+const combined = new Uint8Array(prefix.length + audioChunk.size);
+combined.set(prefix, 0);
+combined.set(new Uint8Array(await audioChunk.arrayBuffer()), prefix.length);
+ws.send(combined.buffer);
 
-### Tool Integration
-- **Language Processing Tool**: Process and understand language input
-- **Speech Synthesis Tool**: Generate speech from text
-- **Speech Recognition Tool**: Convert speech to text
-- **Temporal Reasoning Tool**: Process temporal relationships and context
+// Receive response
+ws.onmessage = (event) => {
+    const data = JSON.parse(event.data);
+    console.log('Transcript:', data.original_text);
+    console.log('Intent:', data.intent);
+};
+```
 
-## Future Implementation
+## Future Features
 
-This module will be developed to enable Tatlock to better understand language, process auditory information, and maintain temporal context, making the agent more capable of natural language interactions and time-aware responses.
+### Phase 2: Always-On Detection
+- **Wake Word Detection**: Using Porcupine for keyword spotting
+- **Continuous Listening**: Background audio processing
+- **Hardware Integration**: Raspberry Pi and other embedded systems
 
-### Development Priorities
-1. **Language Processing**: Basic language understanding and processing capabilities
-2. **Speech Synthesis**: Text-to-speech functionality
-3. **Temporal Context**: Understanding and processing temporal relationships
-4. **Advanced Language Features**: Multilingual support and advanced language understanding
+### Phase 3: Advanced Language Processing
+- **Semantic Understanding**: Deep learning for better intent recognition
+- **Conversation Memory**: Long-term conversation context
+- **Multi-language Support**: Internationalization
 
-### Use Cases
-- **Natural Language Interaction**: More natural and context-aware conversations
-- **Voice Interface**: Voice-based interaction with the agent
-- **Temporal Reasoning**: Understanding and reasoning about time and events
-- **Multilingual Support**: Support for users in multiple languages
-- **Language Learning**: Adapt to user's language patterns and preferences
+### Phase 4: Home Automation
+- **Device Control**: Voice commands for smart home devices
+- **Routines**: Automated sequences triggered by voice
+- **Scheduling**: Time-based automation with voice interface
 
-### Privacy and Security
-- **Voice Privacy**: Secure handling of voice data and recordings
-- **Language Data Protection**: Protect sensitive language and communication data
-- **User Consent**: Clear consent for voice processing and language analysis
-- **Data Minimization**: Collect only necessary language and temporal data
-- **Anonymization**: Protect user privacy in language and temporal data
+## Testing
+
+### Basic Tests
+```bash
+# Test without external dependencies
+python test_voice.py
+```
+
+### Integration Tests
+```bash
+# Test with Tatlock integration
+python temporal/integration_example.py
+```
+
+### WebSocket Server Test
+```bash
+# Start WebSocket server for testing
+python temporal/integration_example.py server
+```
+
+## Dependencies
+
+### Required
+- `openai-whisper`: Speech recognition
+- `websockets`: Real-time communication
+- `asyncio`: Asynchronous processing
+
+### Optional
+- `pvporcupine`: Wake word detection
+- `pyttsx3`: Text-to-speech
+- `pyaudio`: Audio I/O
+
+## Implementation Notes
+
+### Voice Input Flow
+1. User clicks microphone button in chat interface
+2. Browser requests microphone access
+3. Audio is recorded in 250ms chunks
+4. Chunks are sent via WebSocket to `/ws/voice`
+5. Backend transcribes audio using Whisper
+6. Language processor extracts intent and temporal context
+7. If "Tatlock" keyword is detected, prompt is inserted into chat input
+8. Recording stops after 5 seconds of silence
+
+### Security Considerations
+- WebSocket requires valid session authentication
+- Audio is processed server-side, not stored
+- Microphone access requires user consent
+- All voice processing happens in real-time
 
 ## Related Documentation
 
-- [README.md](../README.md) - General overview and installation
-- [developer.md](../developer.md) - Developer guide and practices
-- [moreinfo.md](../moreinfo.md) - In-depth technical information
-- [cortex/readme.md](../cortex/readme.md) - Core agent logic documentation
-- [hippocampus/readme.md](../hippocampus/readme.md) - Memory system documentation
-- [stem/readme.md](../stem/readme.md) - Core utilities and infrastructure
-- [parietal/readme.md](../parietal/readme.md) - Hardware monitoring and performance
+- **[Developer Guide](../developer.md)** - Development practices and standards
+- **[Cortex Module](../cortex/readme.md)** - Agent system integration
+- **[Hippocampus Module](../hippocampus/readme.md)** - Memory system integration

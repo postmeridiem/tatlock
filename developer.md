@@ -2,6 +2,94 @@
 
 This guide contains developer-specific information for working with Tatlock, including logging, debugging, performance monitoring, and development practices.
 
+## Frontend Development
+
+### Jinja2 Templating System
+
+Tatlock uses Jinja2 for server-side templating with shared components and layouts. This provides true server-side rendering instead of client-side string replacement.
+
+#### Architecture
+
+- **Template Manager**: `stem/htmlcontroller.py` manages Jinja2 environment and template rendering
+- **Base Layout**: `stem/templates/base.html` provides foundation for all pages
+- **Shared Components**: Reusable UI components in `stem/templates/components/`
+- **Page Templates**: Individual page templates in `stem/templates/`
+
+#### Key Components
+
+```python
+from stem.htmlcontroller import render_template, render_page, get_common_context
+
+# Get common context with user info
+context = get_common_context(request, user)
+
+# Render template as string
+html = render_template('login.html', context)
+
+# Render template as HTMLResponse
+response = render_page('login.html', context)
+```
+
+#### Template Structure
+
+```
+stem/templates/
+├── base.html                 # Base layout template
+├── login.html               # Login page template
+├── chat.html                # Debug console template
+├── profile.html             # User profile template
+├── admin.html               # Admin dashboard template
+├── components/              # Reusable components
+│   ├── header.html          # Page header component
+│   ├── footer.html          # Page footer component
+│   ├── chat_sidebar.html    # Chat sidebar component
+│   ├── navigation.html      # Sidebar navigation component
+│   ├── modal.html           # Modal dialog component
+│   ├── form.html            # Form component
+│   └── snackbar.html        # Notification component
+└── README.md               # Template documentation
+```
+
+#### Template Variables
+
+Common context variables available in all templates:
+
+- `app_name`: Application name (default: "Tatlock")
+- `app_version`: Application version (default: "3.0.0")
+- `user`: Current user data (if authenticated)
+- `is_authenticated`: Whether user is logged in
+- `is_admin`: Whether user has admin role
+- `hide_header`: Skip header (for login page)
+- `hide_footer`: Skip footer (for login page)
+- `show_chat_sidebar`: Include chat sidebar
+- `welcome_message`: Chat sidebar welcome message
+
+#### Creating New Pages
+
+1. **Create Template**: Add new template file in `stem/templates/`
+2. **Extend Base**: Use `{% extends "base.html" %}` for consistent layout
+3. **Set Variables**: Use `{% set variable = value %}` for page-specific settings
+4. **Add Content**: Define content in `{% block content %}` blocks
+5. **Update Backend**: Add route in appropriate module (main.py, admin.py, etc.)
+
+#### Adding Components
+
+1. **Create Component**: Add new component in `stem/templates/components/`
+2. **Include in Templates**: Use `{% include 'components/component.html' %}`
+3. **Pass Context**: Use `{% with variable = value %}` for component-specific data
+
+#### Benefits
+
+- **Server-side Rendering**: True server-side includes, not client-side replacement
+- **Shared Components**: Reusable UI components across pages
+- **Consistent Layout**: Base template ensures uniform structure
+- **Dynamic Content**: Context variables for personalized content
+- **Maintainable**: Centralized template management
+- **Type Safety**: Template variables are properly typed
+- **Performance**: Templates are compiled and cached
+
+For detailed template documentation, see `stem/templates/README.md`.
+
 ## Logging & Debugging
 
 Tatlock includes a comprehensive logging system integrated with FastAPI for debugging and monitoring tool execution.
@@ -265,7 +353,7 @@ Access interactive API documentation at:
 
 - **[README.md](README.md)** - Project overview and installation guide
 - **[In-Depth Technical Information](moreinfo.md)** - Detailed architecture and implementation details
-- **[Installation Troubleshooting](INSTALLATION_TROUBLESHOOTING.md)** - Common installation issues and solutions
+- **[Troubleshooting](troubleshooting.md)** - Common installation issues and solutions
 
 ## Coding Standards
 
@@ -705,6 +793,7 @@ Before submitting code for review, ensure:
 2. **Output Encoding**: Properly encode output to prevent XSS
 3. **Authentication**: Verify user identity for protected operations
 4. **Authorization**: Check user permissions before allowing actions
+4. **Package Versions**: Always use the most current version of packages that don't cause dependency conflicts. Comment if that is not possible and why.
 
 #### Performance
 1. **Database Optimization**: Use efficient queries and proper indexing
@@ -737,4 +826,104 @@ Security standards:
 [Your specific request here]
 ```
 
-Following these coding standards ensures consistent, maintainable, and secure code throughout the Tatlock project. 
+Following these coding standards ensures consistent, maintainable, and secure code throughout the Tatlock project.
+
+## Voice Input Implementation
+
+### Overview
+The voice input system integrates real-time audio capture with the chat interface, providing a natural way to interact with Tatlock using speech.
+
+### Architecture
+- **Frontend**: Microphone button in chat interface with WebSocket audio streaming
+- **Backend**: FastAPI WebSocket endpoint with Whisper speech recognition
+- **Processing**: Temporal context and language understanding pipeline
+
+### Key Components
+
+#### Frontend (JavaScript)
+```javascript
+// Voice capture class in chat.js
+class TatlockChat {
+    constructor() {
+        this.chatMicBtn = document.getElementById('sidepane-mic-btn');
+        this.keyword = 'tatlock';
+        this.pauseDuration = 5000; // 5 seconds
+        this.setupVoiceListeners();
+    }
+    
+    async startVoiceCapture() {
+        // Request microphone access
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        this.mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+        
+        // Stream to WebSocket
+        this.voiceWebSocket = new WebSocket('ws://localhost:8000/ws/voice');
+        this.mediaRecorder.ondataavailable = (e) => this.sendAudioChunk(e.data);
+        this.mediaRecorder.start(250); // 250ms chunks
+    }
+}
+```
+
+#### Backend (Python)
+```python
+# WebSocket endpoint in main.py
+@app.websocket("/ws/voice")
+async def websocket_voice_endpoint(websocket: WebSocket):
+    await websocket.accept()
+    # Authenticate user via session cookie
+    await voice_service.handle_websocket_connection(websocket, path="/ws/voice")
+
+# Voice processing in temporal/voice_service.py
+class VoiceService:
+    async def transcribe_audio(self, audio_data: bytes) -> Optional[str]:
+        # Use Whisper for speech-to-text
+        result = self.whisper_model.transcribe(temp_file)
+        return result["text"].strip()
+    
+    async def process_voice_command(self, text: str) -> Dict[str, Any]:
+        # Add to temporal context and extract intent
+        self.temporal_context.add_interaction(text)
+        intent = self.language_processor.extract_intent(text)
+        return {"original_text": text, "intent": intent}
+```
+
+### Coding Patterns
+
+#### WebSocket Audio Streaming
+- **Binary Protocol**: Audio chunks sent with "audio:" prefix
+- **Chunked Processing**: 250ms audio chunks for real-time processing
+- **Session Authentication**: WebSocket requires valid session cookie
+
+#### Keyword Detection
+- **Client-side Processing**: JavaScript checks for "tatlock" keyword
+- **Prompt Extraction**: Extracts text after keyword for chat input
+- **Auto-pause**: 5-second timeout for natural conversation flow
+
+#### Error Handling
+- **Graceful Degradation**: Falls back to text input if voice unavailable
+- **User Feedback**: Visual indicators for recording state
+- **Connection Recovery**: Automatic WebSocket reconnection
+
+### Security Considerations
+- **Session Validation**: WebSocket endpoints require authentication
+- **Audio Privacy**: Audio processed server-side, not stored
+- **User Consent**: Microphone access requires explicit permission
+- **Input Sanitization**: All voice input processed through language processor
+
+### Testing
+```bash
+# Test voice components
+python temporal/test_voice.py
+
+# Test integration
+python temporal/integration_example.py
+
+# Test WebSocket server
+python temporal/integration_example.py server
+```
+
+### Future Enhancements
+- **Always-on Detection**: Background keyword spotting
+- **Voice Synthesis**: Text-to-speech responses
+- **Multi-language Support**: International voice recognition
+- **Hardware Integration**: Raspberry Pi and embedded systems 

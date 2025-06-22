@@ -17,6 +17,41 @@ This document contains detailed technical information about Tatlock's architectu
 - **temporal**: Language processing and temporal context
 - **thalamus**: Information routing and coordination
 
+## Core AI Capabilities
+
+### Conversational AI API
+- **FastAPI-based HTTP interface** for chat and tool use with authentication
+- **Agentic Loop**: The agent can call external tools (weather, web search, memory recall, etc.) as part of its reasoning process
+- **Persistent Memory**: Long-term storage and recall of conversations, topics, and user data
+- **Natural Language Date Parsing**: Understands queries like "yesterday" or "last week" for memory recall
+- **Topic Classification**: Automatic categorization of conversations for better memory organization
+
+### Authentication & Security
+- **Session-Based Authentication**: Modern session management with secure cookies
+- **Comprehensive User Management**: Create, authenticate, and manage users with roles and groups
+- **Password Security**: PBKDF2 hashing with unique salts for each user
+- **Role-Based Access Control**: Users can have multiple roles (user, admin, moderator)
+- **Group Management**: Users can belong to multiple groups (users, admins, moderators)
+- **Admin Endpoints**: Special endpoints requiring admin privileges
+- **User Data Isolation**: Each user has their own memory database for complete privacy
+
+### Web Interface
+- **Modern Admin Dashboard**: Complete user, role, and group management interface
+- **User Profile Management**: Self-service profile editing and password changes
+- **Debug Console**: Real-time JSON logging of server interactions for development
+- **Material Design Icons**: Professional, consistent iconography throughout the interface
+- **Dark/Light Mode Toggle**: User preference for theme switching
+- **Responsive Design**: Works on desktop and mobile devices
+- **Chat Sidepane**: Integrated chat interface on all pages for assistance
+- **Jinja2 Templating**: Server-side rendering with reusable components and consistent layouts
+
+### Frontend Architecture
+- **Template System**: Jinja2-based templating with `stem/htmlcontroller.py`
+- **Shared Components**: Reusable UI components in `stem/templates/components/`
+- **Base Layout**: Consistent page structure with `stem/templates/base.html`
+- **Dynamic Content**: Context-aware rendering with user-specific data
+- **Component Library**: Header, footer, modals, forms, and navigation components
+
 ## Brain-Inspired Architecture
 
 ### Module Organization
@@ -49,6 +84,7 @@ Tatlock's architecture is inspired by the human brain, with each module represen
   - Admin dashboard and user management
   - Tool definitions and implementations
   - Static file serving and web interface
+  - Jinja2 templating system
 
 #### **Parietal** - Sensory Processing
 - **Location**: `parietal/`
@@ -349,6 +385,7 @@ CREATE TABLE user_groups (username TEXT, group_id INTEGER);
 
 - [README.md](README.md) - General overview and installation
 - [developer.md](developer.md) - Developer guide and practices
+- [troubleshooting.md](troubleshooting.md) - Common installation issues and solutions
 - [cortex/readme.md](cortex/readme.md) - Core agent logic documentation
 - [hippocampus/readme.md](hippocampus/readme.md) - Memory system documentation
 - [stem/readme.md](stem/readme.md) - Core utilities and infrastructure

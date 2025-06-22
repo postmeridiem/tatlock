@@ -4,30 +4,31 @@ Tatlock is a modular, brain-inspired conversational AI platform with built-in au
 
 ## Features
 
-### Core AI Capabilities
-- **Conversational AI API**: FastAPI-based HTTP interface for chat and tool use with authentication
-- **Agentic Loop**: The agent can call external tools (weather, web search, memory recall, etc.) as part of its reasoning process
-- **Persistent Memory**: Long-term storage and recall of conversations, topics, and user data
-- **Natural Language Date Parsing**: Understands queries like "yesterday" or "last week" for memory recall
-- **Topic Classification**: Automatic categorization of conversations for better memory organization
+### 🤖 **AI Agent System**
+- **Conversational AI**: Natural language processing with context awareness
+- **Tool Integration**: Access to system information, weather, and more
+- **Memory System**: Persistent conversation history and user data
+- **Multi-user Support**: Role-based access control and user management
 
-### Authentication & Security
-- **Session-Based Authentication**: Modern session management with secure cookies
-- **Comprehensive User Management**: Create, authenticate, and manage users with roles and groups
-- **Password Security**: PBKDF2 hashing with unique salts for each user
-- **Role-Based Access Control**: Users can have multiple roles (user, admin, moderator)
-- **Group Management**: Users can belong to multiple groups (users, admins, moderators)
-- **Admin Endpoints**: Special endpoints requiring admin privileges
-- **User Data Isolation**: Each user has their own memory database for complete privacy
+### 🎤 **Voice Input System** *(New!)*
+- **Microphone Button**: Click to start voice recording in the chat interface
+- **Keyword Detection**: Say "Tatlock" followed by your command
+- **Real-time Processing**: 5-second auto-pause with instant transcription
+- **Temporal Context**: Time-aware language understanding and processing
+- **WebSocket Streaming**: Low-latency audio processing with Whisper
 
-### Web Interface
-- **Modern Admin Dashboard**: Complete user, role, and group management interface
-- **User Profile Management**: Self-service profile editing and password changes
-- **Debug Console**: Real-time JSON logging of server interactions for development
-- **Material Design Icons**: Professional, consistent iconography throughout the interface
-- **Dark/Light Mode Toggle**: User preference for theme switching
-- **Responsive Design**: Works on desktop and mobile devices
-- **Chat Sidepane**: Integrated chat interface on all pages for assistance
+### 🔧 **System Management**
+- **Admin Dashboard**: User, role, and group management
+- **System Monitoring**: Real-time hardware and performance metrics
+- **Benchmark Tools**: LLM and tool performance testing
+- **Debug Console**: Comprehensive logging and troubleshooting
+
+### 🎨 **Modern Interface**
+- **Material Design**: Clean, responsive web interface
+- **Dark/Light Themes**: Customizable appearance
+- **Mobile Responsive**: Works on desktop and mobile devices
+- **Real-time Updates**: Live system status and chat interface
+- **Jinja2 Templating**: Server-side rendering with shared components and layouts
 
 ## Brain-Inspired Architecture
 
@@ -149,6 +150,7 @@ sudo systemctl stop tatlock
 ### Core Documentation
 - **[Developer Guide](developer.md)** - Developer-specific information, logging, debugging, and development practices
 - **[In-Depth Technical Information](moreinfo.md)** - Detailed architecture, implementation details, and advanced features
+- **[Troubleshooting](troubleshooting.md)** - Common installation issues and solutions
 
 ### Module Documentation
 - **[Cortex](cortex/readme.md)** - Core agent logic and decision-making
@@ -170,15 +172,25 @@ sudo systemctl stop tatlock
 - **Extensible Tools**: Easily add new tools and skills for the agent to use
 - **Offline Capability**: Material Icons and static assets work without internet connection
 - **Service Management**: Optional auto-starting service for production deployments
+- **Jinja2 Templating**: Server-side rendering with shared components and layouts
 
 ### Security & Privacy
 - **Complete User Isolation**: Each user has their own database for complete privacy
-- **Session-Based Authentication**: Secure session management with proper cookie handling
+- **Session-Based Authentication**: Secure session management with cookies
 - **Role-Based Access Control**: Fine-grained permissions and user management
-- **Input Validation**: Comprehensive validation and sanitization of all inputs
+- **Local Processing**: All AI processing done locally with Ollama
+- **No External Data Transmission**: Sensitive data stays within your system
 
 ### Performance & Monitoring
-- **Real-time System Monitoring**: CPU, RAM, disk, and network usage tracking
-- **Performance Benchmarking**: LLM and tool performance analysis
-- **Debug Console**: Real-time logging and system health monitoring
-- **Hardware Resource Tracking**: Comprehensive system resource analysis
+- **Real-time System Monitoring**: Hardware and performance metrics
+- **Benchmark Tools**: LLM and tool performance testing
+- **Debug Console**: Comprehensive logging and troubleshooting
+- **Service Management**: Optional systemd/LaunchAgent integration
+
+## Contributing
+
+Tatlock is designed with a modular, brain-inspired architecture that makes it easy to extend and contribute to. See the [Developer Guide](developer.md) for detailed information on development practices, coding standards, and how to add new features.
+
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
