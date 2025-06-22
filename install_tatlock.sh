@@ -25,7 +25,7 @@ echo "                  ██║   ██╔══██║   ██║   █�
 echo "                  ██║   ██║  ██║   ██║   ███████╗╚██████╔╝╚██████╗██║  ██╗"
 echo "                  ╚═╝   ╚═╝  ╚═╝   ╚═╝   ╚══════╝ ╚═════╝  ╚═════╝╚═╝  ╚═╝"
 echo ""
-echo "                    Brain-Inspired Conversational AI Platform"
+echo "                          Brain-Inspired Home Automation Butler"
 echo "══════════════════════════════════════════════════════════════════════════════════════════"
 echo -e "${NC}"
 echo ""

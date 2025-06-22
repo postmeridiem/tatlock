@@ -13,7 +13,11 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Initialize chat with logging disabled for admin page
     initializeChat({
-        enableLogging: false
+        enableLogging: false,
+        debugMode: false,
+        sidebarTitle: 'Admin Assistant',
+        welcomeMessage: 'I\'m here to help you manage users, roles, and groups. Ask me about admin tasks!',
+        placeholder: 'Ask about admin tasks...'
     });
 });
 

@@ -15,12 +15,13 @@ Features:
 - Session-based login/logout with proper redirects
 - Conversation tracking and user data isolation
 - Structured logging for tool execution and debugging
+- Jinja2 templating for server-side rendering
 """
 
 import os
 import logging
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException, Depends, Request, Form, status
+from fastapi import FastAPI, HTTPException, Depends, Request, Form, status, WebSocket, WebSocketDisconnect
 from fastapi.responses import HTMLResponse, RedirectResponse, FileResponse
 import uvicorn
 from cortex.agent import process_chat_interaction
@@ -42,6 +43,8 @@ from config import (
     OLLAMA_MODEL, SYSTEM_DB_PATH, PORT, ALLOWED_ORIGINS, HOSTNAME
 )
 from parietal.hardware import get_comprehensive_system_info
+from temporal.voice_service import VoiceService
+from contextlib import asynccontextmanager
 
 # Load environment variables from .env file
 load_dotenv()
@@ -55,6 +58,9 @@ logging.basicConfig(
     ]
 )
 
+# Set up logger for this module
+logger = logging.getLogger(__name__)
+
 # Get secret key from environment variable with fallback
 SECRET_KEY = os.getenv("STARLETTE_SECRET")
 if not SECRET_KEY:
@@ -63,12 +69,37 @@ if not SECRET_KEY:
         "Please run ./install_tatlock.sh or create a .env file with STARLETTE_SECRET."
     )
 
+# Initialize voice service
+voice_service = VoiceService()
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """
+    Lifespan event handler for FastAPI application startup and shutdown.
+    Initializes voice service on startup and performs cleanup on shutdown.
+    """
+    # Startup
+    logger.info("Starting Tatlock application...")
+    try:
+        await voice_service.initialize()
+        logger.info("Voice service initialized successfully")
+    except Exception as e:
+        logger.error(f"Failed to initialize voice service: {e}", exc_info=True)
+        # Continue startup even if voice service fails
+    
+    yield
+    
+    # Shutdown
+    logger.info("Shutting down Tatlock application...")
+    # Add any cleanup logic here if needed
+
 # --- FastAPI App ---
 app = FastAPI(
     title="Tatlock",
     description="As a child I used to play board games against a bucket with a face painted on it.",
     version="3.0.0",
     redoc_url=None,  # Disable ReDoc for security
+    lifespan=lifespan
 )
 
 # Configure security schemes for OpenAPI documentation
@@ -157,12 +188,12 @@ async def logout(request: Request):
     return {"success": True}
 
 @app.get("/login", tags=["html"], response_class=HTMLResponse)
-async def login_page():
+async def login_page(request: Request):
     """
     Login page.
     No authentication required.
     """
-    return HTMLResponse(content=get_login_page())
+    return get_login_page(request)
 
 @app.get("/login/test", tags=["debug"])
 async def test_auth(current_user: dict = Depends(get_current_user)):
@@ -246,22 +277,20 @@ async def read_root(request: Request):
         return RedirectResponse(url="/login", status_code=302)
 
 @app.get("/chat", tags=["html"],  response_class=HTMLResponse)
-async def chat_page(current_user: dict = Depends(get_current_user)):
+async def chat_page(request: Request, current_user: dict = Depends(get_current_user)):
     """
-    Debug console interface page.
-    Requires authentication via session-based authentication.
-    Provides real-time JSON logging of server interactions.
+    Debug console page.
+    Requires authentication.
     """
-    return get_chat_page()
+    return get_chat_page(request, current_user)
 
 @app.get("/profile")
-async def profile_page(current_user: dict = Depends(get_current_user)):
+async def profile_page(request: Request, current_user: dict = Depends(get_current_user)):
     """
-    User profile management page.
-    Requires authentication via session-based authentication.
-    Allows users to view and edit their profile information.
+    User profile page.
+    Requires authentication.
     """
-    return HTMLResponse(content=get_profile_page())
+    return get_profile_page(request, current_user)
 
 @app.get("/parietal/system-info", tags=["api"])
 async def system_info_api(current_user: dict = Depends(get_current_user)):
@@ -297,6 +326,39 @@ async def tools_benchmark_api(current_user: dict = Depends(get_current_user)):
     """
     from parietal.hardware import run_tool_benchmark
     return run_tool_benchmark()
+
+# --- Temporal Voice Service ---
+@app.websocket("/ws/voice")
+async def websocket_voice_endpoint(websocket: WebSocket):
+    """
+    WebSocket endpoint for real-time voice/audio streaming.
+    Only allows authenticated users.
+    Receives audio chunks, transcribes, processes, and returns results.
+    """
+    # Authenticate user
+    try:
+        await websocket.accept()
+        # Use session cookie for authentication
+        session_cookie = websocket.cookies.get("session")
+        if not session_cookie:
+            await websocket.close(code=4401)
+            return
+        # Use the same logic as get_current_user
+        from starlette.requests import Request
+        request = Request({'type': 'websocket', 'headers': websocket.headers.raw, 'cookies': websocket.cookies})
+        try:
+            user = get_current_user(request)
+        except Exception:
+            await websocket.close(code=4401)
+            return
+        # Now handle audio streaming
+        await voice_service.handle_websocket_connection(websocket, path="/ws/voice")
+    except WebSocketDisconnect:
+        pass
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).error(f"WebSocket error: {e}")
+        await websocket.close(code=1011)
 
 # This allows running the app directly with `python main.py`
 if __name__ == "__main__":

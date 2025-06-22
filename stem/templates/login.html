@@ -1,0 +1,225 @@
+{% extends "base.html" %}
+
+{% set hide_header = true %}
+{% set hide_footer = true %}
+
+{% block title %}{{ app_name }} - Login{% endblock %}
+
+{% block page_styles %}
+<style>
+    .login-container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+        background: var(--bg-color);
+    }
+    
+    .login-card {
+        background: var(--card-bg);
+        border-radius: 12px;
+        padding: 2rem;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        width: 100%;
+        max-width: 400px;
+        border: 1px solid var(--border-color);
+    }
+    
+    .login-header {
+        text-align: center;
+        margin-bottom: 2rem;
+    }
+    
+    .login-logo {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+        font-size: 2rem;
+        font-weight: bold;
+        color: var(--primary-color);
+        margin-bottom: 0.5rem;
+    }
+    
+    .login-logo-image {
+        height: 72px;
+        width: auto;
+        margin-bottom: 0.5rem;
+    }
+    
+    .login-subtitle {
+        color: var(--text-secondary);
+        font-size: 0.9rem;
+    }
+    
+    .login-form {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+    
+    .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    
+    .form-group label {
+        font-weight: 500;
+        color: var(--text-primary);
+    }
+    
+    .form-group input {
+        padding: 0.75rem;
+        border: 1px solid var(--border-color);
+        border-radius: 6px;
+        background: var(--input-bg);
+        color: var(--text-primary);
+        font-size: 1rem;
+    }
+    
+    .form-group input:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 2px rgba(var(--primary-rgb), 0.2);
+    }
+    
+    .login-btn {
+        background: var(--primary-color);
+        color: white;
+        border: none;
+        padding: 0.75rem;
+        border-radius: 6px;
+        font-size: 1rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: background-color 0.2s;
+    }
+    
+    .login-btn:hover {
+        background: var(--primary-hover);
+    }
+    
+    .login-btn:disabled {
+        background: var(--disabled-color);
+        cursor: not-allowed;
+    }
+    
+    .error-message {
+        color: var(--error-color);
+        font-size: 0.9rem;
+        text-align: center;
+        margin-top: 1rem;
+        display: none;
+    }
+    
+    .loading {
+        display: none;
+        text-align: center;
+        color: var(--text-secondary);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="login-container">
+    <div class="login-card">
+        <div class="login-header">
+            <div class="login-logo">
+                <img src="/static/images/logo-tatlock-transparent.png" alt="{{ app_name }} Logo" class="login-logo-image">
+                <span>{{ app_name }}</span>
+            </div>
+            <div class="login-subtitle">Sign in to your account</div>
+        </div>
+        
+        <form class="login-form" id="loginForm">
+            <div class="form-group">
+                <label for="username">Username</label>
+                <input type="text" id="username" name="username" required autocomplete="username">
+            </div>
+            
+            <div class="form-group">
+                <label for="password">Password</label>
+                <div class="password-input-container">
+                    <input type="password" id="password" name="password" required autocomplete="current-password">
+                    <button type="button" class="password-toggle" onclick="togglePassword('password')" title="Show/Hide password">
+                        <span class="material-icons">visibility</span>
+                    </button>
+                </div>
+            </div>
+            
+            <button type="submit" class="login-btn" id="loginBtn">
+                <span class="btn-text">Sign In</span>
+                <span class="loading">Signing in...</span>
+            </button>
+        </form>
+        
+        <div class="error-message" id="errorMessage"></div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/common.js"></script>
+<script>
+    document.getElementById('loginForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const username = document.getElementById('username').value;
+        const password = document.getElementById('password').value;
+        const loginBtn = document.getElementById('loginBtn');
+        const btnText = loginBtn.querySelector('.btn-text');
+        const loading = loginBtn.querySelector('.loading');
+        const errorMessage = document.getElementById('errorMessage');
+        
+        console.log('Login attempt for username:', username);
+        
+        // Show loading state
+        loginBtn.disabled = true;
+        btnText.style.display = 'none';
+        loading.style.display = 'inline';
+        errorMessage.style.display = 'none';
+        
+        try {
+            console.log('Sending request to /login/auth...');
+            // Send credentials to /login/auth as JSON
+            const url = new URL('/login/auth', window.location.origin);
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ username, password })
+            });
+            
+            console.log('Response status:', response.status);
+            console.log('Response headers:', response.headers);
+            
+            if (response.ok) {
+                console.log('Login successful, redirecting...');
+                // Login successful, redirect to the original page or default
+                const urlParams = new URLSearchParams(window.location.search);
+                const redirectUrl = urlParams.get('redirect') || '/chat';
+                window.location.href = redirectUrl;
+            } else {
+                console.log('Login failed with status:', response.status);
+                // Login failed
+                errorMessage.textContent = 'Invalid username or password';
+                errorMessage.style.display = 'block';
+            }
+        } catch (error) {
+            console.error('Network error:', error);
+            errorMessage.textContent = 'Network error. Please try again.';
+            errorMessage.style.display = 'block';
+        } finally {
+            // Reset button state
+            loginBtn.disabled = false;
+            btnText.style.display = 'inline';
+            loading.style.display = 'none';
+        }
+    });
+    
+    // Focus username field on page load
+    document.getElementById('username').focus();
+</script>
+{% endblock %} 

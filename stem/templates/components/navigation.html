@@ -1,0 +1,14 @@
+<!-- Navigation Component -->
+<div class="sidebar-nav">
+    <div class="nav-section">
+        <div class="nav-title">{{ nav_title|default('Navigation') }}</div>
+        {% for item in nav_items %}
+            <a href="#{{ item.id }}" class="nav-item {% if item.active %}active{% endif %}" onclick="{{ item.onclick|default('showSection(\'' + item.id + '\')') }}">
+                {% if item.icon %}
+                    <span class="material-icons">{{ item.icon }}</span>
+                {% endif %}
+                {{ item.label }}
+            </a>
+        {% endfor %}
+    </div>
+</div> 

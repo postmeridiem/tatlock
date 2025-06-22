@@ -111,7 +111,11 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Initialize chat with logging disabled for profile page
     initializeChat({
-        enableLogging: false
+        enableLogging: false,
+        debugMode: false,
+        sidebarTitle: 'Profile Assistant',
+        welcomeMessage: 'Good day, sir. I am Tatlock, your AI assistant. Pray, what administrative matters require my attention today?',
+        placeholder: 'Ask about profile settings...'
     });
 }); 
 

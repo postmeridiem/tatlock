@@ -1,0 +1,15 @@
+<!-- Footer Component -->
+<footer class="footer">
+    <div class="footer-content">
+        <div class="footer-info">
+            <span>&copy; 2024 {{ app_name }} v{{ app_version }}</span>
+            {% if is_authenticated and user %}
+                <span>• Logged in as {{ user.username }}</span>
+            {% endif %}
+        </div>
+        <div class="footer-links">
+            <a href="/docs" class="footer-link">API Docs</a>
+            <a href="/chat" class="footer-link">Debug Console</a>
+        </div>
+    </div>
+</footer> 

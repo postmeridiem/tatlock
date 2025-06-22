@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+
+{% set show_chat_sidebar = true %}
+{% set welcome_message = "Good day, sir. I am Tatlock, your AI assistant. Pray, what matters require my attention today?" %}
+
+{% block title %}{{ app_name }} - Profile{% endblock %}
+
+{% block head_scripts %}
+<script src="/static/js/marked.min.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="main-layout">
+    <div class="sidebar-nav">
+        <div class="nav-section">
+            <div class="nav-title">Profile</div>
+            <a href="#profile-info" class="nav-item active" onclick="showProfileSection('profile-info')">Profile Info</a>
+            <a href="#edit-profile" class="nav-item" onclick="showProfileSection('edit-profile')">Edit Profile</a>
+            <a href="#change-password" class="nav-item" onclick="showProfileSection('change-password')">Change Password</a>
+        </div>
+    </div>
+    
+    <div class="main-content">
+        <!-- Profile Information -->
+        <div id="profile-info" class="section">
+            <div class="section-title">Profile Information</div>
+            <div id="profile-info-content">
+                <div class="loading">Loading profile information...</div>
+            </div>
+        </div>
+        
+        <!-- Edit Profile -->
+        <div id="edit-profile" class="section" style="display: none;">
+            <div class="section-title">Edit Profile</div>
+            <form id="profileForm">
+                <div class="form-group">
+                    <label for="username">Username</label>
+                    <input type="text" id="username" readonly class="readonly-field">
+                    <small>Username cannot be changed</small>
+                </div>
+                <div class="form-group">
+                    <label for="firstName">First Name *</label>
+                    <input type="text" id="firstName" required>
+                </div>
+                <div class="form-group">
+                    <label for="lastName">Last Name *</label>
+                    <input type="text" id="lastName" required>
+                </div>
+                <div class="form-group">
+                    <label for="email">Email</label>
+                    <input type="email" id="email">
+                </div>
+                <button type="submit" class="button">Update Profile</button>
+            </form>
+        </div>
+        
+        <!-- Change Password -->
+        <div id="change-password" class="section" style="display: none;">
+            <div class="section-title">Change Password</div>
+            <form id="passwordForm">
+                <div class="form-group">
+                    <label for="currentPassword">Current Password *</label>
+                    <div class="password-input-container">
+                        <input type="password" id="currentPassword" required>
+                        <button type="button" class="password-toggle" onclick="togglePassword('currentPassword')" title="Show/Hide password">
+                            <span class="material-icons">visibility</span>
+                        </button>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="newPassword">New Password *</label>
+                    <div class="password-input-container">
+                        <input type="password" id="newPassword" required>
+                        <button type="button" class="password-toggle" onclick="togglePassword('newPassword')" title="Show/Hide password">
+                            <span class="material-icons">visibility</span>
+                        </button>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="confirmPassword">Confirm New Password *</label>
+                    <div class="password-input-container">
+                        <input type="password" id="confirmPassword" required>
+                        <button type="button" class="password-toggle" onclick="togglePassword('confirmPassword')" title="Show/Hide password">
+                            <span class="material-icons">visibility</span>
+                        </button>
+                    </div>
+                </div>
+                <button type="submit" class="button">Change Password</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Snackbar Container -->
+{% include 'components/snackbar.html' %}
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/common.js"></script>
+<script src="/static/js/chat.js"></script>
+<script src="/static/js/profile.js"></script>
+{% endblock %} 

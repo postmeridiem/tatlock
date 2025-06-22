@@ -1,0 +1,160 @@
+{% extends "base.html" %}
+
+{% set show_chat_sidebar = true %}
+{% set welcome_message = "I'm here to help you manage Tatlock. Ask me about user management, system administration, or any administrative tasks." %}
+
+{% block title %}{{ app_name }} - Admin Dashboard{% endblock %}
+
+{% block head_scripts %}
+<script src="/static/js/marked.min.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="main-layout">
+    <div class="sidebar-nav">
+        <div class="nav-section">
+            <div class="nav-title">Admin</div>
+            <a href="#stats" class="nav-item active" onclick="showSection('stats')">Dashboard</a>
+            <a href="#users" class="nav-item" onclick="showSection('users')">User Management</a>
+            <a href="#roles" class="nav-item" onclick="showSection('roles-section')">Roles</a>
+            <a href="#groups" class="nav-item" onclick="showSection('groups-section')">Groups</a>
+        </div>
+    </div>
+    
+    <div class="main-content">
+        <!-- Stats Section -->
+        <div id="stats" class="section">
+            <div class="section-title">System Statistics</div>
+            <div class="stats-grid" id="stats-grid">
+                <div class="loading">Loading statistics...</div>
+            </div>
+        </div>
+        
+        <!-- Users Section -->
+        <div id="users" class="section" style="display: none;">
+            <div class="section-title">User Management</div>
+            <button class="add-btn" onclick="showUserModal()">Add New User</button>
+            <div id="users-content">
+                <div class="loading">Loading users...</div>
+            </div>
+        </div>
+        
+        <!-- Roles Section -->
+        <div id="roles-section" class="section" style="display: none;">
+            <div class="section-title">Roles</div>
+            <div id="roles-content">
+                <div class="loading">Loading roles...</div>
+            </div>
+        </div>
+        
+        <!-- Groups Section -->
+        <div id="groups-section" class="section" style="display: none;">
+            <div class="section-title">Groups</div>
+            <div id="groups-content">
+                <div class="loading">Loading groups...</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- User Modal -->
+<div id="userModal" class="modal">
+    <div class="modal-content">
+        <h2 id="modalTitle">Add New User</h2>
+        <form id="userForm">
+            <div class="form-group">
+                <label for="username">Username *</label>
+                <input type="text" id="username" required>
+            </div>
+            <div class="form-group">
+                <label for="firstName">First Name *</label>
+                <input type="text" id="firstName" required>
+            </div>
+            <div class="form-group">
+                <label for="lastName">Last Name *</label>
+                <input type="text" id="lastName" required>
+            </div>
+            <div class="form-group">
+                <label for="email">Email</label>
+                <input type="email" id="email">
+            </div>
+            <div class="form-group">
+                <label for="password">Password <span id="password-required">*</span></label>
+                <div class="password-input-container">
+                    <input type="password" id="password" required>
+                    <button type="button" class="password-toggle" onclick="togglePassword('password')" title="Show/Hide password">
+                        <span class="material-icons">visibility</span>
+                    </button>
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="roles">Roles</label>
+                <select id="roles" multiple>
+                    <!-- Will be populated dynamically -->
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="groups">Groups</label>
+                <select id="groups" multiple>
+                    <!-- Will be populated dynamically -->
+                </select>
+            </div>
+            <div class="modal-buttons">
+                <button type="button" class="cancel-btn" onclick="closeUserModal()">Cancel</button>
+                <button type="submit" class="save-btn">Save</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Role Modal -->
+<div id="roleModal" class="modal">
+    <div class="modal-content">
+        <h2 id="roleModalTitle">Add New Role</h2>
+        <form id="roleForm">
+            <div class="form-group">
+                <label for="roleName">Role Name *</label>
+                <input type="text" id="roleName" required>
+            </div>
+            <div class="form-group">
+                <label for="roleDescription">Description</label>
+                <textarea id="roleDescription"></textarea>
+            </div>
+            <div class="modal-buttons">
+                <button type="button" class="cancel-btn" onclick="closeRoleModal()">Cancel</button>
+                <button type="submit" class="save-btn">Save</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Group Modal -->
+<div id="groupModal" class="modal">
+    <div class="modal-content">
+        <h2 id="groupModalTitle">Add New Group</h2>
+        <form id="groupForm">
+            <div class="form-group">
+                <label for="groupName">Group Name *</label>
+                <input type="text" id="groupName" required>
+            </div>
+            <div class="form-group">
+                <label for="groupDescription">Description</label>
+                <textarea id="groupDescription"></textarea>
+            </div>
+            <div class="modal-buttons">
+                <button type="button" class="cancel-btn" onclick="closeGroupModal()">Cancel</button>
+                <button type="submit" class="save-btn">Save</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Snackbar Container -->
+{% include 'components/snackbar.html' %}
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/common.js"></script>
+<script src="/static/js/chat.js"></script>
+<script src="/static/js/admin.js"></script>
+{% endblock %} 

@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html data-theme="dark">
+<head>
+    <title>{% block title %}{{ app_name }}{% endblock %}</title>
+    
+    <!-- Meta tags -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#000000">
+    <meta name="msapplication-TileColor" content="#000000">
+    <meta name="apple-mobile-web-app-title" content="{{ app_name }}">
+    <meta name="application-name" content="{{ app_name }}">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" sizes="32x32" href="/static/favicon/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/static/favicon/favicon-16x16.png">
+    <link rel="icon" type="image/x-icon" href="/static/favicon/favicon.ico">
+    <link rel="apple-touch-icon" sizes="180x180" href="/static/favicon/apple-touch-icon.png">
+    <link rel="manifest" href="/static/manifest.json">
+    
+    <!-- Stylesheets -->
+    <link rel="stylesheet" href="/static/material-icons.css">
+    <link rel="stylesheet" href="/static/style.css">
+    {% block extra_css %}{% endblock %}
+    
+    <!-- Scripts -->
+    {% block head_scripts %}{% endblock %}
+    
+    <!-- Page-specific styles -->
+    {% block page_styles %}{% endblock %}
+</head>
+<body>
+    <!-- Header (skip for login page) -->
+    {% if not hide_header %}
+        {% include 'components/header.html' %}
+    {% endif %}
+    
+    <!-- Main content -->
+    <main class="main-content">
+        {% block content %}{% endblock %}
+    </main>
+    
+    <!-- Chat sidebar (if enabled) -->
+    {% if show_chat_sidebar %}
+        {% include 'components/chat_sidebar.html' %}
+    {% endif %}
+    
+    <!-- Footer (skip for login page) -->
+    {% if not hide_footer %}
+        {% include 'components/footer.html' %}
+    {% endif %}
+    
+    <!-- Scripts -->
+    {% block scripts %}{% endblock %}
+</body>
+</html> 

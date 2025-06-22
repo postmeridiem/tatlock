@@ -6,7 +6,7 @@ Provides admin endpoints for user management, statistics, and system administrat
 """
 
 import logging
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Request
 from fastapi.responses import HTMLResponse
 from stem.security import get_current_user, require_admin_role, security_manager
 from stem.static import get_admin_page
@@ -23,13 +23,13 @@ logger = logging.getLogger(__name__)
 admin_router = APIRouter(prefix="/admin", tags=["admin"])
 
 @admin_router.get("/dashboard", response_class=HTMLResponse)
-async def admin_page(current_user: dict = Depends(require_admin_role)):
+async def admin_page(request: Request, current_user: dict = Depends(require_admin_role)):
     """
     Admin dashboard page.
     Requires admin role.
     Provides user, role, and group management interface.
     """
-    return get_admin_page()
+    return get_admin_page(request, current_user)
 
 @admin_router.get("/")
 async def admin_endpoint(current_user: dict = Depends(require_admin_role)):

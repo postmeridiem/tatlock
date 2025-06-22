@@ -2,12 +2,16 @@
 stem/static.py
 
 Static file serving and HTML page generation for Tatlock.
+Now uses Jinja2 templating for server-side rendering.
 """
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse
-import os
+from .htmlcontroller import render_template, render_page, get_common_context
+import logging
+
+logger = logging.getLogger(__name__)
 
 def mount_static_files(app: FastAPI):
     """
@@ -17,34 +21,38 @@ def mount_static_files(app: FastAPI):
     """
     app.mount("/static", StaticFiles(directory="stem/static"), name="static")
 
-def get_login_page() -> str:
-    """Get the login HTML page."""
-    with open("stem/static/login.html", "r") as f:
-        return f.read()
+def get_login_page(request: Request) -> HTMLResponse:
+    """Get the login HTML page using Jinja2 templating."""
+    context = get_common_context(request)
+    return render_page("login.html", context)
 
-def get_chat_page() -> str:
-    """Get the chat interface HTML page."""
-    with open("stem/static/chat.html", "r") as f:
-        return f.read()
+def get_chat_page(request: Request, user: dict) -> HTMLResponse:
+    """Get the chat interface HTML page using Jinja2 templating."""
+    context = get_common_context(request, user)
+    return render_page("chat.html", context)
 
-def get_profile_page() -> str:
-    """Get the user profile HTML page."""
-    with open("stem/static/profile.html", "r") as f:
-        return f.read()
+def get_profile_page(request: Request, user: dict) -> HTMLResponse:
+    """Get the user profile HTML page using Jinja2 templating."""
+    context = get_common_context(request, user)
+    return render_page("profile.html", context)
 
-def get_admin_page() -> HTMLResponse:
-    """
-    Generate and return the admin dashboard HTML page.
-    Returns:
-        HTMLResponse: The admin dashboard page.
-    """
-    html_file_path = os.path.join("stem", "static", "admin.html")
-    
-    try:
-        with open(html_file_path, 'r', encoding='utf-8') as file:
-            html_content = file.read()
-        return HTMLResponse(content=html_content)
-    except FileNotFoundError:
-        return HTMLResponse(content="<h1>Error: admin.html not found</h1>", status_code=404)
-    except Exception as e:
-        return HTMLResponse(content=f"<h1>Error loading admin dashboard: {str(e)}</h1>", status_code=500) 
+def get_admin_page(request: Request, user: dict) -> HTMLResponse:
+    """Get the admin dashboard HTML page using Jinja2 templating."""
+    context = get_common_context(request, user)
+    return render_page("admin.html", context)
+
+# Legacy functions for backward compatibility (deprecated)
+def get_profile_page_with_chat_sidebar(request: Request, user: dict) -> HTMLResponse:
+    """Get the user profile HTML page with chat sidebar included (deprecated)."""
+    logger.warning("get_profile_page_with_chat_sidebar is deprecated, use get_profile_page instead")
+    return get_profile_page(request, user)
+
+def get_admin_page_with_chat_sidebar(request: Request, user: dict) -> HTMLResponse:
+    """Get the admin dashboard HTML page with chat sidebar included (deprecated)."""
+    logger.warning("get_admin_page_with_chat_sidebar is deprecated, use get_admin_page instead")
+    return get_admin_page(request, user)
+
+def get_chat_sidebar() -> str:
+    """Get the chat sidebar include content (deprecated)."""
+    logger.warning("get_chat_sidebar is deprecated, use Jinja2 templates instead")
+    return "<!-- Chat sidebar now handled by Jinja2 templates -->" 

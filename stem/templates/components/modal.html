@@ -1,0 +1,38 @@
+<!-- Modal Component -->
+<div id="{{ modal_id }}" class="modal">
+    <div class="modal-content">
+        <h2 id="{{ modal_title_id|default(modal_id + 'Title') }}">{{ modal_title }}</h2>
+        <form id="{{ form_id|default(modal_id + 'Form') }}">
+            {% for field in form_fields %}
+            <div class="form-group">
+                <label for="{{ field.id }}">{{ field.label }}{% if field.required %} *{% endif %}</label>
+                {% if field.type == 'password' %}
+                <div class="password-input-container">
+                    <input type="password" id="{{ field.id }}" {% if field.required %}required{% endif %}>
+                    <button type="button" class="password-toggle" onclick="togglePassword('{{ field.id }}')" title="Show/Hide password">
+                        <span class="material-icons">visibility</span>
+                    </button>
+                </div>
+                {% elif field.type == 'textarea' %}
+                <textarea id="{{ field.id }}" {% if field.required %}required{% endif %}></textarea>
+                {% elif field.type == 'select' %}
+                <select id="{{ field.id }}" {% if field.multiple %}multiple{% endif %}>
+                    {% for option in field.options %}
+                    <option value="{{ option.value }}">{{ option.label }}</option>
+                    {% endfor %}
+                </select>
+                {% else %}
+                <input type="{{ field.type|default('text') }}" id="{{ field.id }}" {% if field.required %}required{% endif %}>
+                {% endif %}
+                {% if field.help_text %}
+                <small>{{ field.help_text }}</small>
+                {% endif %}
+            </div>
+            {% endfor %}
+            <div class="modal-buttons">
+                <button type="button" class="cancel-btn" onclick="{{ cancel_action|default('closeModal(\'' + modal_id + '\')') }}">Cancel</button>
+                <button type="submit" class="save-btn">{{ submit_text|default('Save') }}</button>
+            </div>
+        </form>
+    </div>
+</div> 
