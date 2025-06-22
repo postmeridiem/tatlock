@@ -9,6 +9,25 @@ const autoScrollToggle = document.getElementById('auto-scroll');
 // Log entries storage
 let logEntries = [];
 
+// Check if elements exist
+if (!jsonContainer) {
+    console.error('json-container element not found!');
+}
+if (!clearLogBtn) {
+    console.error('clear-log-btn element not found!');
+}
+if (!exportLogBtn) {
+    console.error('export-log-btn element not found!');
+}
+if (!autoScrollToggle) {
+    console.error('auto-scroll element not found!');
+}
+
+// Check if highlightJSON function is available
+if (typeof highlightJSON !== 'function') {
+    console.error('highlightJSON function not found!');
+}
+
 // Add chat interactions to the debug log - define this before DOMContentLoaded
 function addToInteractionLog(type, data) {
     let message = '';
@@ -18,33 +37,43 @@ function addToInteractionLog(type, data) {
         case 'User Message':
             message = `User sent message: "${data.message}"`;
             logType = 'user';
+            // Log the complete user message data
+            addLogEntry(message, logType, data);
             break;
         case 'AI Response':
             message = `AI responded (${data.processing_time}s): "${data.response.substring(0, 100)}${data.response.length > 100 ? '...' : ''}"`;
             logType = 'ai';
+            // Log the complete AI response data including all fields
+            const aiData = {
+                response: data.response,
+                processing_time: data.processing_time,
+                topic: data.topic,
+                conversation_id: data.conversation_id,
+                history: data.history || []
+            };
+            addLogEntry(message, logType, aiData);
             break;
         case 'Chat Error':
             message = `Chat error: ${data.error}`;
             logType = 'error';
+            addLogEntry(message, logType, data);
             break;
         case 'Voice Command':
             message = `Voice command detected: "${data.extracted_command}" (original: "${data.original_text}")`;
             logType = 'user';
+            addLogEntry(message, logType, data);
             break;
         default:
             message = `${type}: ${JSON.stringify(data)}`;
             logType = 'info';
+            addLogEntry(message, logType, data);
     }
-    
-    addLogEntry(message, logType, data);
 }
 
 function addLogEntry(content, type = 'info', data = null) {
     // Log chat-related entries and tool interactions
     if (type === 'tool-call' || type === 'tool-response' || type === 'error' || 
         type === 'user' || type === 'ai' || type === 'info') {
-        
-        console.log('Adding log entry:', { type, content, data });
         
         const entry = {
             timestamp: new Date(),
@@ -85,8 +114,6 @@ function addLogEntry(content, type = 'info', data = null) {
         if (autoScrollToggle.checked) {
             jsonContainer.scrollTop = 0;
         }
-    } else {
-        console.log('Skipping log entry of type:', type);
     }
 }
 
