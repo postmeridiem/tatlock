@@ -17,18 +17,16 @@ logger = logging.getLogger(__name__)
 profile_router = APIRouter(prefix="/profile", tags=["profile"])
 
 @profile_router.get("/", response_model=UserResponse)
-async def get_profile(current_user: dict = Depends(get_current_user)):
+async def get_profile(user: dict = Depends(get_current_user)):
     """
     Get current user's profile information.
     Requires authentication.
     """
+    if user is None:
+        raise HTTPException(status_code=401, detail="Not authenticated")
     try:
-        user = security_manager.get_user_by_username(current_user['username'])
-        if not user:
-            raise HTTPException(status_code=404, detail="User not found")
-        
-        roles = security_manager.get_user_roles(current_user['username'])
-        groups = security_manager.get_user_groups(current_user['username'])
+        roles = security_manager.get_user_roles(user['username'])
+        groups = security_manager.get_user_groups(user['username'])
         
         return UserResponse(
             username=user['username'],
@@ -45,15 +43,17 @@ async def get_profile(current_user: dict = Depends(get_current_user)):
         raise HTTPException(status_code=500, detail=f"Error getting profile: {str(e)}")
 
 @profile_router.put("/", response_model=UserResponse)
-async def update_profile(request: UpdateUserRequest, current_user: dict = Depends(get_current_user)):
+async def update_profile(request: UpdateUserRequest, user: dict = Depends(get_current_user)):
     """
     Update current user's profile information.
     Requires authentication.
     """
+    if user is None:
+        raise HTTPException(status_code=401, detail="Not authenticated")
     try:
         # Update user information (username cannot be changed via profile)
         success = security_manager.update_user(
-            username=current_user['username'],
+            username=user['username'],
             first_name=request.first_name,
             last_name=request.last_name,
             email=request.email,
@@ -64,9 +64,11 @@ async def update_profile(request: UpdateUserRequest, current_user: dict = Depend
             raise HTTPException(status_code=400, detail="Failed to update profile")
         
         # Get updated user info
-        user_info = security_manager.get_user_by_username(current_user['username'])
-        roles = security_manager.get_user_roles(current_user['username'])
-        groups = security_manager.get_user_groups(current_user['username'])
+        user_info = security_manager.get_user_by_username(user['username'])
+        if not user_info:
+            raise HTTPException(status_code=500, detail="Failed to retrieve updated user information")
+        roles = security_manager.get_user_roles(user['username'])
+        groups = security_manager.get_user_groups(user['username'])
         
         return UserResponse(
             username=user_info['username'],
@@ -83,26 +85,28 @@ async def update_profile(request: UpdateUserRequest, current_user: dict = Depend
         raise HTTPException(status_code=500, detail=f"Error updating profile: {str(e)}")
 
 @profile_router.put("/password")
-async def change_password(request: PasswordChangeRequest, current_user: dict = Depends(get_current_user)):
+async def change_password(request: PasswordChangeRequest, user: dict = Depends(get_current_user)):
     """
     Change current user's password.
     Requires authentication and current password verification.
     """
+    if user is None:
+        raise HTTPException(status_code=401, detail="Not authenticated")
     try:
         # Verify current password
-        user = security_manager.authenticate_user(current_user['username'], request.current_password)
-        if not user:
-            logger.info(f"Password verification failed for user: {current_user['username']}")
+        auth_user = security_manager.authenticate_user(user['username'], request.current_password)
+        if not auth_user:
+            logger.info(f"Password verification failed for user: {user['username']}")
             raise HTTPException(status_code=400, detail="Current password is incorrect")
         
         # Update password
         success = security_manager.update_user(
-            username=current_user['username'],
+            username=user['username'],
             password=request.new_password
         )
         
         if not success:
-            logger.info(f"Password update failed for user: {current_user['username']}")
+            logger.info(f"Password update failed for user: {user['username']}")
             raise HTTPException(status_code=500, detail="Failed to update password")
         
         return {"message": "Password updated successfully"}
@@ -113,13 +117,15 @@ async def change_password(request: PasswordChangeRequest, current_user: dict = D
         raise HTTPException(status_code=500, detail=f"Error changing password: {str(e)}")
 
 @profile_router.get("/pageheader")
-async def get_page_header(current_user: dict = Depends(get_current_user)):
+async def get_page_header(user: dict = Depends(get_current_user)):
     """
     Returns user info for page header/nav bar: username, roles, is_admin.
     """
-    roles = security_manager.get_user_roles(current_user['username'])
+    if user is None:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    roles = security_manager.get_user_roles(user['username'])
     return {
-        "username": current_user['username'],
+        "username": user['username'],
         "roles": roles,
         "is_admin": "admin" in roles
     } 

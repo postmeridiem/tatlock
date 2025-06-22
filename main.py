@@ -47,6 +47,8 @@ from temporal.voice_service import VoiceService
 from contextlib import asynccontextmanager
 import base64
 from hippocampus.user_database import get_user_image_path
+from stem.current_user_context import get_current_user_ctx
+from fastapi.logger import logger
 
 # Load environment variables from .env file
 load_dotenv()
@@ -137,7 +139,13 @@ def custom_openapi():
 app.openapi = custom_openapi
 
 # Add session middleware for session-based authentication
-app.add_middleware(SessionMiddleware, secret_key=SECRET_KEY)
+app.add_middleware(
+    SessionMiddleware, 
+    secret_key=SECRET_KEY, 
+    max_age=3600,  # 1 hour session timeout
+    same_site="lax",
+    https_only=False  # Allow HTTP for local development
+)
 
 # Add security headers middleware
 app.add_middleware(TrustedHostMiddleware, allowed_hosts=["localhost", "127.0.0.1", "testserver"])
@@ -172,10 +180,12 @@ async def login(request: Request):
     data = await request.json() if request.headers.get("content-type", "").startswith("application/json") else await request.form()
     username = str(data.get("username", ""))
     password = str(data.get("password", ""))
+    logger.info(f"/login/auth called with username='{username}' and password length={len(password)}")
     if not username or not password:
+        logger.warning("/login/auth missing username or password")
         return HTMLResponse(content="Missing username or password", status_code=status.HTTP_400_BAD_REQUEST)
-    
     result = login_user(request, username, password)
+    logger.info(f"/login/auth authentication result for '{username}': {result}")
     if result["success"]:
         return {"success": True}
     else:
@@ -184,10 +194,11 @@ async def login(request: Request):
 @app.post("/logout")
 async def logout(request: Request):
     """
-    Session-based logout endpoint. Clears the session.
+    Session-based logout endpoint. Clears the session and redirects to root.
     """
     result = logout_user(request)
-    return {"success": True}
+    # Redirect to root (which will redirect to login since user is now logged out)
+    return RedirectResponse(url="/", status_code=302)
 
 @app.get("/login", tags=["html"], response_class=HTMLResponse)
 async def login_page(request: Request):
@@ -198,11 +209,14 @@ async def login_page(request: Request):
     return get_login_page(request)
 
 @app.get("/login/test", tags=["debug"])
-async def test_auth(current_user: dict = Depends(get_current_user)):
+async def test_auth(_: None = Depends(get_current_user)):
     """
     Simple test endpoint to verify authentication is working.
     """
-    return {"message": "Authentication working", "user": current_user}
+    user = get_current_user_ctx()
+    if user is None:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    return {"message": "Authentication working", "user": user.model_dump()}
 
 @app.get("/logout", tags=["html"], response_class=HTMLResponse)
 async def logout_page(request: Request):
@@ -248,13 +262,15 @@ async def http_exception_handler(request: Request, exc: HTTPException):
 
 # --- API Endpoint Definition ---
 @app.post("/cortex", tags=["api"], response_model=ChatResponse)
-async def chat_endpoint(request: ChatRequest, current_user: dict = Depends(get_current_user)):
+async def chat_endpoint(request: ChatRequest, user: dict = Depends(get_current_user)):
     """
     HTTP entrypoint for chat interactions.
     Validates the request and calls the backend agent logic.
     Requires authentication via session-based authentication.
     Returns AI response with topic classification and updated history.
     """
+    if user is None:
+        raise HTTPException(status_code=401, detail="Not authenticated")
     logger = logging.getLogger(__name__)
     
     try:
@@ -263,7 +279,7 @@ async def chat_endpoint(request: ChatRequest, current_user: dict = Depends(get_c
         result_dict = process_chat_interaction(
             user_message=request.message,
             history=history_dicts,
-            username=current_user['username'],
+            username=user['username'],
             conversation_id=request.conversation_id
         )
         if result_dict is None:
@@ -292,53 +308,69 @@ async def read_root(request: Request):
         return RedirectResponse(url="/login", status_code=302)
 
 @app.get("/chat", tags=["html"],  response_class=HTMLResponse)
-async def chat_page(request: Request, current_user: dict = Depends(get_current_user)):
+async def chat_page(request: Request, user: dict = Depends(get_current_user)):
     """
     Debug console page.
     Requires authentication.
     """
-    return get_chat_page(request, current_user)
+    logger.info("/chat endpoint called")
+    logger.info(f"/chat endpoint - user: {user}")
+    if user is None:
+        logger.warning("/chat endpoint - no user, redirecting to login")
+        return RedirectResponse(url="/login", status_code=302)
+    logger.info(f"/chat endpoint - rendering chat page for user: {user['username']}")
+    return get_chat_page(request, user)
 
 @app.get("/profile")
-async def profile_page(request: Request, current_user: dict = Depends(get_current_user)):
+async def profile_page(request: Request, user: dict = Depends(get_current_user)):
     """
     User profile page.
     Requires authentication.
     """
-    return get_profile_page(request, current_user)
+    if user is None:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    return get_profile_page(request, user)
 
 @app.get("/parietal/system-info", tags=["api"])
-async def system_info_api(current_user: dict = Depends(get_current_user)):
+async def system_info_api(user: dict = Depends(get_current_user)):
     """
     Returns comprehensive system and hardware information for the debug console.
     Requires authentication.
     """
+    if user is None:
+        raise HTTPException(status_code=401, detail="Not authenticated")
     return get_comprehensive_system_info()
 
 @app.post("/parietal/benchmark", tags=["api"])
-async def benchmark_api(current_user: dict = Depends(get_current_user)):
+async def benchmark_api(user: dict = Depends(get_current_user)):
     """
     Runs comprehensive benchmark tests for LLM and tool performance.
     Requires authentication.
     """
+    if user is None:
+        raise HTTPException(status_code=401, detail="Not authenticated")
     from parietal.hardware import run_comprehensive_benchmark
     return run_comprehensive_benchmark()
 
 @app.post("/parietal/benchmark/llm", tags=["api"])
-async def llm_benchmark_api(current_user: dict = Depends(get_current_user)):
+async def llm_benchmark_api(user: dict = Depends(get_current_user)):
     """
     Runs LLM-specific benchmark tests.
     Requires authentication.
     """
+    if user is None:
+        raise HTTPException(status_code=401, detail="Not authenticated")
     from parietal.hardware import run_llm_benchmark
     return run_llm_benchmark()
 
 @app.post("/parietal/benchmark/tools", tags=["api"])
-async def tools_benchmark_api(current_user: dict = Depends(get_current_user)):
+async def tools_benchmark_api(user: dict = Depends(get_current_user)):
     """
     Runs tool-specific benchmark tests.
     Requires authentication.
     """
+    if user is None:
+        raise HTTPException(status_code=401, detail="Not authenticated")
     from parietal.hardware import run_tool_benchmark
     return run_tool_benchmark()
 
@@ -376,7 +408,7 @@ async def websocket_voice_endpoint(websocket: WebSocket):
         await websocket.close(code=1011)
 
 @app.get("/hippocampus/shortterm/files/get", tags=["api"])
-async def get_user_file(username: str, session_id: str, current_user: dict = Depends(get_current_user)):
+async def get_user_file(username: str, session_id: str, user: dict = Depends(get_current_user)):
     """
     Authenticated endpoint to get a user's session image file as base64.
     Args:
@@ -385,9 +417,11 @@ async def get_user_file(username: str, session_id: str, current_user: dict = Dep
     Returns:
         JSON with filename and base64-encoded PNG data
     """
-    # Only allow user to access their own files (unless admin)
-    if username != current_user["username"] and not current_user.get("is_admin", False):
-        raise HTTPException(status_code=403, detail="Not authorized to access this file.")
+    if user is None:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    # Only allow access to own files or admin
+    if username != user['username'] and (not user.get('roles') or 'admin' not in user.get('roles', [])):
+        raise HTTPException(status_code=403, detail="Not authorized to access this file")
     
     file_path = get_user_image_path(username, session_id, ext="png")
     if not os.path.exists(file_path):

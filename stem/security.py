@@ -18,6 +18,9 @@ from config import SYSTEM_DB_PATH
 from fastapi import HTTPException, Depends, status, Request
 from fastapi.security import HTTPBasic, HTTPBasicCredentials, HTTPBearer, HTTPAuthorizationCredentials
 from hippocampus.user_database import ensure_user_database, delete_user_database
+from stem.current_user_context import set_current_user, get_current_user_ctx
+from stem.models import UserModel
+import bcrypt
 
 # Set up logging for this module
 logger = logging.getLogger(__name__)
@@ -49,22 +52,45 @@ class SecurityManager:
         
         return password_hash, salt
     
-    def verify_password(self, password: str, stored_hash: str, stored_salt: str) -> bool:
+    def verify_password(self, password: str, stored_hash: str, stored_salt: str, username: str = None) -> bool:
         """
-        Verify a password against stored hash and salt.
+        Verify a password against stored hash and salt. If PBKDF2, migrate to bcrypt on success.
         Args:
             password (str): Plain text password to verify
             stored_hash (str): Stored password hash
             stored_salt (str): Stored salt
+            username (str): Username (for migration)
         Returns:
             bool: True if password matches, False otherwise
         """
         try:
-            # Hash the provided password with the stored salt
-            test_hash, _ = self.hash_password(password, stored_salt)
-            # Compare the hashes
-            return test_hash == stored_hash
+            # Detect PBKDF2 (hex, 64 chars)
+            if len(stored_hash) == 64 and all(c in '0123456789abcdef' for c in stored_hash.lower()):
+                # PBKDF2 verification
+                hash_obj = hashlib.pbkdf2_hmac('sha256', password.encode('utf-8'), stored_salt.encode('utf-8'), 100000)
+                password_hash = hash_obj.hex()
+                if password_hash == stored_hash:
+                    # Migrate to bcrypt if username is provided
+                    if username:
+                        bcrypt_hash, bcrypt_salt = self.hash_password(password)
+                        try:
+                            conn = sqlite3.connect(self.db_path)
+                            cursor = conn.cursor()
+                            cursor.execute("""
+                                UPDATE passwords SET password_hash=?, salt=?, updated_at=CURRENT_TIMESTAMP WHERE username=?
+                            """, (bcrypt_hash, bcrypt_salt, username))
+                            conn.commit()
+                            conn.close()
+                            logger.info(f"Migrated password for user '{username}' to bcrypt.")
+                        except Exception as e:
+                            logger.error(f"Failed to migrate password for user '{username}': {e}")
+                    return True
+                else:
+                    return False
+            else:
+                return bcrypt.checkpw(password.encode('utf-8'), stored_hash.encode('utf-8'))
         except Exception as e:
+            logger.error(f"Error verifying password: {e}")
             return False
     
     def create_user(self, username: str, first_name: str, last_name: str, 
@@ -86,10 +112,17 @@ class SecurityManager:
             conn = sqlite3.connect(self.db_path)
             cursor = conn.cursor()
             
+            # Insert user data into users table
             cursor.execute("""
-                INSERT INTO users (username, first_name, last_name, email, password_hash, salt)
-                VALUES (?, ?, ?, ?, ?, ?)
-            """, (username, first_name, last_name, email or "", password_hash, salt))
+                INSERT INTO users (username, first_name, last_name, email)
+                VALUES (?, ?, ?, ?)
+            """, (username, first_name, last_name, email or ""))
+            
+            # Insert password data into passwords table
+            cursor.execute("""
+                INSERT INTO passwords (username, password_hash, salt)
+                VALUES (?, ?, ?)
+            """, (username, password_hash, salt))
             
             conn.commit()
             conn.close()
@@ -123,16 +156,19 @@ class SecurityManager:
             conn = sqlite3.connect(self.db_path)
             cursor = conn.cursor()
             cursor.execute("""
-                SELECT username, first_name, last_name, email, password_hash, salt, created_at
-                FROM users WHERE username = ?
+                SELECT u.username, u.first_name, u.last_name, u.email, u.created_at,
+                       p.password_hash, p.salt
+                FROM users u
+                JOIN passwords p ON u.username = p.username
+                WHERE u.username = ?
             """, (username,))
             row = cursor.fetchone()
             conn.close()
             if not row:
+                logger.warning(f"authenticate_user: No user found for username='{username}'")
                 return None
-            db_username, first_name, last_name, email, stored_hash, stored_salt, created_at = row
-            # Verify password
-            if self.verify_password(password, stored_hash, stored_salt):
+            db_username, first_name, last_name, email, created_at, stored_hash, stored_salt = row
+            if self.verify_password(password, stored_hash, stored_salt, username=db_username):
                 return {
                     'username': db_username,
                     'first_name': first_name,
@@ -141,8 +177,10 @@ class SecurityManager:
                     'created_at': created_at
                 }
             else:
+                logger.warning(f"authenticate_user: Password verification failed for '{username}'")
                 return None
         except Exception as e:
+            logger.error(f"authenticate_user: Exception for '{username}': {e}")
             return None
     
     def get_user_roles(self, username: str) -> List[str]:
@@ -282,51 +320,32 @@ class SecurityManager:
     
     def user_has_group(self, username: str, group_name: str) -> bool:
         """
-        Check if a user belongs to a specific group.
+        Check if a user has a specific group.
         Args:
             username (str): Username
-            group_name (str): Group name to check
+            group_name (str): Group name
         Returns:
-            bool: True if user belongs to the group, False otherwise
-        """
-        return group_name in self.get_user_groups(username)
-    
-    def get_user_by_id(self, user_id: int) -> Optional[Dict[str, Any]]:
-        """
-        Get user information by ID.
-        Args:
-            user_id (int): User ID
-        Returns:
-            Optional[Dict[str, Any]]: User data if found, None otherwise
+            bool: True if user has the group, False otherwise
         """
         try:
             conn = sqlite3.connect(self.db_path)
             cursor = conn.cursor()
             
             cursor.execute("""
-                SELECT id, username, first_name, last_name, email, created_at
-                FROM users WHERE id = ?
-            """, (user_id,))
+                SELECT COUNT(*)
+                FROM groups g
+                JOIN user_groups ug ON g.id = ug.group_id
+                WHERE ug.username = ? AND g.group_name = ?
+            """, (username, group_name))
             
-            row = cursor.fetchone()
+            count = cursor.fetchone()[0]
             conn.close()
-            
-            if row:
-                return {
-                    'id': row[0],
-                    'username': row[1],
-                    'first_name': row[2],
-                    'last_name': row[3],
-                    'email': row[4],
-                    'created_at': row[5]
-                }
-            
-            return None
+            return count > 0
             
         except Exception as e:
-            logger.error(f"Error getting user by ID: {e}")
-            return None
-
+            logger.error(f"Error checking user group: {e}")
+            return False
+    
     def get_user_by_username(self, username: str) -> Optional[Dict[str, Any]]:
         """
         Get user information by username.
@@ -479,7 +498,7 @@ class SecurityManager:
             conn = sqlite3.connect(self.db_path)
             cursor = conn.cursor()
             
-            # Build update query dynamically
+            # Update user data
             updates = []
             params = []
             
@@ -492,24 +511,23 @@ class SecurityManager:
             if email is not None:
                 updates.append("email = ?")
                 params.append(email)
-            if password is not None:
-                password_hash, salt = self.hash_password(password)
-                updates.append("password_hash = ?")
-                updates.append("salt = ?")
-                params.append(password_hash)
-                params.append(salt)
             
             # Add updated_at timestamp
             updates.append("updated_at = CURRENT_TIMESTAMP")
             
-            if not updates:
-                return True  # Nothing to update
+            if updates:
+                # Add username for WHERE clause
+                params.append(username)
+                query = f"UPDATE users SET {', '.join(updates)} WHERE username = ?"
+                cursor.execute(query, params)
             
-            # Add username for WHERE clause
-            params.append(username)
-            
-            query = f"UPDATE users SET {', '.join(updates)} WHERE username = ?"
-            cursor.execute(query, params)
+            # Update password if provided
+            if password is not None:
+                password_hash, salt = self.hash_password(password)
+                cursor.execute("""
+                    INSERT OR REPLACE INTO passwords (username, password_hash, salt, updated_at)
+                    VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+                """, (username, password_hash, salt))
             
             conn.commit()
             conn.close()
@@ -614,9 +632,10 @@ class SecurityManager:
                     logger.warning("Cannot delete the last admin user")
                     return False
             
-            # Explicitly delete user roles and groups
+            # Explicitly delete user roles, groups, and password
             cursor.execute("DELETE FROM user_roles WHERE username = ?", (username,))
             cursor.execute("DELETE FROM user_groups WHERE username = ?", (username,))
+            cursor.execute("DELETE FROM passwords WHERE username = ?", (username,))
             
             # Delete user (cascading will handle user_roles and user_groups if set)
             cursor.execute("DELETE FROM users WHERE username = ?", (username,))
@@ -1016,6 +1035,7 @@ security_manager = SecurityManager()
 def get_current_user(request: Request):
     """
     Authenticate user from session and return user data.
+    Sets the current user in a context variable for this request.
     Args:
         request: FastAPI request object
     Returns:
@@ -1023,31 +1043,38 @@ def get_current_user(request: Request):
     Raises:
         HTTPException: If authentication fails
     """
+    # logger.info(f"get_current_user: Session data: {dict(request.session)}")
     username = request.session.get("user")
+    # logger.info(f"get_current_user: Username from session: {username}")
     if not username:
+        logger.warning("get_current_user: No username in session")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Not authenticated. Please log in.",
         )
     user = security_manager.get_user_by_username(username)
     if not user:
+        logger.warning(f"get_current_user: User '{username}' not found in database")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="User not found.",
         )
+    # Add roles to the user object
+    user['roles'] = security_manager.get_user_roles(username)
+    # logger.info(f"get_current_user: User authenticated successfully: {username}")
+    set_current_user(UserModel(**{k: user[k] for k in UserModel.model_fields if k in user}))
     return user
 
-def require_admin_role(current_user: dict = Depends(get_current_user)):
+def require_admin_role():
     """
-    Check if current user has admin role.
-    Args:
-        current_user: Authenticated user data
+    Check if current user has admin role using the context variable.
     Returns:
-        dict: User data if admin
+        UserModel: User data if admin
     Raises:
         HTTPException: If user doesn't have admin role
     """
-    if not security_manager.user_has_role(current_user['username'], 'admin'):
+    current_user = get_current_user_ctx()
+    if not current_user or not security_manager.user_has_role(current_user.username, 'admin'):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Admin role required"
@@ -1066,9 +1093,12 @@ def login_user(request: Request, username: str, password: str) -> dict:
     """
     user = security_manager.authenticate_user(username, password)
     if user:
+        logger.info(f"login_user: Setting session for user '{username}'")
         request.session["user"] = username
+        logger.info(f"login_user: Session set, session data: {dict(request.session)}")
         return {"success": True, "message": "Login successful"}
     else:
+        logger.warning(f"login_user: Authentication failed for user '{username}'")
         return {"success": False, "message": "Invalid username or password"}
 
 def logout_user(request: Request) -> dict:
@@ -1079,8 +1109,19 @@ def logout_user(request: Request) -> dict:
     Returns:
         dict: Result with success status
     """
-    request.session.clear()
-    return {"success": True, "message": "Logout successful"}
+    try:
+        # Clear all session data
+        request.session.clear()
+        
+        # Also explicitly remove the user key to be extra sure
+        if "user" in request.session:
+            del request.session["user"]
+        
+        logger.info("Session cleared successfully")
+        return {"success": True, "message": "Logout successful"}
+    except Exception as e:
+        logger.error(f"Error during logout: {e}")
+        return {"success": False, "message": "Logout failed"}
 
 def create_initial_admin():
     """Create the initial admin user with specified credentials and roles."""

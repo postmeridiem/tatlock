@@ -71,21 +71,22 @@ class TemplateManager:
     def get_common_context(self, request: Request, user: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """
         Get common context variables for all templates.
-        
-        Args:
-            request (Request): FastAPI request object
-            user (Optional[Dict[str, Any]]): Current user data
-            
-        Returns:
-            Dict[str, Any]: Common template context
         """
+        roles = []
+        if user:
+            user_roles = user.get('roles', [])
+            if isinstance(user_roles, str):
+                roles = [user_roles.lower()]
+            elif isinstance(user_roles, list):
+                roles = [str(r).lower() for r in user_roles]
+        is_admin = user is not None and 'admin' in roles
         return {
             'user': user,
             'request': request,
             'app_name': 'Tatlock',
             'app_version': '3.0.0',
             'is_authenticated': user is not None,
-            'is_admin': user and 'admin' in user.get('roles', []) if user else False
+            'is_admin': is_admin
         }
 
 # Global template manager instance

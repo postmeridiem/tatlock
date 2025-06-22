@@ -322,3 +322,21 @@ python -m pytest tests/test_hippocampus_remember.py -v
 - **[cortex/readme.md](../cortex/readme.md)** - Core agent logic documentation
 - **[stem/readme.md](../stem/readme.md)** - Core utilities and infrastructure
 - **[parietal/readme.md](../parietal/readme.md)** - Hardware monitoring and performance
+
+## 🧑‍💻 User Context and Authentication
+
+Tatlock now uses a context-based, per-request user model for all authentication and user info access, as described in the main developer documentation. All memory and user operations in the Hippocampus module are type-safe and use the current user context, which is set automatically for each request.
+
+- The current user is available as a Pydantic `UserModel` via:
+  ```python
+  from stem.current_user_context import get_current_user_ctx
+  user = get_current_user_ctx()
+  if user is None:
+      raise HTTPException(status_code=401, detail="Not authenticated")
+  # Access fields as attributes, e.g. user.username
+  ```
+- All memory and recall functions are scoped to the current user, ensuring privacy and isolation.
+- When passing the user to templates or tools, use `user.model_dump()` to convert to a dict if needed.
+- See the [developer.md](../developer.md) for full details and examples of the context-based user pattern.
+
+**Note:** All legacy patterns using `current_user` as a dict have been removed. Always use the context-based UserModel for user access in new code.

@@ -5,6 +5,9 @@ Tests for stem.security module.
 import pytest
 import uuid
 import time
+import tempfile
+import os
+from stem.security import SecurityManager
 
 
 class TestSecurityManager:
@@ -375,4 +378,219 @@ class TestSecurityManager:
         
         # Verify deletion
         deleted_group = security_manager.get_group_by_name(f"{group_name}_updated")
-        assert deleted_group is None 
+        assert deleted_group is None
+
+def test_user_creation_with_new_schema():
+    """Test that user creation works with the new passwords table schema."""
+    with tempfile.NamedTemporaryFile(suffix='.db', delete=False) as tmp_file:
+        db_path = tmp_file.name
+    
+    try:
+        # Create security manager with temporary database
+        security = SecurityManager()
+        security.db_path = db_path
+        
+        # Create the database tables
+        from stem.installation.database_setup import create_system_db_tables
+        create_system_db_tables(db_path)
+        
+        # Create a test user
+        success = security.create_user(
+            username='testuser',
+            first_name='Test',
+            last_name='User',
+            password='testpassword123',
+            email='test@example.com'
+        )
+        
+        assert success is True
+        
+        # Verify user was created in users table
+        import sqlite3
+        conn = sqlite3.connect(db_path)
+        cursor = conn.cursor()
+        
+        cursor.execute("SELECT username, first_name, last_name, email FROM users WHERE username = ?", ('testuser',))
+        user_data = cursor.fetchone()
+        assert user_data is not None
+        assert user_data[0] == 'testuser'
+        assert user_data[1] == 'Test'
+        assert user_data[2] == 'User'
+        assert user_data[3] == 'test@example.com'
+        
+        # Verify password was created in passwords table
+        cursor.execute("SELECT username, password_hash, salt FROM passwords WHERE username = ?", ('testuser',))
+        password_data = cursor.fetchone()
+        assert password_data is not None
+        assert password_data[0] == 'testuser'
+        assert password_data[1] is not None  # hash should exist
+        assert password_data[2] is not None  # salt should exist
+        
+        conn.close()
+        
+    finally:
+        # Clean up
+        if os.path.exists(db_path):
+            os.unlink(db_path)
+
+def test_user_authentication_with_new_schema():
+    """Test that user authentication works with the new passwords table schema."""
+    with tempfile.NamedTemporaryFile(suffix='.db', delete=False) as tmp_file:
+        db_path = tmp_file.name
+    
+    try:
+        # Create security manager with temporary database
+        security = SecurityManager()
+        security.db_path = db_path
+        
+        # Create the database tables
+        from stem.installation.database_setup import create_system_db_tables
+        create_system_db_tables(db_path)
+        
+        # Create a test user
+        success = security.create_user(
+            username='testuser',
+            first_name='Test',
+            last_name='User',
+            password='testpassword123',
+            email='test@example.com'
+        )
+        
+        assert success is True
+        
+        # Test authentication with correct password
+        user_data = security.authenticate_user('testuser', 'testpassword123')
+        assert user_data is not None
+        assert user_data['username'] == 'testuser'
+        assert user_data['first_name'] == 'Test'
+        assert user_data['last_name'] == 'User'
+        assert user_data['email'] == 'test@example.com'
+        assert 'password_hash' not in user_data  # Password data should not be returned
+        assert 'salt' not in user_data  # Salt should not be returned
+        
+        # Test authentication with incorrect password
+        user_data = security.authenticate_user('testuser', 'wrongpassword')
+        assert user_data is None
+        
+        # Test authentication with non-existent user
+        user_data = security.authenticate_user('nonexistent', 'testpassword123')
+        assert user_data is None
+        
+    finally:
+        # Clean up
+        if os.path.exists(db_path):
+            os.unlink(db_path)
+
+def test_user_update_with_new_schema():
+    """Test that user updates work with the new passwords table schema."""
+    with tempfile.NamedTemporaryFile(suffix='.db', delete=False) as tmp_file:
+        db_path = tmp_file.name
+    
+    try:
+        # Create security manager with temporary database
+        security = SecurityManager()
+        security.db_path = db_path
+        
+        # Create the database tables
+        from stem.installation.database_setup import create_system_db_tables
+        create_system_db_tables(db_path)
+        
+        # Create a test user
+        success = security.create_user(
+            username='testuser',
+            first_name='Test',
+            last_name='User',
+            password='testpassword123',
+            email='test@example.com'
+        )
+        
+        assert success is True
+        
+        # Update user information
+        success = security.update_user(
+            username='testuser',
+            first_name='Updated',
+            last_name='Name',
+            email='updated@example.com',
+            password='newpassword456'
+        )
+        
+        assert success is True
+        
+        # Verify user data was updated
+        user_data = security.get_user_by_username('testuser')
+        assert user_data is not None
+        assert user_data['first_name'] == 'Updated'
+        assert user_data['last_name'] == 'Name'
+        assert user_data['email'] == 'updated@example.com'
+        
+        # Verify password was updated
+        user_data = security.authenticate_user('testuser', 'newpassword456')
+        assert user_data is not None
+        assert user_data['username'] == 'testuser'
+        
+        # Old password should not work
+        user_data = security.authenticate_user('testuser', 'testpassword123')
+        assert user_data is None
+        
+    finally:
+        # Clean up
+        if os.path.exists(db_path):
+            os.unlink(db_path)
+
+def test_user_deletion_with_new_schema():
+    """Test that user deletion works with the new passwords table schema."""
+    with tempfile.NamedTemporaryFile(suffix='.db', delete=False) as tmp_file:
+        db_path = tmp_file.name
+    
+    try:
+        # Create security manager with temporary database
+        security = SecurityManager()
+        security.db_path = db_path
+        
+        # Create the database tables
+        from stem.installation.database_setup import create_system_db_tables
+        create_system_db_tables(db_path)
+        
+        # Create a test user
+        success = security.create_user(
+            username='testuser',
+            first_name='Test',
+            last_name='User',
+            password='testpassword123',
+            email='test@example.com'
+        )
+        
+        assert success is True
+        
+        # Verify user and password exist
+        user_data = security.get_user_by_username('testuser')
+        assert user_data is not None
+        
+        import sqlite3
+        conn = sqlite3.connect(db_path)
+        cursor = conn.cursor()
+        cursor.execute("SELECT username FROM passwords WHERE username = ?", ('testuser',))
+        password_exists = cursor.fetchone() is not None
+        assert password_exists
+        conn.close()
+        
+        # Delete user
+        success = security.delete_user('testuser')
+        assert success is True
+        
+        # Verify user and password were deleted
+        user_data = security.get_user_by_username('testuser')
+        assert user_data is None
+        
+        conn = sqlite3.connect(db_path)
+        cursor = conn.cursor()
+        cursor.execute("SELECT username FROM passwords WHERE username = ?", ('testuser',))
+        password_exists = cursor.fetchone() is not None
+        assert not password_exists
+        conn.close()
+        
+    finally:
+        # Clean up
+        if os.path.exists(db_path):
+            os.unlink(db_path) 

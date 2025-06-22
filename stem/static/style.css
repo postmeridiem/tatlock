@@ -607,6 +607,20 @@ body {
     color: var(--text-primary);
     border-bottom: 2px solid var(--accent-color);
     padding-bottom: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.section-title button {
+    font-size: 0.8em;
+    padding: 8px 16px;
+    margin: 0;
+}
+
+.section-title button .material-icons {
+    font-size: 16px;
+    margin-right: 4px;
 }
 
 /* Buttons */
@@ -2030,5 +2044,23 @@ table tr:last-child td, .user-table tr:last-child td {
 
 [data-theme="dark"] .listening-dots span {
     background: var(--highlight-cyan);
+}
+
+.form-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 20px;
+}
+
+.form-actions .button {
+    flex: 1;
+}
+
+.form-actions .button.secondary {
+    background: var(--text-muted);
+}
+
+.form-actions .button.secondary:hover {
+    background: var(--text-secondary);
 }
 

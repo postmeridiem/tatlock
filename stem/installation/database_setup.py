@@ -8,7 +8,11 @@ Assumes clean installs only - no migration support.
 
 import sqlite3
 import os
+import logging
 from typing import Any
+
+# Set up logging for this module
+logger = logging.getLogger(__name__)
 
 SYSTEM_DB_SCHEMA = """
 CREATE TABLE IF NOT EXISTS users (
@@ -16,10 +20,17 @@ CREATE TABLE IF NOT EXISTS users (
     first_name TEXT NOT NULL,
     last_name TEXT NOT NULL,
     email TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS passwords (
+    username TEXT PRIMARY KEY,
     password_hash TEXT NOT NULL,
     salt TEXT NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (username) REFERENCES users (username) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS roles (
@@ -122,6 +133,108 @@ CREATE TABLE IF NOT EXISTS personal_variables_join (
     FOREIGN KEY (variable_id) REFERENCES personal_variables (id) ON DELETE CASCADE
 );
 """
+
+def migrate_users_table(cursor: sqlite3.Cursor) -> None:
+    """
+    Migrate the users table from the old schema (with password_hash and salt columns)
+    to the new schema (with separate passwords table).
+    """
+    try:
+        # Check if the old schema exists (users table with password_hash column)
+        cursor.execute("PRAGMA table_info(users)")
+        columns = [column[1] for column in cursor.fetchall()]
+        
+        if 'password_hash' in columns and 'salt' in columns:
+            logger.info("Migrating users table to new schema...")
+            
+            # Create the new passwords table if it doesn't exist
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS passwords (
+                    username TEXT PRIMARY KEY,
+                    password_hash TEXT NOT NULL,
+                    salt TEXT NOT NULL,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (username) REFERENCES users (username) ON DELETE CASCADE
+                )
+            """)
+            
+            # Copy password data to the new passwords table
+            cursor.execute("""
+                INSERT OR IGNORE INTO passwords (username, password_hash, salt)
+                SELECT username, password_hash, salt FROM users
+                WHERE password_hash IS NOT NULL AND salt IS NOT NULL
+            """)
+            
+            # Create a temporary table with the new schema
+            cursor.execute("""
+                CREATE TABLE users_new (
+                    username TEXT PRIMARY KEY,
+                    first_name TEXT NOT NULL,
+                    last_name TEXT NOT NULL,
+                    email TEXT,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+            
+            # Copy user data to the new table (excluding password columns)
+            cursor.execute("""
+                INSERT INTO users_new (username, first_name, last_name, email, created_at, updated_at)
+                SELECT username, first_name, last_name, email, created_at, updated_at FROM users
+            """)
+            
+            # Drop the old table and rename the new one
+            cursor.execute("DROP TABLE users")
+            cursor.execute("ALTER TABLE users_new RENAME TO users")
+            
+            logger.info("Users table migration completed successfully")
+        else:
+            logger.info("Users table already uses new schema, no migration needed")
+            
+    except Exception as e:
+        logger.error(f"Error during users table migration: {e}")
+        raise
+
+def check_and_run_migrations(db_path: str) -> None:
+    """
+    Check for and run any necessary database migrations.
+    """
+    try:
+        conn = sqlite3.connect(db_path)
+        cursor = conn.cursor()
+        
+        # Check if migrations table exists
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS migrations (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                migration_name TEXT UNIQUE NOT NULL,
+                applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        
+        # Check if users table migration has been applied
+        cursor.execute("SELECT COUNT(*) FROM migrations WHERE migration_name = 'users_password_separation'")
+        migration_applied = cursor.fetchone()[0] > 0
+        
+        if not migration_applied:
+            logger.info("Running users table migration...")
+            migrate_users_table(cursor)
+            
+            # Mark migration as applied
+            cursor.execute("INSERT INTO migrations (migration_name) VALUES (?)", 
+                         ('users_password_separation',))
+            
+            conn.commit()
+            logger.info("Migration completed and recorded")
+        else:
+            logger.info("Users table migration already applied")
+        
+        conn.close()
+        
+    except Exception as e:
+        logger.error(f"Error during migration check: {e}")
+        raise
 
 def create_default_roles(cursor: sqlite3.Cursor) -> None:
     """Create default roles if they don't exist."""
@@ -234,6 +347,9 @@ def create_system_db_tables(db_path: str):
     
     conn.commit()
     conn.close()
+    
+    # Run any necessary migrations
+    check_and_run_migrations(db_path)
 
 def create_longterm_db_tables(db_path: str):
     """
@@ -254,4 +370,11 @@ def create_longterm_db_tables(db_path: str):
     create_default_personal_variables(cursor)
     
     conn.commit()
-    conn.close() 
+    conn.close()
+
+if __name__ == "__main__":
+    print("[Tatlock] Creating system.db and longterm.db (default)...")
+    create_system_db_tables("hippocampus/system.db")
+    os.makedirs("hippocampus/longterm", exist_ok=True)
+    create_longterm_db_tables("hippocampus/longterm/default.db")
+    print("[Tatlock] Database setup complete.") 

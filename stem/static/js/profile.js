@@ -1,7 +1,8 @@
 // Profile page specific functionality
 
 // Profile management
-let currentSection = 'profile-info';
+let currentSection = 'profile';
+let isEditing = false;
 
 function showProfileSection(sectionId) {
     // Hide all sections
@@ -18,16 +19,50 @@ function showProfileSection(sectionId) {
         item.classList.remove('active');
     });
     event.target.classList.add('active');
-    
-    // Load form data when showing edit section
-    if (sectionId === 'edit-profile') {
-        loadEditProfileForm();
+}
+
+// Toggle between view and edit modes
+function toggleProfileEdit() {
+    try {
+        isEditing = !isEditing;
+        const editBtn = document.getElementById('editProfileBtn');
+        const profileContent = document.getElementById('profile-content');
+        
+        if (!editBtn || !profileContent) {
+            console.error('Required elements not found: editBtn or profileContent');
+            return;
+        }
+        
+        if (isEditing) {
+            // Hide the edit button when in edit mode
+            editBtn.style.display = 'none';
+            loadProfileEditForm();
+        } else {
+            // Show the edit button when in view mode
+            editBtn.style.display = 'inline-block';
+            editBtn.textContent = 'Edit Profile';
+            editBtn.classList.remove('primary');
+            editBtn.classList.add('secondary');
+            loadProfileInfo();
+        }
+    } catch (error) {
+        console.error('Error in toggleProfileEdit:', error);
+        if (typeof snackbar !== 'undefined') {
+            snackbar.error('Error toggling profile edit mode: ' + error.message);
+        }
     }
 }
 
-// Load profile information
+// Load profile information in view mode
 async function loadProfileInfo() {
-    const profileInfoContent = document.getElementById('profile-info-content');
+    const profileContent = document.getElementById('profile-content');
+    
+    if (!profileContent) {
+        console.error('profile-content element not found in loadProfileInfo');
+        // Retry after a short delay
+        setTimeout(loadProfileInfo, 100);
+        return;
+    }
     
     try {
         const response = await fetch('/profile/', {
@@ -37,7 +72,7 @@ async function loadProfileInfo() {
         
         const profile = await response.json();
         
-        profileInfoContent.innerHTML = `
+        const infoHtml = `
             <div class="profile-grid">
                 <div class="profile-item">
                     <label>Username</label>
@@ -72,55 +107,90 @@ async function loadProfileInfo() {
                     })}</span>
                 </div>
             </div>
-            <div class="profile-actions">
-                <button class="button" onclick="showProfileSection('edit-profile')">Edit Profile</button>
-            </div>
         `;
         
+        profileContent.innerHTML = infoHtml;
+        
     } catch (error) {
-        profileInfoContent.innerHTML = `
-            <div class="error">
-                Error loading profile: ${error.message}
-            </div>
-        `;
+        console.error('Error in loadProfileInfo:', error);
+        if (profileContent) {
+            profileContent.innerHTML = `
+                <div class="error">
+                    Error loading profile: ${error.message}
+                </div>
+            `;
+        }
     }
 }
 
-// Load edit profile form
-async function loadEditProfileForm() {
+// Load profile information in edit mode
+async function loadProfileEditForm() {
+    const profileContent = document.getElementById('profile-content');
+    
+    if (!profileContent) {
+        console.error('profile-content element not found in loadProfileEditForm');
+        // Retry after a short delay
+        setTimeout(loadProfileEditForm, 100);
+        return;
+    }
+    
     try {
-        const response = await fetch('/profile/');
+        const response = await fetch('/profile/', {
+            credentials: 'include'  // Include session cookies
+        });
         if (!response.ok) throw new Error('Failed to load profile');
         
         const profile = await response.json();
         
-        document.getElementById('username').value = profile.username;
-        document.getElementById('firstName').value = profile.first_name || '';
-        document.getElementById('lastName').value = profile.last_name || '';
-        document.getElementById('email').value = profile.email || '';
+        const formHtml = `
+            <form id="profileForm">
+                <div class="form-group">
+                    <label for="username">Username</label>
+                    <input type="text" id="username" value="${profile.username}" readonly class="readonly-field">
+                    <small>Username cannot be changed</small>
+                </div>
+                <div class="form-group">
+                    <label for="firstName">First Name *</label>
+                    <input type="text" id="firstName" value="${profile.first_name || ''}" required>
+                </div>
+                <div class="form-group">
+                    <label for="lastName">Last Name *</label>
+                    <input type="text" id="lastName" value="${profile.last_name || ''}" required>
+                </div>
+                <div class="form-group">
+                    <label for="email">Email</label>
+                    <input type="email" id="email" value="${profile.email || ''}">
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="button">
+                        Save Profile
+                    </button>
+                    <button type="button" class="button secondary" onclick="toggleProfileEdit()">
+                        Cancel
+                    </button>
+                </div>
+            </form>
+        `;
+        
+        profileContent.innerHTML = formHtml;
+        
+        // Set up form submission
+        setupProfileFormSubmission();
         
     } catch (error) {
-        console.error('Error loading profile for edit:', error);
+        console.error('Error in loadProfileEditForm:', error);
+        if (profileContent) {
+            profileContent.innerHTML = `
+                <div class="error">
+                    Error loading profile: ${error.message}
+                </div>
+            `;
+        }
     }
 }
 
-// Profile form submission
-document.addEventListener('DOMContentLoaded', function() {
-    loadProfileInfo();
-    setupProfileEventListeners();
-    
-    // Initialize chat with logging disabled for profile page
-    initializeChat({
-        enableLogging: false,
-        debugMode: false,
-        sidebarTitle: 'Profile Assistant',
-        welcomeMessage: 'Good day, sir. I am Tatlock, your AI assistant. Pray, what administrative matters require my attention today?',
-        placeholder: 'Ask about profile settings...'
-    });
-}); 
-
-function setupProfileEventListeners() {
-    // Profile form submission
+// Set up profile form submission
+function setupProfileFormSubmission() {
     const profileForm = document.getElementById('profileForm');
     if (profileForm) {
         profileForm.addEventListener('submit', async function(e) {
@@ -144,15 +214,54 @@ function setupProfileEventListeners() {
                 
                 const result = await response.json();
                 snackbar.success('Profile updated successfully!');
-                showProfileSection('profile-info');
-                loadProfileInfo();
+                isEditing = false;
+                toggleProfileEdit(); // This will switch back to view mode
                 
             } catch (error) {
                 snackbar.error('Error updating profile: ' + error.message);
             }
         });
     }
+}
+
+// Profile form submission
+function initializeProfile() {
+    // Wait for DOM to be ready
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initializeProfile);
+        return;
+    }
     
+    // Check if required elements exist
+    const profileContent = document.getElementById('profile-content');
+    if (!profileContent) {
+        console.error('profile-content element not found, retrying in 100ms...');
+        setTimeout(initializeProfile, 100);
+        return;
+    }
+    
+    console.log('Profile page initializing...');
+    loadProfileInfo();
+    setupPasswordEventListeners();
+    
+    // Initialize chat with logging disabled for profile page
+    if (typeof initializeChat === 'function') {
+        initializeChat({
+            enableLogging: false,
+            debugMode: false,
+            sidebarTitle: 'Profile Assistant',
+            welcomeMessage: 'Good day, sir. I am Tatlock, your AI assistant. Pray, what administrative matters require my attention today?',
+            placeholder: 'Ask about profile settings...'
+        });
+    } else {
+        console.warn('initializeChat function not available');
+    }
+}
+
+// Start initialization
+initializeProfile();
+
+function setupPasswordEventListeners() {
     // Password form submission
     const passwordForm = document.getElementById('passwordForm');
     if (passwordForm) {

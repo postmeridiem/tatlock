@@ -1123,6 +1123,64 @@ Security standards:
 
 Following these coding standards ensures consistent, maintainable, and secure code throughout the Tatlock project.
 
+## User Authentication and Context Access
+
+### Context-Based User Model Pattern
+
+Tatlock now uses a context-based, per-request user model for all authentication and user info access. This ensures type safety, eliminates the need to pass usernames/roles through function calls, and makes user access DRY and consistent across the codebase.
+
+#### How it Works
+- The dependency `Depends(get_current_user)` sets the current user in a context variable for the duration of the request.
+- The user is stored as a Pydantic `UserModel` (see `stem/models.py`), which matches the `users` table (excluding password and salt).
+- You can access the current user anywhere in the request using:
+  ```python
+  from stem.current_user_context import get_current_user_ctx
+  user = get_current_user_ctx()
+  if user is None:
+      raise HTTPException(status_code=401, detail="Not authenticated")
+  # Access fields as attributes:
+  username = user.username
+  roles = security_manager.get_user_roles(user.username)
+  ```
+- When passing the user to a template function (e.g., `get_chat_page`, `get_profile_page`), convert the user to a dict:
+  ```python
+  return get_chat_page(request, user.model_dump())
+  ```
+
+#### Endpoint Example
+```python
+@app.get("/profile")
+async def profile_page(request: Request, _: None = Depends(get_current_user)):
+    user = get_current_user_ctx()
+    if user is None:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    return get_profile_page(request, user.model_dump())
+```
+
+#### Security/Admin Example
+```python
+def require_admin_role():
+    current_user = get_current_user_ctx()
+    if not current_user or not security_manager.user_has_role(current_user.username, 'admin'):
+        raise HTTPException(status_code=403, detail="Admin role required")
+    return current_user
+```
+
+#### Benefits
+- **Type Safety:** All user access is via a Pydantic model, not a dict.
+- **No More Passing Usernames:** No need to pass username/roles through function calls.
+- **Per-Request Isolation:** Each request gets its own user context, safe for async/concurrent code.
+- **Consistent Template Usage:** Always pass `user.model_dump()` to templates.
+
+#### When Adding New Endpoints
+- Use `_: None = Depends(get_current_user)` in the signature.
+- Use `user = get_current_user_ctx()` in the body.
+- Raise 401 if user is None.
+- Pass `user.model_dump()` to templates.
+
+#### Legacy Pattern Removal
+- All legacy `current_user: dict = Depends(get_current_user)` and dict key access have been removed. Do not use dict-based user access in new code.
+
 ## Voice Input Implementation
 
 ### Overview
@@ -1222,3 +1280,188 @@ python temporal/integration_example.py server
 - **Voice Synthesis**: Text-to-speech responses
 - **Multi-language Support**: International voice recognition
 - **Hardware Integration**: Raspberry Pi and embedded systems 
+
+## Database Schema
+
+### System Database (system.db)
+
+The system database contains user authentication and authorization data.
+
+#### Tables
+
+- **users**: User account information (username, first_name, last_name, email, timestamps)
+- **passwords**: Password hashes and salts (separated from users table for security)
+- **roles**: Available roles in the system
+- **groups**: Available groups in the system
+- **user_roles**: Many-to-many relationship between users and roles
+- **user_groups**: Many-to-many relationship between users and groups
+- **migrations**: Tracks applied database migrations
+
+#### Password Table Migration
+
+The password data has been migrated from the `users` table to a separate `passwords` table for better security and data organization. The migration system automatically handles this transition:
+
+- **Old Schema**: `users` table contained `password_hash` and `salt` columns
+- **New Schema**: `passwords` table with foreign key relationship to `users` table
+- **Migration**: Automatic migration preserves existing data and updates schema
+- **Benefits**: Better separation of concerns, improved security, easier password management
+
+The migration is idempotent and safe to run multiple times.
+
+### Long-term Memory Database (longterm/<username>.db)
+
+Each user has their own long-term memory database for storing conversation history and personal data.
+
+#### Tables
+
+- **memories**: Individual conversation interactions
+- **topics**: Available conversation topics
+- **memory_topics**: Many-to-many relationship between memories and topics
+- **conversation_topics**: Topic tracking per conversation
+- **conversations**: Conversation metadata
+- **rise_and_shine**: System instructions and prompts
+- **personal_variables_keys**: Keys for personal variables
+- **personal_variables**: Values for personal variables
+- **personal_variables_join**: Many-to-many relationship between keys and values
+
+## User Context Management
+
+### Current User Context
+
+The application uses a context-local user storage system to avoid passing user data through function parameters:
+
+```python
+from stem.current_user_context import get_current_user_ctx, UserModel
+
+# In FastAPI dependency
+def get_current_user(request: Request):
+    # ... authentication logic ...
+    user_model = UserModel(
+        username=user_data['username'],
+        first_name=user_data['first_name'],
+        last_name=user_data['last_name'],
+        email=user_data['email'],
+        roles=roles,
+        groups=groups
+    )
+    set_current_user_ctx(user_model)
+    return user_model
+
+# In endpoint functions
+def some_endpoint(_: None = Depends(get_current_user)):
+    user = get_current_user_ctx()
+    # Access user attributes directly
+    username = user.username
+    roles = user.roles
+```
+
+### Benefits
+
+- **Type Safety**: UserModel provides type hints and validation
+- **Clean APIs**: No need to pass user data through function parameters
+- **Consistency**: Uniform user access pattern across the application
+- **Security**: User data is properly encapsulated and validated
+
+## Security
+
+### Password Management
+
+Passwords are stored securely using:
+
+- **Hashing**: bcrypt with configurable rounds
+- **Salting**: Unique salt per password
+- **Separation**: Password data stored in separate table
+- **Validation**: Pydantic models for type safety
+
+### Authentication Flow
+
+1. User submits username/password
+2. System retrieves password hash and salt from `passwords` table
+3. Password is verified using bcrypt
+4. User session is created with context-local storage
+5. User data is available throughout the request lifecycle
+
+### Authorization
+
+- **Roles**: Fine-grained permissions via role system
+- **Groups**: User grouping for bulk operations
+- **Middleware**: Automatic role checking via dependencies
+- **Context**: User roles available in current user context
+
+## Testing
+
+### Database Tests
+
+Tests use temporary SQLite databases to ensure isolation:
+
+```python
+def test_example():
+    with tempfile.NamedTemporaryFile(suffix='.db', delete=False) as tmp_file:
+        db_path = tmp_file.name
+    
+    try:
+        # Test with temporary database
+        create_system_db_tables(db_path)
+        # ... test logic ...
+    finally:
+        # Clean up
+        if os.path.exists(db_path):
+            os.unlink(db_path)
+```
+
+### Migration Tests
+
+Migration tests verify that database schema changes work correctly:
+
+- **Forward Migration**: Old schema → New schema
+- **Data Preservation**: Existing data is maintained
+- **Idempotency**: Multiple runs don't cause issues
+- **Rollback Safety**: Tests verify data integrity
+
+## Code Organization
+
+### Module Structure
+
+- **stem/**: Core application logic
+  - **security.py**: Authentication and authorization
+  - **current_user_context.py**: User context management
+  - **installation/**: Database setup and migrations
+- **hippocampus/**: Memory and conversation management
+- **cortex/**: AI agent logic
+- **tests/**: Comprehensive test suite
+
+### Patterns
+
+- **Dependency Injection**: FastAPI dependencies for authentication
+- **Context Variables**: Thread-local storage for user data
+- **Pydantic Models**: Type-safe data structures
+- **Migration System**: Automatic database schema updates
+- **Test Isolation**: Temporary databases for testing
+
+## Development Guidelines
+
+### Adding New Features
+
+1. **Database Changes**: Use migration system for schema updates
+2. **User Context**: Access user data via `get_current_user_ctx()`
+3. **Type Safety**: Use Pydantic models for data validation
+4. **Testing**: Write comprehensive tests with temporary databases
+5. **Documentation**: Update relevant documentation
+
+### Security Considerations
+
+- **Password Storage**: Always use separate passwords table
+- **User Context**: Validate user data in dependencies
+- **Input Validation**: Use Pydantic models for all inputs
+- **Session Management**: Proper session cleanup on logout
+- **Authorization**: Check roles and permissions appropriately
+
+### Database Migrations
+
+When adding new database changes:
+
+1. **Schema Updates**: Modify `SYSTEM_DB_SCHEMA` or `LONGTERM_DB_SCHEMA`
+2. **Migration Function**: Create migration function in `database_setup.py`
+3. **Migration Tracking**: Add migration record to `migrations` table
+4. **Testing**: Write tests for migration process
+5. **Documentation**: Update schema documentation

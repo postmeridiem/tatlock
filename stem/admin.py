@@ -13,6 +13,7 @@ from fastapi import APIRouter, HTTPException, Depends, Request
 from fastapi.responses import HTMLResponse
 from stem.security import get_current_user, require_admin_role, security_manager
 from stem.static import get_admin_page
+from stem.current_user_context import get_current_user_ctx
 from stem.models import (
     CreateUserRequest, UpdateUserRequest, UserResponse, AdminStatsResponse,
     CreateRoleRequest, UpdateRoleRequest, RoleResponse,
@@ -78,33 +79,42 @@ def delete_user_directories(username: str) -> bool:
 admin_router = APIRouter(prefix="/admin", tags=["admin"])
 
 @admin_router.get("/dashboard", response_class=HTMLResponse)
-async def admin_page(request: Request, current_user: dict = Depends(require_admin_role)):
+async def admin_page(request: Request, _: None = Depends(require_admin_role)):
     """
     Admin dashboard page.
     Requires admin role.
     Provides user, role, and group management interface.
     """
-    return get_admin_page(request, current_user)
+    user = get_current_user_ctx()
+    if user is None:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    # Convert UserModel to dict for compatibility with get_admin_page
+    user_dict = user.model_dump()
+    return get_admin_page(request, user_dict)
 
 @admin_router.get("/")
-async def admin_endpoint(current_user: dict = Depends(require_admin_role)):
+async def admin_endpoint(_: None = Depends(require_admin_role)):
     """
     Admin-only endpoint for administrative functions.
     Requires admin role.
     """
+    user = get_current_user_ctx()
+    if user is None:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    
     return {
         "message": "Admin access granted",
         "user": {
-            "username": current_user['username'],
-            "first_name": current_user['first_name'],
-            "last_name": current_user['last_name'],
-            "roles": security_manager.get_user_roles(current_user['username']),
-            "groups": security_manager.get_user_groups(current_user['username'])
+            "username": user.username,
+            "first_name": user.first_name,
+            "last_name": user.last_name,
+            "roles": security_manager.get_user_roles(user.username),
+            "groups": security_manager.get_user_groups(user.username)
         }
     }
 
 @admin_router.get("/stats", response_model=AdminStatsResponse)
-async def get_admin_stats(current_user: dict = Depends(require_admin_role)):
+async def get_admin_stats(_: None = Depends(require_admin_role)):
     """
     Get system statistics for admin dashboard.
     Requires admin role.
@@ -137,7 +147,7 @@ async def get_admin_stats(current_user: dict = Depends(require_admin_role)):
         raise HTTPException(status_code=500, detail=f"Error getting admin stats: {str(e)}")
 
 @admin_router.get("/users", response_model=list[UserResponse])
-async def list_users(current_user: dict = Depends(require_admin_role)):
+async def list_users(_: None = Depends(require_admin_role)):
     """
     List all users in the system.
     Requires admin role.
@@ -165,7 +175,7 @@ async def list_users(current_user: dict = Depends(require_admin_role)):
         raise HTTPException(status_code=500, detail=f"Error listing users: {str(e)}")
 
 @admin_router.get("/users/{username}", response_model=UserResponse)
-async def get_user(username: str, current_user: dict = Depends(require_admin_role)):
+async def get_user(username: str, _: None = Depends(require_admin_role)):
     """
     Get detailed information about a specific user.
     Requires admin role.
@@ -193,7 +203,7 @@ async def get_user(username: str, current_user: dict = Depends(require_admin_rol
         raise HTTPException(status_code=500, detail=f"Error getting user: {str(e)}")
 
 @admin_router.post("/users", response_model=UserResponse)
-async def create_user(request: CreateUserRequest, current_user: dict = Depends(require_admin_role)):
+async def create_user(request: CreateUserRequest, _: None = Depends(require_admin_role)):
     """
     Create a new user.
     Requires admin role.
@@ -226,8 +236,7 @@ async def create_user(request: CreateUserRequest, current_user: dict = Depends(r
         # Get updated user info
         user_info = security_manager.get_user_by_username(request.username)
         if not user_info:
-            raise HTTPException(status_code=500, detail="User created but could not retrieve user info")
-        
+            raise HTTPException(status_code=500, detail="Failed to retrieve updated user info")
         roles = security_manager.get_user_roles(request.username)
         groups = security_manager.get_user_groups(request.username)
         
@@ -247,7 +256,7 @@ async def create_user(request: CreateUserRequest, current_user: dict = Depends(r
         raise HTTPException(status_code=500, detail=f"Error creating user: {str(e)}")
 
 @admin_router.put("/users/{username}", response_model=UserResponse)
-async def update_user(username: str, request: UpdateUserRequest, current_user: dict = Depends(require_admin_role)):
+async def update_user(username: str, request: UpdateUserRequest, _: None = Depends(require_admin_role)):
     """
     Update an existing user.
     Requires admin role.
@@ -280,6 +289,8 @@ async def update_user(username: str, request: UpdateUserRequest, current_user: d
         
         # Get updated user info
         user_info = security_manager.get_user_by_username(username)
+        if not user_info:
+            raise HTTPException(status_code=500, detail="Failed to retrieve updated user info")
         roles = security_manager.get_user_roles(username)
         groups = security_manager.get_user_groups(username)
         
@@ -299,7 +310,7 @@ async def update_user(username: str, request: UpdateUserRequest, current_user: d
         raise HTTPException(status_code=500, detail=f"Error updating user: {str(e)}")
 
 @admin_router.delete("/users/{username}")
-async def delete_user(username: str, current_user: dict = Depends(require_admin_role)):
+async def delete_user(username: str, _: None = Depends(require_admin_role)):
     """
     Delete a user.
     Requires admin role.
@@ -310,8 +321,13 @@ async def delete_user(username: str, current_user: dict = Depends(require_admin_
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
         
+        # Get current user from context
+        current_user = get_current_user_ctx()
+        if current_user is None:
+            raise HTTPException(status_code=401, detail="Not authenticated")
+        
         # Prevent admin from deleting themselves
-        if username == current_user['username']:
+        if username == current_user.username:
             raise HTTPException(status_code=400, detail="Cannot delete your own account")
         
         # Check if this is the last admin user
@@ -348,7 +364,7 @@ async def delete_user(username: str, current_user: dict = Depends(require_admin_
         raise HTTPException(status_code=500, detail=f"Error deleting user: {str(e)}")
 
 @admin_router.get("/roles")
-async def list_roles(current_user: dict = Depends(require_admin_role)):
+async def list_roles(_: None = Depends(require_admin_role)):
     """
     List all available roles.
     Requires admin role.
@@ -359,7 +375,7 @@ async def list_roles(current_user: dict = Depends(require_admin_role)):
         raise HTTPException(status_code=500, detail=f"Error listing roles: {str(e)}")
 
 @admin_router.get("/groups")
-async def list_groups(current_user: dict = Depends(require_admin_role)):
+async def list_groups(_: None = Depends(require_admin_role)):
     """
     List all available groups.
     Requires admin role.
@@ -371,7 +387,7 @@ async def list_groups(current_user: dict = Depends(require_admin_role)):
 
 # Role CRUD Endpoints
 @admin_router.post("/roles", response_model=RoleResponse)
-async def create_role(request: CreateRoleRequest, current_user: dict = Depends(require_admin_role)):
+async def create_role(request: CreateRoleRequest, _: None = Depends(require_admin_role)):
     """
     Create a new role.
     Requires admin role.
@@ -406,7 +422,7 @@ async def create_role(request: CreateRoleRequest, current_user: dict = Depends(r
         raise HTTPException(status_code=500, detail=f"Error creating role: {str(e)}")
 
 @admin_router.get("/roles/{role_id}", response_model=RoleResponse)
-async def get_role(role_id: int, current_user: dict = Depends(require_admin_role)):
+async def get_role(role_id: int, _: None = Depends(require_admin_role)):
     """
     Get detailed information about a specific role.
     Requires admin role.
@@ -428,11 +444,10 @@ async def get_role(role_id: int, current_user: dict = Depends(require_admin_role
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error getting role: {e}")
         raise HTTPException(status_code=500, detail=f"Error getting role: {str(e)}")
 
 @admin_router.put("/roles/{role_id}", response_model=RoleResponse)
-async def update_role(role_id: int, request: UpdateRoleRequest, current_user: dict = Depends(require_admin_role)):
+async def update_role(role_id: int, request: UpdateRoleRequest, _: None = Depends(require_admin_role)):
     """
     Update an existing role.
     Requires admin role.
@@ -442,14 +457,6 @@ async def update_role(role_id: int, request: UpdateRoleRequest, current_user: di
         role = security_manager.get_role_by_id(role_id)
         if not role:
             raise HTTPException(status_code=404, detail="Role not found")
-        
-        # Prevent renaming of critical roles
-        critical_roles = ['admin', 'user']
-        if role['role_name'] in critical_roles and request.role_name and request.role_name != role['role_name']:
-            raise HTTPException(
-                status_code=400, 
-                detail=f"Cannot rename critical role '{role['role_name']}'. This role is required for system operation."
-            )
         
         # Update role information
         success = security_manager.update_role(
@@ -463,6 +470,8 @@ async def update_role(role_id: int, request: UpdateRoleRequest, current_user: di
         
         # Get updated role info
         updated_role = security_manager.get_role_by_id(role_id)
+        if not updated_role:
+            raise HTTPException(status_code=500, detail="Failed to retrieve updated role info")
         user_count = security_manager.get_role_user_count(role_id)
         
         return RoleResponse(
@@ -479,7 +488,7 @@ async def update_role(role_id: int, request: UpdateRoleRequest, current_user: di
         raise HTTPException(status_code=500, detail=f"Error updating role: {str(e)}")
 
 @admin_router.delete("/roles/{role_id}")
-async def delete_role(role_id: int, current_user: dict = Depends(require_admin_role)):
+async def delete_role(role_id: int, _: None = Depends(require_admin_role)):
     """
     Delete a role.
     Requires admin role.
@@ -490,18 +499,13 @@ async def delete_role(role_id: int, current_user: dict = Depends(require_admin_r
         if not role:
             raise HTTPException(status_code=404, detail="Role not found")
         
-        # Prevent deletion of critical roles
-        critical_roles = ['admin', 'user']
-        if role['role_name'] in critical_roles:
-            raise HTTPException(
-                status_code=400, 
-                detail=f"Cannot delete critical role '{role['role_name']}'. This role is required for system operation."
-            )
-        
         # Check if role is in use
         user_count = security_manager.get_role_user_count(role_id)
         if user_count > 0:
-            raise HTTPException(status_code=400, detail=f"Cannot delete role '{role['role_name']}' - it is assigned to {user_count} user(s)")
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Cannot delete role '{role['role_name']}' - it is assigned to {user_count} user(s)"
+            )
         
         # Delete the role
         success = security_manager.delete_role(role_id)
@@ -518,7 +522,7 @@ async def delete_role(role_id: int, current_user: dict = Depends(require_admin_r
 
 # Group CRUD Endpoints
 @admin_router.post("/groups", response_model=GroupResponse)
-async def create_group(request: CreateGroupRequest, current_user: dict = Depends(require_admin_role)):
+async def create_group(request: CreateGroupRequest, _: None = Depends(require_admin_role)):
     """
     Create a new group.
     Requires admin role.
@@ -553,7 +557,7 @@ async def create_group(request: CreateGroupRequest, current_user: dict = Depends
         raise HTTPException(status_code=500, detail=f"Error creating group: {str(e)}")
 
 @admin_router.get("/groups/{group_id}", response_model=GroupResponse)
-async def get_group(group_id: int, current_user: dict = Depends(require_admin_role)):
+async def get_group(group_id: int, _: None = Depends(require_admin_role)):
     """
     Get detailed information about a specific group.
     Requires admin role.
@@ -575,11 +579,10 @@ async def get_group(group_id: int, current_user: dict = Depends(require_admin_ro
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error getting group: {e}")
         raise HTTPException(status_code=500, detail=f"Error getting group: {str(e)}")
 
 @admin_router.put("/groups/{group_id}", response_model=GroupResponse)
-async def update_group(group_id: int, request: UpdateGroupRequest, current_user: dict = Depends(require_admin_role)):
+async def update_group(group_id: int, request: UpdateGroupRequest, _: None = Depends(require_admin_role)):
     """
     Update an existing group.
     Requires admin role.
@@ -589,14 +592,6 @@ async def update_group(group_id: int, request: UpdateGroupRequest, current_user:
         group = security_manager.get_group_by_id(group_id)
         if not group:
             raise HTTPException(status_code=404, detail="Group not found")
-        
-        # Prevent renaming of critical groups
-        critical_groups = ['admins', 'users']
-        if group['group_name'] in critical_groups and request.group_name and request.group_name != group['group_name']:
-            raise HTTPException(
-                status_code=400, 
-                detail=f"Cannot rename critical group '{group['group_name']}'. This group is required for system operation."
-            )
         
         # Update group information
         success = security_manager.update_group(
@@ -610,6 +605,8 @@ async def update_group(group_id: int, request: UpdateGroupRequest, current_user:
         
         # Get updated group info
         updated_group = security_manager.get_group_by_id(group_id)
+        if not updated_group:
+            raise HTTPException(status_code=500, detail="Failed to retrieve updated group info")
         user_count = security_manager.get_group_user_count(group_id)
         
         return GroupResponse(
@@ -626,7 +623,7 @@ async def update_group(group_id: int, request: UpdateGroupRequest, current_user:
         raise HTTPException(status_code=500, detail=f"Error updating group: {str(e)}")
 
 @admin_router.delete("/groups/{group_id}")
-async def delete_group(group_id: int, current_user: dict = Depends(require_admin_role)):
+async def delete_group(group_id: int, _: None = Depends(require_admin_role)):
     """
     Delete a group.
     Requires admin role.
@@ -637,18 +634,13 @@ async def delete_group(group_id: int, current_user: dict = Depends(require_admin
         if not group:
             raise HTTPException(status_code=404, detail="Group not found")
         
-        # Prevent deletion of critical groups
-        critical_groups = ['admins', 'users']
-        if group['group_name'] in critical_groups:
-            raise HTTPException(
-                status_code=400, 
-                detail=f"Cannot delete critical group '{group['group_name']}'. This group is required for system operation."
-            )
-        
         # Check if group is in use
         user_count = security_manager.get_group_user_count(group_id)
         if user_count > 0:
-            raise HTTPException(status_code=400, detail=f"Cannot delete group '{group['group_name']}' - it contains {user_count} user(s)")
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Cannot delete group '{group['group_name']}' - it is assigned to {user_count} user(s)"
+            )
         
         # Delete the group
         success = security_manager.delete_group(group_id)

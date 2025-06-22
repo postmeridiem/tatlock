@@ -132,7 +132,7 @@
             <div class="login-subtitle">Sign in to your account</div>
         </div>
         
-        <form class="login-form" id="loginForm">
+        <form class="login-form" id="login-form">
             <div class="form-group">
                 <label for="username">Username</label>
                 <input type="text" id="username" name="username" required autocomplete="username">
@@ -161,64 +161,8 @@
 
 {% block scripts %}
 <script src="/static/js/common.js"></script>
+<script src="/static/js/login.js"></script>
 <script>
-    document.getElementById('loginForm').addEventListener('submit', async function(e) {
-        e.preventDefault();
-        
-        const username = document.getElementById('username').value;
-        const password = document.getElementById('password').value;
-        const loginBtn = document.getElementById('loginBtn');
-        const btnText = loginBtn.querySelector('.btn-text');
-        const loading = loginBtn.querySelector('.loading');
-        const errorMessage = document.getElementById('errorMessage');
-        
-        console.log('Login attempt for username:', username);
-        
-        // Show loading state
-        loginBtn.disabled = true;
-        btnText.style.display = 'none';
-        loading.style.display = 'inline';
-        errorMessage.style.display = 'none';
-        
-        try {
-            console.log('Sending request to /login/auth...');
-            // Send credentials to /login/auth as JSON
-            const url = new URL('/login/auth', window.location.origin);
-            const response = await fetch(url, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ username, password })
-            });
-            
-            console.log('Response status:', response.status);
-            console.log('Response headers:', response.headers);
-            
-            if (response.ok) {
-                console.log('Login successful, redirecting...');
-                // Login successful, redirect to the original page or default
-                const urlParams = new URLSearchParams(window.location.search);
-                const redirectUrl = urlParams.get('redirect') || '/chat';
-                window.location.href = redirectUrl;
-            } else {
-                console.log('Login failed with status:', response.status);
-                // Login failed
-                errorMessage.textContent = 'Invalid username or password';
-                errorMessage.style.display = 'block';
-            }
-        } catch (error) {
-            console.error('Network error:', error);
-            errorMessage.textContent = 'Network error. Please try again.';
-            errorMessage.style.display = 'block';
-        } finally {
-            // Reset button state
-            loginBtn.disabled = false;
-            btnText.style.display = 'inline';
-            loading.style.display = 'none';
-        }
-    });
-    
     // Focus username field on page load
     document.getElementById('username').focus();
 </script>

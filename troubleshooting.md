@@ -38,6 +38,232 @@ The installation script now supports:
 - **macOS** (Intel and Apple Silicon, using Homebrew)
 - **Arch Linux** (pacman package manager)
 
+## Password Management and Authentication
+
+### Password Table Migration
+
+Tatlock has migrated from storing passwords in the `users` table to a separate `passwords` table for improved security and data organization.
+
+#### Migration Process
+
+The migration system automatically:
+- Detects if the old schema exists (users table with `password_hash` and `salt` columns)
+- Creates the new `passwords` table with proper foreign key constraints
+- Copies all password data from the old table to the new table
+- Removes the password columns from the `users` table
+- Records the migration in a `migrations` table to prevent re-running
+
+#### Schema Changes
+
+**Old Schema:**
+```sql
+CREATE TABLE users (
+    username TEXT PRIMARY KEY,
+    first_name TEXT NOT NULL,
+    last_name TEXT NOT NULL,
+    email TEXT,
+    password_hash TEXT NOT NULL,  -- REMOVED
+    salt TEXT NOT NULL,           -- REMOVED
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+**New Schema:**
+```sql
+CREATE TABLE users (
+    username TEXT PRIMARY KEY,
+    first_name TEXT NOT NULL,
+    last_name TEXT NOT NULL,
+    email TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE passwords (
+    username TEXT PRIMARY KEY,
+    password_hash TEXT NOT NULL,
+    salt TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (username) REFERENCES users (username) ON DELETE CASCADE
+);
+```
+
+### Common Authentication Issues
+
+#### "401 Unauthorized" After Migration
+
+If you're getting authentication errors after the password migration:
+
+**Symptoms:**
+- Login fails with "401 Unauthorized" error
+- Same username/password that worked before migration
+- User exists in the `users` table but authentication fails
+
+**Causes:**
+1. **Migration didn't run**: Password data wasn't copied to the new `passwords` table
+2. **Migration failed**: Password data was corrupted during migration
+3. **User created after migration**: User exists but has no password entry
+
+**Diagnosis:**
+Use the password inspection script:
+```bash
+python scripts/check_user_passwords.py <username>
+```
+
+This will show:
+- Whether the user exists in the `users` table
+- Whether password data exists in the `passwords` table
+- The password hash and salt values
+
+**Solutions:**
+
+1. **Password Entry Missing:**
+   ```bash
+   # Reset the password using the reset script
+   ./stem/reset_password.sh
+   ```
+
+2. **Migration Not Applied:**
+   ```bash
+   # Re-run database setup to trigger migration
+   python -c "from stem.installation.database_setup import create_system_db_tables; create_system_db_tables('hippocampus/system.db')"
+   ```
+
+3. **Database Corruption:**
+   ```bash
+   # Backup and recreate the database
+   cp hippocampus/system.db hippocampus/system.db.backup
+   rm hippocampus/system.db
+   python -c "from stem.installation.database_setup import create_system_db_tables; create_system_db_tables('hippocampus/system.db')"
+   ```
+
+#### Password Reset Script
+
+The `stem/reset_password.sh` script provides a secure way to reset user passwords:
+
+**Features:**
+- Interactive password input with confirmation
+- Password strength validation
+- Secure bcrypt hashing
+- Database verification
+- User information display
+
+**Usage:**
+```bash
+./stem/reset_password.sh
+```
+
+**Process:**
+1. Prompts for username
+2. Verifies user exists in database
+3. Prompts for new password (with confirmation)
+4. Updates password hash in `passwords` table
+5. Verifies the password update worked
+6. Displays updated user information
+
+**Security Features:**
+- Passwords are never logged or stored in plain text
+- Uses bcrypt with secure salt generation
+- Validates password strength (minimum 8 characters)
+- Records password update timestamps
+
+#### Manual Password Reset
+
+If the reset script is unavailable, you can manually reset passwords:
+
+```python
+import sqlite3
+import bcrypt
+
+# Connect to database
+conn = sqlite3.connect('hippocampus/system.db')
+cursor = conn.cursor()
+
+# Hash new password
+password = "newpassword123"
+salt = bcrypt.gensalt()
+password_hash = bcrypt.hashpw(password.encode('utf-8'), salt)
+
+# Update password
+cursor.execute('''
+    INSERT OR REPLACE INTO passwords (username, password_hash, salt, updated_at)
+    VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+''', ('username', password_hash.decode('utf-8'), salt.decode('utf-8')))
+
+conn.commit()
+conn.close()
+```
+
+### Database Inspection Tools
+
+#### Check User Passwords Script
+
+Located at `scripts/check_user_passwords.py`, this script inspects the database for a specific user:
+
+```bash
+python scripts/check_user_passwords.py <username> [db_path]
+```
+
+**Output:**
+```
+Checking user 'admin' in database: hippocampus/system.db
+
+[users] table entry:
+  username:   admin
+  first_name: Admin
+  last_name:  User
+  email:      admin@example.com
+  created_at: 2024-01-01 12:00:00
+
+[passwords] table entry:
+  username:      admin
+  password_hash: $2b$12$...
+  salt:          $2b$12$...
+  created_at:    2024-01-01 12:00:00
+```
+
+#### Migration Status Check
+
+Check if migrations have been applied:
+
+```bash
+sqlite3 hippocampus/system.db "SELECT * FROM migrations;"
+```
+
+Expected output:
+```
+1|users_password_separation|2024-01-01 12:00:00
+```
+
+### Authentication Debugging
+
+#### Enable Debug Logging
+
+Add debug logging to see authentication details:
+
+```python
+import logging
+logging.basicConfig(level=logging.DEBUG)
+```
+
+#### Check Authentication Flow
+
+The authentication process:
+1. User submits username/password
+2. System queries `users` table for user info
+3. System queries `passwords` table for password hash and salt
+4. System verifies password using bcrypt
+5. If valid, creates session and returns user data
+
+#### Common Debug Points
+
+1. **User not found**: Check `users` table
+2. **Password not found**: Check `passwords` table
+3. **Hash verification fails**: Check bcrypt implementation
+4. **Session creation fails**: Check session middleware configuration
+
 ## Python 3.10+ Installation
 
 The installation script automatically handles Python 3.10+ installation with multiple fallback methods:

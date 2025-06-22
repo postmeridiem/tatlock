@@ -14,44 +14,25 @@
     <div class="sidebar-nav">
         <div class="nav-section">
             <div class="nav-title">Profile</div>
-            <a href="#profile-info" class="nav-item active" onclick="showProfileSection('profile-info')">Profile Info</a>
-            <a href="#edit-profile" class="nav-item" onclick="showProfileSection('edit-profile')">Edit Profile</a>
+            <a href="#profile" class="nav-item active" onclick="showProfileSection('profile')">Profile</a>
             <a href="#change-password" class="nav-item" onclick="showProfileSection('change-password')">Change Password</a>
         </div>
     </div>
     
     <div class="main-content">
-        <!-- Profile Information -->
-        <div id="profile-info" class="section">
-            <div class="section-title">Profile Information</div>
-            <div id="profile-info-content">
+        <!-- Profile Information and Edit -->
+        <div id="profile" class="section">
+            <div class="section-title">
+                Profile Information
+            </div>
+            <div id="profile-content">
                 <div class="loading">Loading profile information...</div>
             </div>
-        </div>
-        
-        <!-- Edit Profile -->
-        <div id="edit-profile" class="section" style="display: none;">
-            <div class="section-title">Edit Profile</div>
-            <form id="profileForm">
-                <div class="form-group">
-                    <label for="username">Username</label>
-                    <input type="text" id="username" readonly class="readonly-field">
-                    <small>Username cannot be changed</small>
-                </div>
-                <div class="form-group">
-                    <label for="firstName">First Name *</label>
-                    <input type="text" id="firstName" required>
-                </div>
-                <div class="form-group">
-                    <label for="lastName">Last Name *</label>
-                    <input type="text" id="lastName" required>
-                </div>
-                <div class="form-group">
-                    <label for="email">Email</label>
-                    <input type="email" id="email">
-                </div>
-                <button type="submit" class="button">Update Profile</button>
-            </form>
+            <div class="profile-actions" style="margin-top: 20px;">
+                <button type="button" class="button secondary" onclick="toggleProfileEdit()" id="editProfileBtn">
+                    Edit Profile
+                </button>
+            </div>
         </div>
         
         <!-- Change Password -->
@@ -97,6 +78,7 @@
 
 {% block scripts %}
 <script src="/static/js/common.js"></script>
+<script src="/static/js/auth.js"></script>
 <script src="/static/js/chat.js"></script>
 <script src="/static/js/profile.js"></script>
 {% endblock %} 

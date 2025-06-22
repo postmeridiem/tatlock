@@ -81,6 +81,21 @@ class TestLoginEndpoints:
         data = response.json()
         assert data["success"] is True
     
+    def test_logout_clears_session(self, authenticated_admin_client):
+        """Test that logout actually clears the session."""
+        # First verify we're authenticated
+        response = authenticated_admin_client.get("/chat")
+        assert response.status_code == 200
+        
+        # Now logout
+        logout_response = authenticated_admin_client.post("/logout")
+        assert logout_response.status_code == 200
+        
+        # Try to access a protected endpoint - should redirect to login
+        response = authenticated_admin_client.get("/chat", follow_redirects=False)
+        assert response.status_code == 302
+        assert "/login" in response.headers["location"]
+    
     def test_logout_page_redirects(self, authenticated_admin_client):
         """Test logout page redirects to root."""
         response = authenticated_admin_client.get("/logout", follow_redirects=False)

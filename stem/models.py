@@ -136,4 +136,15 @@ class PasswordChangeRequest(BaseModel):
     Request model for changing user password.
     """
     current_password: str = Field(..., description="Current password for verification")
-    new_password: str = Field(..., description="New password") 
+    new_password: str = Field(..., description="New password")
+
+class UserModel(BaseModel):
+    """
+    Pydantic model reflecting the users table (excluding password and salt).
+    """
+    username: str
+    first_name: str
+    last_name: str
+    email: str | None
+    created_at: str
+    updated_at: str | None = None 
