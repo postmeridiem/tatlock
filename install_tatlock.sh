@@ -7,31 +7,43 @@ set -e
 
 # Color definitions
 BLUE='\033[0;34m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+RED='\033[0;31m'
+CYAN='\033[0;36m'
+BOLD='\033[1m'
 NC='\033[0m' # No Color
 
 # --- Check if we're in the correct directory ---
 if [ ! -f "main.py" ] || [ ! -d "stem" ] || [ ! -d "hippocampus" ]; then
-    echo "Error: This script must be run from the Tatlock project root directory."
-    echo "Please ensure you're in the directory containing main.py, stem/, and hippocampus/ folders."
+    echo -e "${RED}Error: This script must be run from the Tatlock project root directory.${NC}"
+    echo -e "Please ensure you're in the directory containing main.py, stem/, and hippocampus/ folders."
     exit 1
 fi
 
 # --- Instructions ---
-echo "Tatlock Installation Script"
-echo "--------------------------"
-echo "This script will:"
-echo "1. Install required system packages (Python 3.10+, pip, sqlite3, build tools)"
-echo "2. Create and activate Python virtual environment (.venv) (safely handles existing environments)"
-echo "3. Install and configure Ollama with the Gemma3-enhanced model"
-echo "4. Install Python dependencies from requirements.txt"
-echo "5. Create .env configuration file with auto-generated secret key (safely handles existing files)"
-echo "6. Download Material Icons for offline web interface"
-echo "7. Initialize system.db and longterm.db with authentication and memory tables"
-echo "8. Create default roles, groups, and system prompts"
-echo "9. Optionally create a new admin account if one does not exist yet"
-echo "10. Optionally install Tatlock as an auto-starting service"
+echo -e "${BOLD}${CYAN}"
+echo "══════════════════════════════════════════════════════════════════════════════════════════"
+echo "                        Tatlock Installation Script                                      "
+echo "                    Brain-Inspired Conversational AI Platform                            "
+echo "══════════════════════════════════════════════════════════════════════════════════════════"
+echo -e "${NC}"
+
+echo -e "${BOLD}This script will perform the following steps:${NC}"
+echo -e "${CYAN}──────────────────────────────────────────────────────────────────────────────────${NC}"
+echo -e "  ${GREEN}1.${NC} Install required system packages (Python 3.10+, pip, sqlite3)${NC}"
+echo -e "  ${GREEN}2.${NC} Create and activate Python virtual environment (.venv)${NC}"
+echo -e "  ${GREEN}3.${NC} Install and configure Ollama with Gemma3-enhanced model${NC}"
+echo -e "  ${GREEN}4.${NC} Install Python dependencies from requirements.txt${NC}"
+echo -e "  ${GREEN}5.${NC} Create .env configuration file with auto-generated secret key${NC}"
+echo -e "  ${GREEN}6.${NC} Download Material Icons for offline web interface${NC}"
+echo -e "  ${GREEN}7.${NC} Initialize system.db and longterm.db with authentication tables${NC}"
+echo -e "  ${GREEN}8.${NC} Create default roles, groups, and system prompts${NC}"
+echo -e "  ${GREEN}9.${NC} Optionally create a new admin account if one does not exist${NC}"
+echo -e "  ${GREEN}10.${NC} Optionally install Tatlock as an auto-starting service${NC}"
+echo -e "${CYAN}──────────────────────────────────────────────────────────────────────────────────${NC}"
 echo ""
-echo "Note: This script requires Python 3.10 or higher for modern type hint support."
+echo -e "${YELLOW}Note:${NC} This script requires Python 3.10 or higher for modern type hint support."
 echo ""
 
 # --- Detect system and package manager ---
@@ -79,8 +91,11 @@ detect_system() {
 
 detect_system
 
-echo "Detected system: $SYSTEM"
-echo "Package manager: $PACKAGE_MANAGER"
+echo -e "${BOLD}${CYAN}System Detection:${NC}"
+echo -e "${CYAN}──────────────────────────────────────────────────────────────────────────────────${NC}"
+echo -e "  ${GREEN}Detected System:${NC}    ${BOLD}$SYSTEM${NC}${CYAN}                                        ${NC}"
+echo -e "  ${GREEN}Package Manager:${NC}    ${BOLD}$PACKAGE_MANAGER${NC}${CYAN}                                  ${NC}"
+echo -e "${CYAN}──────────────────────────────────────────────────────────────────────────────────${NC}"
 echo ""
 
 # --- Check if package manager is available ---
@@ -88,32 +103,32 @@ check_package_manager() {
     case $PACKAGE_MANAGER in
         "apt")
             if ! command -v apt &> /dev/null; then
-                echo "Error: apt package manager not found."
+                echo -e "${RED}Error: apt package manager not found.${NC}"
                 exit 1
             fi
             ;;
         "yum")
             if ! command -v yum &> /dev/null; then
-                echo "Error: yum package manager not found."
+                echo -e "${RED}Error: yum package manager not found.${NC}"
                 exit 1
             fi
             ;;
         "brew")
             if ! command -v brew &> /dev/null; then
-                echo "Error: Homebrew not found. Please install Homebrew first:"
-                echo "  /bin/bash -c \"\$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)\""
+                echo -e "${RED}Error: Homebrew not found. Please install Homebrew first:${NC}"
+                echo -e "  ${CYAN}/bin/bash -c \"\$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)\"${NC}"
                 exit 1
             fi
             ;;
         "pacman")
             if ! command -v pacman &> /dev/null; then
-                echo "Error: pacman package manager not found."
+                echo -e "${RED}Error: pacman package manager not found.${NC}"
                 exit 1
             fi
             ;;
         *)
-            echo "Error: Unsupported system or package manager not detected."
-            echo "Please install dependencies manually or use a supported system."
+            echo -e "${RED}Error: Unsupported system or package manager not detected.${NC}"
+            echo -e "Please install dependencies manually or use a supported system."
             exit 1
             ;;
     esac
@@ -133,10 +148,10 @@ check_python_version() {
             local major=$(echo "$version" | cut -d. -f1)
             local minor=$(echo "$version" | cut -d. -f2)
             if [ "$major" -eq 3 ] && [ "$minor" -ge 10 ]; then
-                echo "[OK] Found Python $version (meets requirement: 3.10+)" >&2
+                echo -e "${GREEN}[✓]${NC} Found Python $version (meets requirement: 3.10+)" >&2
                 return 0
             else
-                echo "[ERROR] Found Python $version (requires 3.10+)" >&2
+                echo -e "${RED}[✗]${NC} Found Python $version (requires 3.10+)" >&2
                 return 1
             fi
         fi
@@ -151,7 +166,7 @@ check_python_version() {
                 local major=$(echo "$version" | cut -d. -f1)
                 local minor=$(echo "$version" | cut -d. -f2)
                 if [ "$major" -eq 3 ] && [ "$minor" -ge 10 ]; then
-                    echo "[OK] Found Python $version at $path (meets requirement: 3.10+)" >&2
+                    echo -e "${GREEN}[✓]${NC} Found Python $version at $path (meets requirement: 3.10+)" >&2
                     return 0
                 fi
             fi
@@ -306,7 +321,7 @@ install_python310() {
 
 install_system_dependencies() {
     # First, check if we have Python 3.10+ available
-    echo "Checking Python version..."
+    echo -e "${BOLD}Checking Python version...${NC}"
     
     # Quick check - if python3 --version shows 3.10+, we can skip installation
     if command -v python3 &> /dev/null; then
@@ -315,106 +330,106 @@ install_system_dependencies() {
             MAJOR=$(echo "$PYTHON_VERSION" | cut -d. -f1)
             MINOR=$(echo "$PYTHON_VERSION" | cut -d. -f2)
             if [ "$MAJOR" -eq 3 ] && [ "$MINOR" -ge 10 ]; then
-                echo "[OK] Found Python $PYTHON_VERSION - meets requirements" >&2
-                echo "Skipping Python installation since Python 3.10+ is already available."
+                echo -e "${GREEN}[✓]${NC} Found Python $PYTHON_VERSION - meets requirements" >&2
+                echo -e "${CYAN}Skipping Python installation since Python 3.10+ is already available.${NC}"
                 PYTHON_AVAILABLE=true
             else
-                echo "[ERROR] Found Python $PYTHON_VERSION - requires 3.10+" >&2
+                echo -e "${RED}[✗]${NC} Found Python $PYTHON_VERSION - requires 3.10+" >&2
                 PYTHON_AVAILABLE=false
             fi
         else
-            echo "[ERROR] Could not determine Python version"
+            echo -e "${RED}[✗]${NC} Could not determine Python version" >&2
             PYTHON_AVAILABLE=false
         fi
     else
-        echo "[ERROR] python3 command not found"
+        echo -e "${RED}[✗]${NC} python3 command not found" >&2
         PYTHON_AVAILABLE=false
     fi
     
     # Only install Python if not available
     if [ "$PYTHON_AVAILABLE" != "true" ]; then
-        echo "Installing Python 3.10+..."
+        echo -e "${YELLOW}Installing Python 3.10+...${NC}"
         install_python310
         
         # Verify installation
         if check_python_version "python3" || check_python_version "python3.10" || check_python_version "python"; then
-            echo "[OK] Python 3.10+ successfully installed" >&2
+            echo -e "${GREEN}[✓]${NC} Python 3.10+ successfully installed" >&2
             PYTHON_AVAILABLE=true
         else
-            echo "[ERROR] Failed to install Python 3.10+. Please install manually." >&2
+            echo -e "${RED}[✗]${NC} Failed to install Python 3.10+. Please install manually." >&2
             exit 1
         fi
     fi
     
     case $PACKAGE_MANAGER in
         "apt")
-            echo "Using apt package manager..."
+            echo -e "${BOLD}Using apt package manager...${NC}"
             
             # Clean up any problematic repositories first
-            echo "Cleaning up package lists..."
+            echo -e "${CYAN}Cleaning up package lists...${NC}"
             sudo apt clean
             sudo rm -f /var/lib/apt/lists/lock
             sudo rm -f /var/cache/apt/archives/lock
             sudo rm -f /var/lib/dpkg/lock*
             
             # Update package lists with error handling
-            echo "Updating package lists..."
+            echo -e "${CYAN}Updating package lists...${NC}"
             if ! sudo apt update; then
-                echo "Warning: Package list update failed. This might be due to repository issues."
-                echo "Attempting to continue with existing package lists..."
+                echo -e "${YELLOW}Warning: Package list update failed. This might be due to repository issues.${NC}"
+                echo -e "${CYAN}Attempting to continue with existing package lists...${NC}"
             fi
             
             # Install packages with error handling (excluding Python as we handled it above)
-            echo "Installing required packages..."
+            echo -e "${CYAN}Installing required packages...${NC}"
             if ! sudo apt install -y python3-pip python3-venv sqlite3 build-essential curl wget; then
-                echo "Error: Failed to install required packages."
-                echo "Please check your package manager configuration and try again."
+                echo -e "${RED}Error: Failed to install required packages.${NC}"
+                echo -e "Please check your package manager configuration and try again."
                 exit 1
             fi
             ;;
             
         "yum")
-            echo "Using yum package manager..."
+            echo -e "${BOLD}Using yum package manager...${NC}"
             
             # Update package lists
-            echo "Updating package lists..."
+            echo -e "${CYAN}Updating package lists...${NC}"
             if ! sudo yum update -y; then
-                echo "Warning: Package list update failed. Attempting to continue..."
+                echo -e "${YELLOW}Warning: Package list update failed. Attempting to continue...${NC}"
             fi
             
             # Install packages (excluding Python as we handled it above)
-            echo "Installing required packages..."
+            echo -e "${CYAN}Installing required packages...${NC}"
             if ! sudo yum install -y python3-pip python3-venv sqlite gcc gcc-c++ make curl wget; then
-                echo "Error: Failed to install required packages."
-                echo "Please check your package manager configuration and try again."
+                echo -e "${RED}Error: Failed to install required packages.${NC}"
+                echo -e "Please check your package manager configuration and try again."
                 exit 1
             fi
             ;;
             
         "brew")
-            echo "Using Homebrew package manager..."
+            echo -e "${BOLD}Using Homebrew package manager...${NC}"
             
             # Update Homebrew
-            echo "Updating Homebrew..."
+            echo -e "${CYAN}Updating Homebrew...${NC}"
             if ! brew update; then
-                echo "Warning: Homebrew update failed. Attempting to continue..."
+                echo -e "${YELLOW}Warning: Homebrew update failed. Attempting to continue...${NC}"
             fi
             
             # Install packages (excluding Python as we handled it above)
-            echo "Installing required packages..."
+            echo -e "${CYAN}Installing required packages...${NC}"
             
             # Handle keg-only packages properly on macOS
             # sqlite and curl are keg-only on macOS but that's normal
             if ! brew install sqlite curl wget 2>&1 | tee /tmp/brew_install.log; then
                 # Check if the error is just keg-only warnings (which are normal on macOS)
                 if grep -q "keg-only" /tmp/brew_install.log && ! grep -q "Error:" /tmp/brew_install.log; then
-                    echo "Note: Some packages are keg-only (normal on macOS). Installation successful."
-                    echo "The following packages are available but not symlinked:"
-                    echo "  - sqlite: Use system sqlite or add to PATH if needed"
-                    echo "  - curl: Use system curl or add to PATH if needed"
+                    echo -e "${GREEN}[✓]${NC} Some packages are keg-only (normal on macOS). Installation successful."
+                    echo -e "${CYAN}The following packages are available but not symlinked:${NC}"
+                    echo -e "  ${YELLOW}- sqlite:${NC} Use system sqlite or add to PATH if needed"
+                    echo -e "  ${YELLOW}- curl:${NC} Use system curl or add to PATH if needed"
                 else
-                    echo "Error: Failed to install required packages."
-                    echo "Please check your Homebrew installation and try again."
+                    echo -e "${RED}Error: Failed to install required packages.${NC}"
+                    echo -e "Please check your Homebrew installation and try again."
                     rm -f /tmp/brew_install.log
                     exit 1
                 fi
@@ -423,7 +438,7 @@ install_system_dependencies() {
             
             # On macOS, we need to ensure we're using the Homebrew Python
             if [[ "$SYSTEM" == "macos_arm" ]]; then
-                echo "Setting up Python for Apple Silicon..."
+                echo -e "${CYAN}Setting up Python for Apple Silicon...${NC}"
                 # Add Homebrew Python to PATH if not already there
                 if ! command -v python3 &> /dev/null; then
                     echo 'export PATH="/opt/homebrew/bin:$PATH"' >> ~/.zshrc
@@ -433,19 +448,19 @@ install_system_dependencies() {
             ;;
             
         "pacman")
-            echo "Using pacman package manager..."
+            echo -e "${BOLD}Using pacman package manager...${NC}"
             
             # Update package lists
-            echo "Updating package lists..."
+            echo -e "${CYAN}Updating package lists...${NC}"
             if ! sudo pacman -Sy; then
-                echo "Warning: Package list update failed. Attempting to continue..."
+                echo -e "${YELLOW}Warning: Package list update failed. Attempting to continue...${NC}"
             fi
             
             # Install packages (excluding Python as we handled it above)
-            echo "Installing required packages..."
+            echo -e "${CYAN}Installing required packages...${NC}"
             if ! sudo pacman -S --noconfirm python-pip python-venv sqlite base-devel curl wget; then
-                echo "Error: Failed to install required packages."
-                echo "Please check your package manager configuration and try again."
+                echo -e "${RED}Error: Failed to install required packages.${NC}"
+                echo -e "Please check your package manager configuration and try again."
                 exit 1
             fi
             ;;
@@ -731,6 +746,13 @@ cd "$PROJECT_ROOT"
 
 # --- Initialize databases ---
 echo -e "${BLUE}[7/10] Initializing databases...${NC}"
+
+# Ensure hippocampus directory exists
+if [ ! -d "hippocampus" ]; then
+    echo "Creating hippocampus directory..."
+    mkdir -p hippocampus
+fi
+
 if ! PYTHONPATH="$PROJECT_ROOT" $PYTHON_CMD -c "from stem.installation.database_setup import create_system_db_tables; create_system_db_tables('hippocampus/system.db')"; then
     echo "Error: Failed to initialize databases."
     echo "Current directory: $(pwd)"
@@ -743,7 +765,7 @@ echo "- system.db is ready in the hippocampus/ directory. User memory databases 
 # --- Create admin user if not exists ---
 echo -e "${BLUE}[8/10] Checking for admin account...${NC}"
         # Check if admin user already exists
-        admin_exists=$(PYTHONPATH="$PROJECT_ROOT" $PYTHON_CMD -c "from stem.security import security_manager; print('yes' if security_manager.authenticate_user('admin', 'admin123') else 'no')")
+        admin_exists=$(PYTHONPATH="$PROJECT_ROOT" $PYTHON_CMD -c "from stem.security import security_manager; import sqlite3; conn = sqlite3.connect(security_manager.db_path); cursor = conn.cursor(); cursor.execute('SELECT username FROM users WHERE username = ?', ('admin',)); result = cursor.fetchone(); conn.close(); print('yes' if result else 'no')")
 if [ "$admin_exists" = "no" ]; then
     echo "No admin account found. Let's create one."
     read -p "Enter admin username [admin]: " admin_user
@@ -764,21 +786,114 @@ if [ "$admin_exists" = "no" ]; then
     fi
     if ! PYTHONPATH="$PROJECT_ROOT" $PYTHON_CMD -c "
 from stem.security import security_manager
-if security_manager.create_user('$admin_user', '$admin_first', '$admin_last', '$admin_pass', '$admin_email'):
-    security_manager.add_user_to_role('$admin_user', 'user')
-    security_manager.add_user_to_role('$admin_user', 'admin')
-    security_manager.add_user_to_group('$admin_user', 'users')
-    security_manager.add_user_to_group('$admin_user', 'admins')
-    print('Admin user created and configured.')
-else:
-    print('Failed to create admin user.')
-    exit(1)
+import sys
+import os
+import sqlite3
+try:
+    print('Debug: Database path:', security_manager.db_path)
+    print('Debug: Database file exists:', os.path.exists(security_manager.db_path))
+    print('Debug: Hippocampus directory exists:', os.path.exists('hippocampus'))
+    print('Debug: Current working directory:', os.getcwd())
+    
+    # Test database connection
+    try:
+        conn = sqlite3.connect(security_manager.db_path)
+        cursor = conn.cursor()
+        cursor.execute('SELECT name FROM sqlite_master WHERE type=\"table\" AND name=\"users\"')
+        users_table_exists = cursor.fetchone() is not None
+        print('Debug: Users table exists:', users_table_exists)
+        
+        # Check if admin user already exists
+        cursor.execute('SELECT username FROM users WHERE username = ?', ('$admin_user',))
+        existing_user = cursor.fetchone()
+        print('Debug: Admin user already exists:', existing_user is not None)
+        if existing_user:
+            print('Debug: Existing user found:', existing_user[0])
+        
+        conn.close()
+    except Exception as db_error:
+        print('Debug: Database connection error:', db_error)
+    
+    result = security_manager.create_user(
+        '$admin_user', '$admin_first', '$admin_last', '$admin_pass', '$admin_email'
+    )
+    if result:
+        security_manager.add_user_to_role('$admin_user', 'user')
+        security_manager.add_user_to_role('$admin_user', 'admin')
+        security_manager.add_user_to_group('$admin_user', 'users')
+        security_manager.add_user_to_group('$admin_user', 'admins')
+        print('Admin user created and configured.')
+    else:
+        print('Failed to create admin user. Return value:', result)
+        if hasattr(security_manager, 'last_error'):
+            print('Security manager last_error:', security_manager.last_error)
+        sys.exit(1)
+except Exception as e:
+    import traceback
+    print('Exception during admin creation:', e, file=sys.stderr)
+    traceback.print_exc()
+    sys.exit(2)
 "; then
         echo "Error: Failed to create admin user."
         exit 1
     fi
 else
     echo "Admin account already exists."
+    echo ""
+    read -p "Do you want to replace the existing admin user? (y/N): " replace_admin
+    if [[ "$replace_admin" =~ ^[Yy]$ ]]; then
+        echo "Replacing existing admin user..."
+        read -p "Enter new admin username [admin]: " admin_user
+        admin_user=${admin_user:-admin}
+        read -p "First name [Administrator]: " admin_first
+        admin_first=${admin_first:-Administrator}
+        read -p "Last name [User]: " admin_last
+        admin_last=${admin_last:-User}
+        read -p "Email [admin@tatlock.local]: " admin_email
+        admin_email=${admin_email:-admin@tatlock.local}
+        read -s -p "Password: " admin_pass
+        echo
+        read -s -p "Confirm Password: " admin_pass2
+        echo
+        if [ "$admin_pass" != "$admin_pass2" ]; then
+            echo "Passwords do not match. Exiting."
+            exit 1
+        fi
+        if ! PYTHONPATH="$PROJECT_ROOT" $PYTHON_CMD -c "
+from stem.security import security_manager
+import sys
+try:
+    # Delete existing admin user first
+    if security_manager.delete_user('admin'):
+        print('Existing admin user deleted.')
+    else:
+        print('Warning: Could not delete existing admin user.')
+    
+    # Create new admin user
+    result = security_manager.create_user(
+        '$admin_user', '$admin_first', '$admin_last', '$admin_pass', '$admin_email'
+    )
+    if result:
+        security_manager.add_user_to_role('$admin_user', 'user')
+        security_manager.add_user_to_role('$admin_user', 'admin')
+        security_manager.add_user_to_group('$admin_user', 'users')
+        security_manager.add_user_to_group('$admin_user', 'admins')
+        print('New admin user created and configured.')
+    else:
+        print('Failed to create new admin user.')
+        sys.exit(1)
+except Exception as e:
+    import traceback
+    print('Exception during admin replacement:', e, file=sys.stderr)
+    traceback.print_exc()
+    sys.exit(2)
+"; then
+            echo "Error: Failed to replace admin user."
+            exit 1
+        else
+            echo "Keeping existing admin user."
+        fi
+    fi
 fi
 
 # --- Install as auto-starting service ---
@@ -905,21 +1020,35 @@ else
 fi
 
 echo ""
-echo "Tatlock installation complete!"
-echo "- Python virtual environment created in .venv directory"
-echo "- Ollama with Gemma3-enhanced model is ready"
-echo "- .env configuration file created with auto-generated secret key"
-echo "- Material Icons downloaded for offline web interface"
-echo "- system.db and longterm.db are ready in the hippocampus/ directory"
-echo "- Default roles, groups, and system prompts are configured"
-echo "- You can now run the application as described in the README"
+echo -e "${BOLD}${GREEN}"
+echo "╔══════════════════════════════════════════════════════════════════════════════╗"
+echo "║                        🎉 Installation Complete! 🎉                         ║"
+echo "║                    Tatlock is ready to use!                                 ║"
+echo "╚══════════════════════════════════════════════════════════════════════════════╝"
+echo -e "${NC}"
+
+echo -e "${BOLD}${CYAN}Installation Summary:${NC}"
+echo -e "${CYAN}┌─────────────────────────────────────────────────────────────────────────┐${NC}"
+echo -e "${CYAN}│${NC}  ${GREEN}[✓]${NC} Python virtual environment created in .venv directory${CYAN}              │${NC}"
+echo -e "${CYAN}│${NC}  ${GREEN}[✓]${NC} Ollama with Gemma3-enhanced model is ready${CYAN}                        │${NC}"
+echo -e "${CYAN}│${NC}  ${GREEN}[✓]${NC} .env configuration file created with auto-generated secret key${CYAN}   │${NC}"
+echo -e "${CYAN}│${NC}  ${GREEN}[✓]${NC} Material Icons downloaded for offline web interface${CYAN}              │${NC}"
+echo -e "${CYAN}│${NC}  ${GREEN}[✓]${NC} system.db and longterm.db are ready in the hippocampus/ directory${CYAN} │${NC}"
+echo -e "${CYAN}│${NC}  ${GREEN}[✓]${NC} Default roles, groups, and system prompts are configured${CYAN}        │${NC}"
+echo -e "${CYAN}└─────────────────────────────────────────────────────────────────────────┘${NC}"
 echo ""
-echo "IMPORTANT: Please update the API keys in your .env file before running the application:"
-echo "- OPENWEATHER_API_KEY: Get from https://openweathermap.org/api"
-echo "- GOOGLE_API_KEY: Get from https://console.cloud.google.com/"
-echo "- GOOGLE_CSE_ID: Get from https://programmablesearchengine.google.com/"
+
+echo -e "${BOLD}${YELLOW}IMPORTANT:${NC} Please update the API keys in your .env file before running the application:"
+echo -e "${CYAN}┌─────────────────────────────────────────────────────────────────────────┐${NC}"
+echo -e "${CYAN}│${NC}  ${YELLOW}•${NC} OPENWEATHER_API_KEY: Get from https://openweathermap.org/api${CYAN}        │${NC}"
+echo -e "${CYAN}│${NC}  ${YELLOW}•${NC} GOOGLE_API_KEY: Get from https://console.cloud.google.com/${CYAN}         │${NC}"
+echo -e "${CYAN}│${NC}  ${YELLOW}•${NC} GOOGLE_CSE_ID: Get from https://programmablesearchengine.google.com/${CYAN}│${NC}"
+echo -e "${CYAN}└─────────────────────────────────────────────────────────────────────────┘${NC}"
 echo ""
-echo "To start the application:"
-echo "  ./wakeup.sh"
+
+echo -e "${BOLD}${GREEN}To start the application:${NC}"
+echo -e "${CYAN}  ${BOLD}./wakeup.sh${NC}"
 echo ""
-echo "If you need to re-run this script, it is safe to do so (tables will not be duplicated)." 
+
+echo -e "${CYAN}If you need to re-run this script, it is safe to do so (tables will not be duplicated).${NC}"
+echo "" 
