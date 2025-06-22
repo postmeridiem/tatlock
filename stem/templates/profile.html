@@ -12,8 +12,8 @@
 
 {% block content %}
 {% set nav_items = [
-    {'href': '#profile', 'text': 'Profile', 'onclick': 'profile', 'active': True},
-    {'href': '#change-password', 'text': 'Change Password', 'onclick': 'change-password'}
+    {'id': 'profile', 'text': 'Profile', 'active': True},
+    {'id': 'change-password', 'text': 'Change Password'}
 ] %}
 {{ render_nav('Profile', nav_items) }}
 

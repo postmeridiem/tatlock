@@ -225,9 +225,9 @@
 
 {% block content %}
 {% set nav_items = [
-    {'href': '#server-log', 'text': 'Server Log', 'onclick': 'server-log', 'active': True},
-    {'href': '#benchmark', 'text': 'Benchmark', 'onclick': 'benchmark'},
-    {'href': '#system-info', 'text': 'System Info', 'onclick': 'system-info'}
+    {'id': 'server-log', 'text': 'Server Log', 'active': True},
+    {'id': 'benchmark', 'text': 'Benchmark'},
+    {'id': 'system-info', 'text': 'System Info'}
 ] %}
 {{ render_nav('Debug', nav_items) }}
 

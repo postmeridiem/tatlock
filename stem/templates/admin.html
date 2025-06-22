@@ -12,10 +12,10 @@
 
 {% block content %}
 {% set nav_items = [
-    {'href': '#stats', 'text': 'Dashboard', 'onclick': 'stats', 'active': True},
-    {'href': '#users', 'text': 'User Management', 'onclick': 'users'},
-    {'href': '#roles', 'text': 'Roles', 'onclick': 'roles-section'},
-    {'href': '#groups', 'text': 'Groups', 'onclick': 'groups-section'}
+    {'id': 'stats', 'text': 'Dashboard', 'active': True},
+    {'id': 'users', 'text': 'User Management'},
+    {'id': 'roles-section', 'text': 'Roles'},
+    {'id': 'groups-section', 'text': 'Groups'}
 ] %}
 {{ render_nav('Admin', nav_items) }}
 

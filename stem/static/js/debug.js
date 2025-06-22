@@ -399,24 +399,20 @@ clearLogBtn.addEventListener('click', clearLog);
 exportLogBtn.addEventListener('click', exportLog);
 
 // Initialize debug console
-document.addEventListener('DOMContentLoaded', function() {
-    setupDebugEventListeners();
-    loadServerLog();
+document.addEventListener('DOMContentLoaded', () => {
+    // Initialize chat functionality
+    const chat = new TatlockChat({
+        chatInput: document.getElementById('sidepane-input'),
+        chatSendBtn: document.getElementById('sidepane-send-btn'),
+        chatMessages: document.getElementById('sidepane-messages'),
+        chatMicBtn: document.getElementById('sidepane-mic-btn'),
+        placeholder: 'Ask Tatlock...'
+    });
+
     initializeSystemInfo();
     initializeBenchmarks();
-    
-    // Initialize chat with logging enabled for debug page
-    // Add a small delay to ensure all scripts are loaded
-    setTimeout(() => {
-        initializeChat({
-            enableLogging: true,
-            logFunction: addToInteractionLog,
-            debugMode: true,
-            sidebarTitle: 'Debug Assistant',
-            welcomeMessage: 'I\'m here to help you debug Tatlock. Ask me about system status, logs, or any issues you\'re encountering.',
-            placeholder: 'Ask Tatlock...'
-        });
-    }, 100);
+    setupDebugEventListeners();
+    initializeHashNavigation('server-log');
 });
 
 // Load initial server log entries
@@ -464,30 +460,6 @@ function initializeBenchmarks() {
     if (toolsBtn) {
         toolsBtn.addEventListener('click', () => runBenchmark('tools'));
     }
-}
-
-function checkAuthenticationStatus() {
-    // Try to fetch a protected endpoint to check authentication
-    fetch('/login/test', {
-        credentials: 'include'
-    })
-    .then(response => {
-        if (response.ok) {
-            return response.json();
-        } else if (response.status === 401) {
-            // Redirect to login page
-            window.location.href = '/login';
-            return null;
-        } else {
-            return null;
-        }
-    })
-    .then(data => {
-        // Authentication check completed silently
-    })
-    .catch(error => {
-        // Authentication check failed silently
-    });
 }
 
 function setupDebugEventListeners() {

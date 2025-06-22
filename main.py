@@ -171,6 +171,13 @@ app.include_router(profile_router)
 def favicon():
     return FileResponse("stem/static/favicon/favicon.ico")
 
+@app.get("/.well-known/appspecific/com.chrome.devtools.json", include_in_schema=False)
+async def chrome_devtools_config():
+    """
+    Endpoint to handle Chrome DevTools-specific requests and prevent 404s in logs.
+    """
+    return JSONResponse(content={})
+
 @app.post("/login/auth")
 async def login(request: Request):
     """

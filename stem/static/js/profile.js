@@ -9,16 +9,23 @@ function showProfileSection(sectionId) {
     document.querySelectorAll('.section').forEach(section => {
         section.style.display = 'none';
     });
-    
-    // Show selected section
-    document.getElementById(sectionId).style.display = 'block';
-    currentSection = sectionId;
-    
-    // Update navigation
+
+    // Remove active class from all nav items
     document.querySelectorAll('.nav-item').forEach(item => {
         item.classList.remove('active');
     });
-    event.target.classList.add('active');
+
+    // Show the selected section
+    const selectedSection = document.getElementById(sectionId);
+    if (selectedSection) {
+        selectedSection.style.display = 'block';
+    }
+
+    // Add active class to the clicked nav item
+    const activeNavItem = document.querySelector(`[onclick="showProfileSection('${sectionId}')"]`);
+    if (activeNavItem) {
+        activeNavItem.classList.add('active');
+    }
 }
 
 // Toggle between view and edit modes
@@ -256,9 +263,21 @@ function initializeProfile() {
     });
 }
 
-// Start initialization
+// Main initialization
 document.addEventListener('DOMContentLoaded', () => {
+    // Initialize chat with profile-specific settings
+    new TatlockChat({
+        chatInput: document.getElementById('sidepane-input'),
+        chatSendBtn: document.getElementById('sidepane-send-btn'),
+        chatMessages: document.getElementById('sidepane-messages'),
+        chatMicBtn: document.getElementById('sidepane-mic-btn'),
+        sidebarTitle: 'Profile Assistant',
+        welcomeMessage: 'How can I assist you with your profile settings today?',
+        placeholder: 'Ask Tatlock...'
+    });
+
     initializeProfile();
+    initializeHashNavigation('profile');
 });
 
 function setupPasswordEventListeners() {

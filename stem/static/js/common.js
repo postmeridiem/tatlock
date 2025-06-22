@@ -21,15 +21,8 @@ function togglePassword(inputId) {
 // Show/hide sections in pages with multiple sections (admin dashboard, chat, etc.)
 function showSection(sectionId) {
     // Hide all sections
-    const sections = document.querySelectorAll('.section');
-    sections.forEach(section => {
+    document.querySelectorAll('.section').forEach(section => {
         section.style.display = 'none';
-    });
-    
-    // Remove active class from all nav items
-    const navItems = document.querySelectorAll('.nav-item');
-    navItems.forEach(item => {
-        item.classList.remove('active');
     });
     
     // Show the selected section
@@ -38,9 +31,36 @@ function showSection(sectionId) {
         selectedSection.style.display = 'block';
     }
     
-    // Add active class to the clicked nav item
-    const activeNavItem = document.querySelector(`[onclick="showSection('${sectionId}')"]`);
-    if (activeNavItem) {
-        activeNavItem.classList.add('active');
+    // Update active class on nav items
+    document.querySelectorAll('.nav-item').forEach(item => {
+        if (item.getAttribute('href') === `#${sectionId}`) {
+            item.classList.add('active');
+        } else {
+            item.classList.remove('active');
+        }
+    });
+
+    // Update the URL hash. The browser's default action is now sufficient,
+    // but this ensures it works if the default is ever prevented.
+    if(history.pushState) {
+        history.pushState(null, null, '#' + sectionId);
+    } else {
+        location.hash = '#' + sectionId;
+    }
+}
+
+/**
+ * Handles showing the correct section based on the URL hash on page load.
+ * @param {string} defaultSectionId - The ID of the section to show if no valid hash is found.
+ */
+function initializeHashNavigation(defaultSectionId) {
+    const hash = window.location.hash.substring(1);
+    const sectionIdToShow = hash || defaultSectionId;
+
+    // Check if a section with this ID exists before showing
+    if (document.getElementById(sectionIdToShow)) {
+        showSection(sectionIdToShow);
+    } else if (document.getElementById(defaultSectionId)) {
+        showSection(defaultSectionId);
     }
 } 

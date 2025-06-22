@@ -22,8 +22,8 @@ document.addEventListener('DOMContentLoaded', function() {
         placeholder: 'Ask Tatlock...'
     });
     
-    // Initial load
-    showSection('stats');
+    // Initial load based on hash or default
+    handleHashNavigation();
 });
 
 function setupAdminEventListeners() {
@@ -552,3 +552,46 @@ window.onclick = function(event) {
 // Chat functionality - now handled by shared chat.js
 // The chat functionality has been moved to stem/static/js/chat.js
 // and is initialized above with logging disabled 
+
+/**
+ * Handles showing the correct section based on the URL hash.
+ */
+function handleHashNavigation() {
+    const hash = window.location.hash.substring(1);
+    if (hash) {
+        const sectionIdMap = {
+            'stats': 'stats',
+            'users': 'users',
+            'roles': 'roles-section',
+            'groups': 'groups-section'
+        };
+        const sectionId = sectionIdMap[hash];
+        if (sectionId) {
+            showSection(sectionId);
+        }
+    } else {
+        // Default to stats if no hash
+        showSection('stats');
+    }
+}
+
+/**
+ * Main initialization function.
+ */
+document.addEventListener('DOMContentLoaded', () => {
+    // Initialize chat with admin-specific settings
+    new TatlockChat({
+        chatInput: document.getElementById('sidepane-input'),
+        chatSendBtn: document.getElementById('sidepane-send-btn'),
+        chatMessages: document.getElementById('sidepane-messages'),
+        chatMicBtn: document.getElementById('sidepane-mic-btn'),
+        sidebarTitle: 'Admin Assistant',
+        welcomeMessage: 'I\'m here to help you manage Tatlock. Ask me about user management, system administration, or any administrative tasks.',
+        placeholder: 'Ask Tatlock...'
+    });
+    
+    initializeHashNavigation('stats');
+    
+    // Set up event listeners for modals, search, etc.
+    setupEventListeners();
+}); 
