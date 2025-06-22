@@ -158,44 +158,72 @@ class TestMemoryRecallTools:
     
     def test_recall_memories_success(self):
         """Test successful memory recall."""
-        with patch('hippocampus.recall_memories_tool.recall_memories') as mock_recall:
+        with patch('stem.current_user_context.get_current_user_ctx') as mock_user_ctx, \
+             patch('hippocampus.recall_memories_tool.recall_memories') as mock_recall:
+            
+            # Mock the current user context
+            mock_user = MagicMock()
+            mock_user.username = "testuser"
+            mock_user_ctx.return_value = mock_user
+            
             mock_recall.return_value = [
                 {"timestamp": "2022-01-01", "user_prompt": "test prompt", "llm_reply": "test reply", "conversation_id": "conv1", "topic_name": "test"}
             ]
             
-            result = execute_recall_memories("test", "testuser")
+            result = execute_recall_memories("test")
             
             assert result["status"] == "success"
             assert len(result["data"]) == 1
     
     def test_recall_memories_with_time_success(self):
         """Test successful memory recall with time filter."""
-        with patch('hippocampus.recall_memories_with_time_tool.recall_memories_with_time') as mock_recall:
+        with patch('stem.current_user_context.get_current_user_ctx') as mock_user_ctx, \
+             patch('hippocampus.recall_memories_with_time_tool.recall_memories_with_time') as mock_recall:
+            
+            # Mock the current user context
+            mock_user = MagicMock()
+            mock_user.username = "testuser"
+            mock_user_ctx.return_value = mock_user
+            
             mock_recall.return_value = [
                 {"timestamp": "2022-01-01", "user_prompt": "test prompt", "llm_reply": "test reply", "conversation_id": "conv1", "topic_name": "test"}
             ]
             
-            result = execute_recall_memories_with_time("test", "testuser", "2022-01-01", "2022-01-02")
+            result = execute_recall_memories_with_time("test", "2022-01-01", "2022-01-02")
             
             assert result["status"] == "success"
             assert len(result["data"]) == 1
     
     def test_recall_memories_no_results(self):
         """Test memory recall with no results."""
-        with patch('hippocampus.recall_memories_tool.recall_memories') as mock_recall:
+        with patch('stem.current_user_context.get_current_user_ctx') as mock_user_ctx, \
+             patch('hippocampus.recall_memories_tool.recall_memories') as mock_recall:
+            
+            # Mock the current user context
+            mock_user = MagicMock()
+            mock_user.username = "testuser"
+            mock_user_ctx.return_value = mock_user
+            
             mock_recall.return_value = []
             
-            result = execute_recall_memories("nonexistent", "testuser")
+            result = execute_recall_memories("nonexistent")
             
             assert result["status"] == "success"
             assert result["data"] == []
     
     def test_recall_memories_database_error(self):
         """Test memory recall with database error."""
-        with patch('hippocampus.recall_memories_tool.recall_memories') as mock_recall:
+        with patch('stem.current_user_context.get_current_user_ctx') as mock_user_ctx, \
+             patch('hippocampus.recall_memories_tool.recall_memories') as mock_recall:
+            
+            # Mock the current user context
+            mock_user = MagicMock()
+            mock_user.username = "testuser"
+            mock_user_ctx.return_value = mock_user
+            
             mock_recall.side_effect = Exception("Database error")
             
-            result = execute_recall_memories("test", "testuser")
+            result = execute_recall_memories("test")
             
             assert result["status"] == "error"
             assert "Memory recall failed" in result["message"]
@@ -203,97 +231,111 @@ class TestMemoryRecallTools:
 
 class TestConversationTools:
     """Test conversation management tools."""
-    
-    def test_get_conversations_by_topic_success(self):
-        """Test successful conversation retrieval by topic."""
-        with patch('hippocampus.get_conversations_by_topic_tool.get_conversations_by_topic') as mock_get:
-            mock_get.return_value = [
-                {"conversation_id": "conv1", "topic_name": "test", "first_seen": "2022-01-01"}
-            ]
-            
-            result = execute_get_conversations_by_topic("test", "testuser")
-            
-            assert result["status"] == "success"
-            assert len(result["data"]) == 1
-    
-    def test_get_topics_by_conversation_success(self):
-        """Test successful topic retrieval by conversation."""
-        with patch('hippocampus.get_topics_by_conversation_tool.get_topics_by_conversation') as mock_get:
-            mock_get.return_value = [
-                {"topic_name": "test", "frequency": 3, "first_seen": "2022-01-01"}
-            ]
-            
-            result = execute_get_topics_by_conversation("conv1", "testuser")
-            
-            assert result["status"] == "success"
-            assert len(result["data"]) == 1
-    
-    def test_get_conversation_summary_success(self):
-        """Test successful conversation summary retrieval."""
-        with patch('hippocampus.get_conversation_summary_tool.get_conversation_summary') as mock_get:
-            mock_get.return_value = {
-                "conversation_id": "conv1",
-                "title": "Test Conversation",
-                "message_count": 5,
-                "topics": ["test", "example"]
-            }
-            
-            result = execute_get_conversation_summary("conv1", "testuser")
-            
-            assert result["status"] == "success"
-            assert result["data"]["conversation_id"] == "conv1"
-    
-    def test_get_topic_statistics_success(self):
-        """Test successful topic statistics retrieval."""
-        with patch('hippocampus.get_topic_statistics_tool.get_topic_statistics') as mock_get:
-            mock_get.return_value = {
-                "total_topics": 10,
-                "total_conversations": 5,
-                "topics": [{"name": "test", "frequency": 3}]
-            }
-            
-            result = execute_get_topic_statistics("testuser")
-            
-            assert result["status"] == "success"
-            assert result["data"]["total_topics"] == 10
-    
-    def test_get_user_conversations_success(self):
-        """Test successful user conversations retrieval."""
-        with patch('hippocampus.get_user_conversations_tool.get_user_conversations') as mock_get:
-            mock_get.return_value = [
-                {"conversation_id": "conv1", "title": "Test", "last_activity": "2022-01-01"}
-            ]
-            
-            result = execute_get_user_conversations("testuser", 10)
-            
-            assert result["status"] == "success"
-            assert len(result["data"]) == 1
-    
-    def test_get_conversation_details_success(self):
-        """Test successful conversation details retrieval."""
-        with patch('hippocampus.get_conversation_details_tool.get_conversation_details') as mock_get:
-            mock_get.return_value = {
-                "conversation_id": "conv1",
-                "title": "Test Conversation",
-                "messages": [{"role": "user", "content": "test"}]
-            }
-            
-            result = execute_get_conversation_details("conv1", "testuser")
-            
-            assert result["status"] == "success"
-            assert result["data"]["conversation_id"] == "conv1"
-    
-    def test_search_conversations_success(self):
-        """Test successful conversation search."""
-        with patch('hippocampus.search_conversations_tool.search_conversations') as mock_search:
-            mock_search.return_value = [
-                {"conversation_id": "conv1", "relevance": 0.8, "snippet": "test content"}
-            ]
-            
-            result = execute_search_conversations("test query", "testuser")
-            
-            assert result["status"] == "success"
-            assert len(result["data"]["conversations"]) == 1
+
+    @patch('hippocampus.get_conversations_by_topic_tool.get_current_user_ctx')
+    @patch('hippocampus.get_conversations_by_topic_tool.get_conversations_by_topic')
+    def test_get_conversations_by_topic_success(self, mock_get, mock_user_ctx):
+        mock_user = MagicMock()
+        mock_user.username = "testuser"
+        mock_user_ctx.return_value = mock_user
+        mock_get.return_value = [
+            {"conversation_id": "conv1", "topic_name": "test", "first_seen": "2022-01-01"}
+        ]
+        from hippocampus.get_conversations_by_topic_tool import execute_get_conversations_by_topic
+        result = execute_get_conversations_by_topic("test")
+        assert result["status"] == "success"
+        assert len(result["data"]) == 1
+
+    @patch('hippocampus.get_topics_by_conversation_tool.get_current_user_ctx')
+    @patch('hippocampus.get_topics_by_conversation_tool.get_topics_by_conversation')
+    def test_get_topics_by_conversation_success(self, mock_get, mock_user_ctx):
+        mock_user = MagicMock()
+        mock_user.username = "testuser"
+        mock_user_ctx.return_value = mock_user
+        mock_get.return_value = [
+            {"topic_name": "test", "frequency": 3, "first_seen": "2022-01-01"}
+        ]
+        from hippocampus.get_topics_by_conversation_tool import execute_get_topics_by_conversation
+        result = execute_get_topics_by_conversation("conv1")
+        assert result["status"] == "success"
+        assert len(result["data"]) == 1
+
+    @patch('hippocampus.get_conversation_summary_tool.get_current_user_ctx')
+    @patch('hippocampus.get_conversation_summary_tool.get_conversation_summary')
+    def test_get_conversation_summary_success(self, mock_get, mock_user_ctx):
+        mock_user = MagicMock()
+        mock_user.username = "testuser"
+        mock_user_ctx.return_value = mock_user
+        mock_get.return_value = {
+            "conversation_id": "conv1",
+            "title": "Test Conversation",
+            "message_count": 5,
+            "topics": ["test", "example"]
+        }
+        from hippocampus.get_conversation_summary_tool import execute_get_conversation_summary
+        result = execute_get_conversation_summary("conv1")
+        assert result["status"] == "success"
+        assert result["data"]["conversation_id"] == "conv1"
+
+    @patch('hippocampus.get_topic_statistics_tool.get_current_user_ctx')
+    @patch('hippocampus.get_topic_statistics_tool.get_topic_statistics')
+    def test_get_topic_statistics_success(self, mock_get, mock_user_ctx):
+        mock_user = MagicMock()
+        mock_user.username = "testuser"
+        mock_user_ctx.return_value = mock_user
+        mock_get.return_value = {
+            "total_topics": 10,
+            "total_conversations": 5,
+            "topics": [{"name": "test", "frequency": 3}]
+        }
+        from hippocampus.get_topic_statistics_tool import execute_get_topic_statistics
+        result = execute_get_topic_statistics()
+        assert result["status"] == "success"
+        assert result["data"]["total_topics"] == 10
+
+    @patch('hippocampus.get_user_conversations_tool.get_current_user_ctx')
+    @patch('hippocampus.get_user_conversations_tool.get_user_conversations')
+    def test_get_user_conversations_success(self, mock_get, mock_user_ctx):
+        mock_user = MagicMock()
+        mock_user.username = "testuser"
+        mock_user_ctx.return_value = mock_user
+        mock_get.return_value = [
+            {"conversation_id": "conv1", "title": "Test", "last_activity": "2022-01-01"}
+        ]
+        from hippocampus.get_user_conversations_tool import execute_get_user_conversations
+        result = execute_get_user_conversations(10)
+        assert result["status"] == "success"
+        assert len(result["data"]) == 1
+
+    @patch('hippocampus.get_conversation_details_tool.get_current_user_ctx')
+    @patch('hippocampus.get_conversation_details_tool.get_conversation_details')
+    def test_get_conversation_details_success(self, mock_get, mock_user_ctx):
+        mock_user = MagicMock()
+        mock_user.username = "testuser"
+        mock_user_ctx.return_value = mock_user
+        mock_get.return_value = {
+            "conversation_id": "conv1",
+            "title": "Test Conversation",
+            "messages": [{"role": "user", "content": "test"}]
+        }
+        from hippocampus.get_conversation_details_tool import execute_get_conversation_details
+        result = execute_get_conversation_details("conv1")
+        assert result["status"] == "success"
+        assert result["data"]["conversation_id"] == "conv1"
+
+    @patch('hippocampus.search_conversations_tool.get_current_user_ctx')
+    @patch('hippocampus.search_conversations_tool.search_conversations')
+    def test_search_conversations_success(self, mock_search, mock_user_ctx):
+        mock_user = MagicMock()
+        mock_user.username = "testuser"
+        mock_user_ctx.return_value = mock_user
+        mock_search.return_value = [
+            {"conversation_id": "conv1", "relevance": 0.8, "snippet": "test content"}
+        ]
+        from hippocampus.search_conversations_tool import execute_search_conversations
+        result = execute_search_conversations("test query")
+        assert result["status"] == "success"
+        assert len(result["data"]["conversations"]) == 1
 
 
 class TestToolErrorHandling:

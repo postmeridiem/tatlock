@@ -346,17 +346,3 @@ def get_conversation_messages(user: UserModel, conversation_id: str) -> list:
         ORDER BY timestamp;
     """
     return execute_user_query(user.username, query, (conversation_id, conversation_id))
-
-
-def delete_conversation(user: UserModel, conversation_id: str) -> None:
-    """
-    Deletes a conversation and its related messages for a specific user.
-    """
-    # First, verify the conversation belongs to the user to prevent unauthorized deletion
-    convo_check = execute_user_query(user.username, "SELECT conversation_id FROM conversations WHERE conversation_id = ?", (conversation_id,))
-    if not convo_check:
-        raise ValueError("Conversation not found or access denied.")
-
-    # Delete messages and then the conversation entry (no fetch needed)
-    execute_user_query(user.username, "DELETE FROM memories WHERE conversation_id = ?", (conversation_id,))
-    execute_user_query(user.username, "DELETE FROM conversations WHERE conversation_id = ?", (conversation_id,))

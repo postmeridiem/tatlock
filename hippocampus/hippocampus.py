@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from typing import List, Optional
 from stem.security import get_current_user
 from stem.models import UserModel
-from hippocampus import recall
+from hippocampus import recall, forget
 import os
 from fastapi.responses import FileResponse
 
@@ -24,8 +24,7 @@ async def get_user_conversations(
     if not user:
         raise HTTPException(status_code=401, detail="Not authenticated")
     
-    user_id = user.username
-    conversations = recall.search_conversations(user_id, search) if search else recall.get_user_conversations(user_id)
+    conversations = recall.search_conversations(user, search) if search else recall.get_user_conversations(user)
     
     return [
         {
@@ -47,11 +46,11 @@ async def get_conversation_messages_endpoint(
     if not user:
         raise HTTPException(status_code=401, detail="Not authenticated")
 
-    user_convos = recall.get_user_conversations(user.username)
+    user_convos = recall.get_user_conversations(user)
     if not any(c['conversation_id'] == conversation_id for c in user_convos):
         raise HTTPException(status_code=403, detail="You do not have permission to view this conversation.")
 
-    messages = recall.get_conversation_messages(user.username, conversation_id)
+    messages = recall.get_conversation_messages(user, conversation_id)
     return [
         {
             "id": m['id'],
@@ -72,9 +71,24 @@ async def delete_user_conversation(
         raise HTTPException(status_code=401, detail="Not authenticated")
 
     try:
-        recall.delete_conversation(user.username, conversation_id)
+        forget.delete_conversation(user, conversation_id)
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
+    
+    return {}
+
+@router.delete("/longterm/conversations/forgetall", status_code=204)
+async def purge_all_user_memories(
+    user: UserModel = Depends(get_current_user)
+):
+    """Purge all memories, topics, and conversations for the current user."""
+    if not user:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+
+    try:
+        forget.purge_all_memories(user)
+    except ValueError as e:
+        raise HTTPException(status_code=500, detail=str(e))
     
     return {}
 

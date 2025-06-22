@@ -6,23 +6,27 @@ Tool for retrieving detailed information about a specific conversation.
 
 import logging
 from hippocampus.recall import get_conversation_details
+from stem.current_user_context import get_current_user_ctx
 
 # Set up logging for this module
 logger = logging.getLogger(__name__)
 
-def execute_get_conversation_details(conversation_id: str, username: str = "admin") -> dict:
+def execute_get_conversation_details(conversation_id: str) -> dict:
     """
     Get detailed information about a specific conversation including its topics and metadata.
     
     Args:
         conversation_id (str): The conversation ID to get details for.
-        username (str, optional): The username whose database to search. Defaults to "admin".
         
     Returns:
         dict: Status and conversation details or message.
     """
     try:
-        details = get_conversation_details(conversation_id, username)
+        user = get_current_user_ctx()
+        if user is None:
+            return {"status": "error", "message": "User not authenticated"}
+        
+        details = get_conversation_details(conversation_id, user)
         
         if not details:
             return {

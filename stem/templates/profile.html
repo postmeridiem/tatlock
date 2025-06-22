@@ -74,6 +74,9 @@
         <div class="section-title">Memory Management</div>
         <div class="memory-controls">
             <input type="text" id="memory-search" class="search-input" placeholder="Search conversations...">
+            <button type="button" class="button danger" onclick="showPurgeAllDialog()" id="purgeAllBtn">
+                Purge All Memories
+            </button>
         </div>
         <div id="conversation-list" class="conversation-list-container">
             <div class="loading">Loading conversations...</div>
@@ -94,12 +97,61 @@
     </div>
 </div>
 
+<!-- Purge All Memories Confirmation Modal -->
+<div id="purgeAllModal" class="modal">
+    <div class="modal-content">
+        <h2>Purge All Memories</h2>
+        <div class="purge-warning">
+            <p><strong>⚠️ WARNING: This action cannot be undone!</strong></p>
+            <p>This will permanently delete:</p>
+            <ul>
+                <li>All your conversation history</li>
+                <li>All memory associations</li>
+                <li>All topic classifications</li>
+                <li>All conversation metadata</li>
+            </ul>
+            <p>To confirm, please type <strong>"delete"</strong> in the field below:</p>
+            <input type="text" id="purgeConfirmation" placeholder="Type 'delete' to confirm" class="form-control">
+        </div>
+        <div class="modal-buttons">
+            <button type="button" class="button danger" onclick="purgeAllMemories()" id="confirmPurgeBtn" disabled>
+                Purge All Memories
+            </button>
+            <button type="button" class="button secondary" onclick="closePurgeAllDialog()">
+                Cancel
+            </button>
+        </div>
+    </div>
+</div>
+
 <!-- Snackbar Container -->
 {% include 'components/snackbar.html' %}
 {% endblock %}
 
 {% block page_styles %}
 <style>
+    /* Modal styles */
+    .modal {
+        display: none; /* Hidden by default */
+        position: fixed; /* Stay in place */
+        z-index: 1050; /* Sit on top */
+        left: 0;
+        top: 0;
+        width: 100%; /* Full width */
+        height: 100%; /* Full height */
+        overflow: auto; /* Enable scroll if needed */
+        background-color: rgba(0, 0, 0, 0.6); /* Black w/ opacity */
+        -webkit-backdrop-filter: blur(5px);
+        backdrop-filter: blur(5px);
+        /* Flexbox centering properties */
+        align-items: center;
+        justify-content: center;
+    }
+
+    /* Override the default margin to allow flexbox to center the content */
+    .modal-content {
+        margin: auto;
+    }
     .main-content {
         display: flex;
         padding: 0;
@@ -108,6 +160,84 @@
         flex-grow: 1;
         padding: 20px;
         overflow-y: auto;
+    }
+    
+    /* Purge All Memories Button */
+    .button.danger {
+        background: var(--error-color);
+        color: white;
+        border: 1px solid var(--error-color);
+    }
+    
+    .button.danger:hover {
+        background: #d32f2f;
+        border-color: #d32f2f;
+    }
+    
+    .button.danger:disabled {
+        background: var(--text-muted);
+        border-color: var(--text-muted);
+        cursor: not-allowed;
+    }
+    
+    /* Memory Controls Layout */
+    .memory-controls {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        margin-bottom: 20px;
+    }
+    
+    .search-input {
+        flex: 1;
+    }
+    
+    /* Purge Warning Modal */
+    .purge-warning {
+        margin: 20px 0;
+        padding: 15px;
+        background: rgba(239, 83, 80, 0.1);
+        border: 1px solid var(--error-color);
+        border-radius: 4px;
+    }
+    
+    .purge-warning p {
+        margin: 10px 0;
+    }
+    
+    .purge-warning ul {
+        margin: 10px 0;
+        padding-left: 20px;
+    }
+    
+    .purge-warning li {
+        margin: 5px 0;
+    }
+    
+    .purge-warning strong {
+        color: var(--error-color);
+    }
+    
+    #purgeAllModal .modal-content {
+        max-width: 500px;
+        width: 90%;
+    }
+
+    #purgeConfirmation {
+        margin-top: 15px;
+        width: 100%;
+        padding: 12px;
+        border: 2px solid var(--border-color);
+        border-radius: 4px;
+        font-size: 14px;
+        background: var(--bg-secondary);
+        color: var(--text-primary);
+    }
+    
+    #purgeConfirmation:focus {
+        outline: none;
+        border-color: var(--error-color);
+        box-shadow: 0 0 5px rgba(239, 83, 80, 0.3);
     }
 </style>
 {% endblock %}

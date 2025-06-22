@@ -328,36 +328,36 @@ def query_personal_variables(searchkey: str, username: str = "admin"):
 
 def recall_memories(keyword: str, username: str = "admin"):
     """Recall memories by keyword."""
-    return execute_recall_memories(keyword, username)
+    return execute_recall_memories(keyword)
 
 def recall_memories_with_time(keyword: str, username: str = "admin", start_date: str | None = None, end_date: str | None = None):
     """Recall memories by keyword with time filter."""
-    return execute_recall_memories_with_time(keyword, username, start_date, end_date)
+    return execute_recall_memories_with_time(keyword, start_date, end_date)
 
 def get_conversations_by_topic(topic_name: str, username: str = "admin"):
     """Get conversations by topic."""
-    return execute_get_conversations_by_topic(topic_name, username)
+    return execute_get_conversations_by_topic(topic_name)
 
 def get_topics_by_conversation(conversation_id: str, username: str = "admin"):
     """Get topics by conversation."""
-    return execute_get_topics_by_conversation(conversation_id, username)
+    return execute_get_topics_by_conversation(conversation_id)
 
 def get_conversation_summary(conversation_id: str, username: str = "admin"):
     """Get conversation summary."""
-    return execute_get_conversation_summary(conversation_id, username)
+    return execute_get_conversation_summary(conversation_id)
 
 def get_topic_statistics(username: str = "admin"):
     """Get topic statistics."""
-    return execute_get_topic_statistics(username)
+    return execute_get_topic_statistics()
 
-def get_user_conversations(username: str = "admin", limit: int = 10):
+def get_user_conversations(limit: int = 10):
     """Get user conversations."""
-    return execute_get_user_conversations(username, limit)
+    return execute_get_user_conversations(limit)
 
-def get_conversation_details(conversation_id: str, username: str = "admin"):
+def get_conversation_details(conversation_id: str):
     """Get conversation details."""
-    return execute_get_conversation_details(conversation_id, username)
+    return execute_get_conversation_details(conversation_id)
 
-def search_conversations(query: str, username: str = "admin"):
+def search_conversations(query: str, limit: int = 20):
     """Search conversations."""
-    return execute_search_conversations(query, username)
+    return execute_search_conversations(query, limit)

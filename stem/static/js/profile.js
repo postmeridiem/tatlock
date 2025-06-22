@@ -457,6 +457,90 @@ async function deleteConversation(conversationId) {
     }
 }
 
+// Purge All Memories functionality
+function showPurgeAllDialog() {
+    const modal = document.getElementById('purgeAllModal');
+    const confirmationInput = document.getElementById('purgeConfirmation');
+    const confirmBtn = document.getElementById('confirmPurgeBtn');
+    
+    if (modal) {
+        modal.style.display = 'flex';
+        confirmationInput.value = '';
+        confirmBtn.disabled = true;
+        confirmationInput.focus();
+        
+        // Set up input validation
+        confirmationInput.addEventListener('input', validatePurgeConfirmation);
+    }
+}
+
+function closePurgeAllDialog() {
+    const modal = document.getElementById('purgeAllModal');
+    const confirmationInput = document.getElementById('purgeConfirmation');
+    
+    if (modal) {
+        modal.style.display = 'none';
+        confirmationInput.removeEventListener('input', validatePurgeConfirmation);
+    }
+}
+
+function validatePurgeConfirmation() {
+    const confirmationInput = document.getElementById('purgeConfirmation');
+    const confirmBtn = document.getElementById('confirmPurgeBtn');
+    
+    if (confirmationInput.value.toLowerCase() === 'delete') {
+        confirmBtn.disabled = false;
+        confirmBtn.classList.add('danger');
+    } else {
+        confirmBtn.disabled = true;
+        confirmBtn.classList.remove('danger');
+    }
+}
+
+async function purgeAllMemories() {
+    const confirmBtn = document.getElementById('confirmPurgeBtn');
+    const confirmationInput = document.getElementById('purgeConfirmation');
+    
+    // Double-check the confirmation
+    if (confirmationInput.value.toLowerCase() !== 'delete') {
+        showSnackbar('Please type "delete" to confirm this action.', 'error');
+        return;
+    }
+    
+    // Disable the button to prevent double-clicks
+    confirmBtn.disabled = true;
+    confirmBtn.textContent = 'Purging...';
+    
+    try {
+        const response = await fetch('/hippocampus/longterm/conversations/forgetall', {
+            method: 'DELETE',
+            credentials: 'include'
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to purge all memories.');
+        }
+
+        // Close the modal
+        closePurgeAllDialog();
+        
+        // Clear the conversation list
+        const conversationList = document.getElementById('conversation-list');
+        if (conversationList) {
+            conversationList.innerHTML = '<p>All memories have been purged. No conversations found.</p>';
+        }
+        
+        showSnackbar('All memories have been successfully purged.', 'success');
+        
+    } catch (error) {
+        showSnackbar('Error purging all memories: ' + error.message, 'error');
+        
+        // Re-enable the button
+        confirmBtn.disabled = false;
+        confirmBtn.textContent = 'Purge All Memories';
+    }
+}
+
 // Chat functionality - now handled by shared chat.js
 // The chat functionality has been moved to stem/static/js/chat.js
 // and is initialized above with logging disabled 

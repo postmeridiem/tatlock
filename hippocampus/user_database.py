@@ -106,6 +106,11 @@ def execute_user_query(username: str, query: str, params: tuple = ()) -> list[di
     try:
         cursor = conn.cursor()
         cursor.execute(query, params)
+        
+        # If this is a data-modifying query, commit the changes
+        if any(keyword in query.strip().upper() for keyword in ["INSERT", "UPDATE", "DELETE"]):
+            conn.commit()
+            
         rows = cursor.fetchall()
         results = [dict(row) for row in rows]
     except sqlite3.Error as e:

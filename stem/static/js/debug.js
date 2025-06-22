@@ -373,9 +373,6 @@ async function updateSystemInfoSection() {
             errorDiv.textContent = `Error loading system information: ${err.message}`;
             errorDiv.style.display = 'block';
         }
-    } finally {
-        // Schedule next update
-        setTimeout(updateSystemInfoSection, 5000);
     }
 }
 

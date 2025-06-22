@@ -63,4 +63,54 @@ function initializeHashNavigation(defaultSectionId) {
     } else if (document.getElementById(defaultSectionId)) {
         showSection(defaultSectionId);
     }
+}
+
+/**
+ * Displays a snackbar notification.
+ * @param {string} message - The message to display.
+ * @param {string} type - The type of snackbar (e.g., 'success', 'error', 'info').
+ * @param {number} duration - How long to display the snackbar in ms.
+ */
+function showSnackbar(message, type = 'info', duration = 4000) {
+    const container = document.getElementById('snackbar-container');
+    if (!container) {
+        console.error('Snackbar container not found!');
+        return;
+    }
+
+    const snackbar = document.createElement('div');
+    snackbar.className = `snackbar ${type}`;
+    
+    const iconMap = {
+        success: 'check_circle',
+        error: 'error',
+        warning: 'warning',
+        info: 'info'
+    };
+    
+    snackbar.innerHTML = `
+        <div class="snackbar-icon">
+            <span class="material-icons">${iconMap[type] || 'info'}</span>
+        </div>
+        <div class="snackbar-content">
+            <p class="snackbar-message">${message}</p>
+        </div>
+        <button class="snackbar-close" onclick="this.parentElement.remove()">
+            <span class="material-icons">close</span>
+        </button>
+    `;
+
+    container.appendChild(snackbar);
+    
+    // Animate in
+    setTimeout(() => {
+        snackbar.classList.add('show');
+    }, 10);
+
+    // Automatically remove after duration
+    setTimeout(() => {
+        snackbar.classList.remove('show');
+        // Remove from DOM after transition
+        snackbar.addEventListener('transitionend', () => snackbar.remove());
+    }, duration);
 } 
