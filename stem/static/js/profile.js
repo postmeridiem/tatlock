@@ -244,22 +244,22 @@ function initializeProfile() {
     loadProfileInfo();
     setupPasswordEventListeners();
     
-    // Initialize chat with logging disabled for profile page
-    if (typeof initializeChat === 'function') {
-        initializeChat({
-            enableLogging: false,
-            debugMode: false,
-            sidebarTitle: 'Profile Assistant',
-            welcomeMessage: 'Good day, sir. I am Tatlock, your AI assistant. Pray, what administrative matters require my attention today?',
-            placeholder: 'Ask about profile settings...'
-        });
-    } else {
-        console.warn('initializeChat function not available');
-    }
+    // Initialize chat with profile-specific settings
+    new TatlockChat({
+        chatInput: document.getElementById('sidepane-input'),
+        chatSendBtn: document.getElementById('sidepane-send-btn'),
+        chatMessages: document.getElementById('sidepane-messages'),
+        chatMicBtn: document.getElementById('sidepane-mic-btn'),
+        sidebarTitle: 'Profile Assistant',
+        welcomeMessage: 'How can I assist you with your profile settings today?',
+        placeholder: 'Ask Tatlock...'
+    });
 }
 
 // Start initialization
-initializeProfile();
+document.addEventListener('DOMContentLoaded', () => {
+    initializeProfile();
+});
 
 function setupPasswordEventListeners() {
     // Password form submission

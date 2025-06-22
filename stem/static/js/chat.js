@@ -9,7 +9,7 @@ class TatlockChat {
         this.debugMode = options.debugMode || false;
         this.sidebarTitle = options.sidebarTitle || 'Assistant';
         this.welcomeMessage = options.welcomeMessage || 'Good day, sir. I am Tatlock, your AI assistant. Pray, what matters require my attention today?';
-        this.placeholder = options.placeholder || 'Type your message...';
+        this.placeholder = options.placeholder || 'Ask Tatlock...';
         
         // Try different possible element ID patterns
         this.chatInput = document.getElementById('chat-input') || document.getElementById('sidepane-input');
@@ -497,7 +497,7 @@ function initializeChat(options = {}) {
         debugMode: false,
         sidebarTitle: 'Assistant',
         welcomeMessage: 'Good day, sir. I am Tatlock, your AI assistant. Pray, what matters require my attention today?',
-        placeholder: 'Type your message...'
+        placeholder: 'Ask Tatlock...'
     };
     
     // Merge options with defaults
@@ -512,4 +512,20 @@ function initializeChat(options = {}) {
         // DOM is already loaded, initialize immediately
         new TatlockChat(config);
     }
-} 
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    // This is a fallback initialization for pages that don't have a specific chat setup.
+    // The main initialization is now handled in specific page scripts (e.g., admin.js, profile.js)
+    if (document.getElementById('sidepane-input')) {
+        setTimeout(() => { // Delay to ensure sidebar is loaded
+            new TatlockChat({
+                chatInput: document.getElementById('sidepane-input'),
+                chatSendBtn: document.getElementById('sidepane-send-btn'),
+                chatMessages: document.getElementById('sidepane-messages'),
+                chatMicBtn: document.getElementById('sidepane-mic-btn'),
+                placeholder: 'Ask Tatlock...'
+            });
+        }, 100);
+    }
+}); 

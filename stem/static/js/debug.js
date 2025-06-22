@@ -444,7 +444,7 @@ document.addEventListener('DOMContentLoaded', function() {
             debugMode: true,
             sidebarTitle: 'Debug Assistant',
             welcomeMessage: 'I\'m here to help you debug Tatlock. Ask me about system status, logs, or any issues you\'re encountering.',
-            placeholder: 'Ask about system status...'
+            placeholder: 'Ask Tatlock...'
         });
     }, 100);
 });

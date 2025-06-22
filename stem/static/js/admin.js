@@ -11,14 +11,19 @@ document.addEventListener('DOMContentLoaded', function() {
     loadGroups();
     setupAdminEventListeners();
     
-    // Initialize chat with logging disabled for admin page
-    initializeChat({
-        enableLogging: false,
-        debugMode: false,
+    // Initialize chat with admin-specific settings
+    new TatlockChat({
+        chatInput: document.getElementById('sidepane-input'),
+        chatSendBtn: document.getElementById('sidepane-send-btn'),
+        chatMessages: document.getElementById('sidepane-messages'),
+        chatMicBtn: document.getElementById('sidepane-mic-btn'),
         sidebarTitle: 'Admin Assistant',
-        welcomeMessage: 'I\'m here to help you manage users, roles, and groups. Ask me about admin tasks!',
-        placeholder: 'Ask about admin tasks...'
+        welcomeMessage: 'I\'m here to help you manage Tatlock. Ask me about user management, system administration, or any administrative tasks.',
+        placeholder: 'Ask Tatlock...'
     });
+    
+    // Initial load
+    showSection('stats');
 });
 
 function setupAdminEventListeners() {
