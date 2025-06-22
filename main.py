@@ -50,7 +50,7 @@ import base64
 from hippocampus.user_database import get_user_image_path
 from stem.current_user_context import get_current_user_ctx
 from fastapi.logger import logger
-from api_metadata import tags_metadata
+from stem.api_metadata import tags_metadata
 
 # Load environment variables from .env file
 load_dotenv()
