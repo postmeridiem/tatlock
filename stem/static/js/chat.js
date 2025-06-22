@@ -29,6 +29,18 @@ class TatlockChat {
         this.keyword = 'tatlock';
         this.pauseDuration = 5000; // 5 seconds
         
+        // Configure marked library for markdown parsing
+        if (typeof marked !== 'undefined') {
+            marked.setOptions({
+                breaks: true,
+                gfm: true,
+                sanitize: false,
+                highlight: function(code, lang) {
+                    return `<pre><code class="language-${lang}">${code}</code></pre>`;
+                }
+            });
+        }
+        
         // Debug logging
         if (this.debugMode) {
             console.log('TatlockChat constructor called with options:', options);
@@ -437,25 +449,27 @@ class TatlockChat {
         // Parse markdown for AI messages, keep plain text for user messages
         if (sender === 'ai' && typeof marked !== 'undefined') {
             try {
-                // Configure marked options for security and styling
-                marked.setOptions({
-                    breaks: true,
-                    gfm: true,
-                    sanitize: false,
-                    highlight: function(code, lang) {
-                        return `<pre><code class="language-${lang}">${code}</code></pre>`;
-                    }
-                });
-                
                 // Parse markdown to HTML
                 const htmlContent = marked.parse(content);
                 messageDiv.innerHTML = htmlContent;
+                
+                if (this.debugMode) {
+                    console.log('Markdown parsed successfully:', {
+                        original: content.substring(0, 100) + '...',
+                        html: htmlContent.substring(0, 100) + '...'
+                    });
+                }
             } catch (error) {
                 console.error('Markdown parsing error:', error);
+                // Fallback to plain text with line breaks
                 messageDiv.innerHTML = content.replace(/\n/g, '<br>');
             }
+        } else if (sender === 'ai' && typeof marked === 'undefined') {
+            // Marked library not available, log warning and use plain text
+            console.warn('Marked library not available, using plain text for AI message');
+            messageDiv.innerHTML = content.replace(/\n/g, '<br>');
         } else {
-            // For user messages or if marked is not available, use plain text
+            // For user messages, use plain text
             messageDiv.innerHTML = content.replace(/\n/g, '<br>');
         }
         

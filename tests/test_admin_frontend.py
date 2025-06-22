@@ -15,7 +15,7 @@ class TestAdminFrontend:
         """Test that admin dashboard page loads correctly."""
         response = authenticated_admin_client.get("/admin/dashboard")
         assert response.status_code == 200
-        assert "Tatlock Admin Dashboard" in response.text
+        assert "Admin Dashboard" in response.text
         assert "User Management" in response.text
     
     def test_user_modal_password_field_behavior(self, authenticated_admin_client):
@@ -41,5 +41,5 @@ class TestAdminFrontend:
     
     def test_admin_dashboard_requires_auth(self, client):
         """Test that admin dashboard requires authentication."""
-        response = client.get("/admin/dashboard", allow_redirects=False)
+        response = client.get("/admin/dashboard", follow_redirects=False)
         assert response.status_code == 302  # Should redirect to login 

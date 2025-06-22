@@ -320,3 +320,44 @@ AVAILABLE_TOOLS = {
     "screenshot_from_url": execute_screenshot_from_url,
     "analyze_file": execute_analyze_file,
 }
+
+# Add missing functions that tests are trying to mock
+def query_personal_variables(searchkey: str, username: str = "admin"):
+    """Query personal variables from the database."""
+    return execute_find_personal_variables(searchkey, username)
+
+def recall_memories(keyword: str, username: str = "admin"):
+    """Recall memories by keyword."""
+    return execute_recall_memories(keyword, username)
+
+def recall_memories_with_time(keyword: str, username: str = "admin", start_date: str | None = None, end_date: str | None = None):
+    """Recall memories by keyword with time filter."""
+    return execute_recall_memories_with_time(keyword, username, start_date, end_date)
+
+def get_conversations_by_topic(topic_name: str, username: str = "admin"):
+    """Get conversations by topic."""
+    return execute_get_conversations_by_topic(topic_name, username)
+
+def get_topics_by_conversation(conversation_id: str, username: str = "admin"):
+    """Get topics by conversation."""
+    return execute_get_topics_by_conversation(conversation_id, username)
+
+def get_conversation_summary(conversation_id: str, username: str = "admin"):
+    """Get conversation summary."""
+    return execute_get_conversation_summary(conversation_id, username)
+
+def get_topic_statistics(username: str = "admin"):
+    """Get topic statistics."""
+    return execute_get_topic_statistics(username)
+
+def get_user_conversations(username: str = "admin", limit: int = 10):
+    """Get user conversations."""
+    return execute_get_user_conversations(username, limit)
+
+def get_conversation_details(conversation_id: str, username: str = "admin"):
+    """Get conversation details."""
+    return execute_get_conversation_details(conversation_id, username)
+
+def search_conversations(query: str, username: str = "admin"):
+    """Search conversations."""
+    return execute_search_conversations(query, username)

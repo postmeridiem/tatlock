@@ -43,7 +43,7 @@ def ensure_user_database(username: str) -> str:
         
         # Create the database with all required tables
         create_longterm_db_tables(db_path)
-        logger.info(f"Created new longterm database for user '{username}' at {db_path}")
+        logger.info(f"Created a new longterm memory database for user '{username}' at {db_path}")
     
     return db_path
 

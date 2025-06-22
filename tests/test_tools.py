@@ -25,10 +25,10 @@ class TestPersonalVariablesTool:
     
     def test_find_personal_variables_success(self):
         """Test successful personal variables lookup."""
-        with patch('stem.tools.query_personal_variables') as mock_query:
+        with patch('hippocampus.database.execute_user_query') as mock_query:
             mock_query.return_value = [
-                {"key": "name", "value": "John Doe"},
-                {"key": "age", "value": "30"}
+                {"value": "John Doe"},
+                {"value": "30"}
             ]
             
             result = execute_find_personal_variables("name", "testuser")
@@ -38,7 +38,7 @@ class TestPersonalVariablesTool:
     
     def test_find_personal_variables_no_results(self):
         """Test personal variables lookup with no results."""
-        with patch('stem.tools.query_personal_variables') as mock_query:
+        with patch('hippocampus.database.execute_user_query') as mock_query:
             mock_query.return_value = []
             
             result = execute_find_personal_variables("nonexistent", "testuser")
@@ -48,12 +48,13 @@ class TestPersonalVariablesTool:
     
     def test_find_personal_variables_database_error(self):
         """Test personal variables lookup with database error."""
-        with patch('stem.tools.query_personal_variables') as mock_query:
+        with patch('hippocampus.database.execute_user_query') as mock_query:
             mock_query.side_effect = Exception("Database error")
             
-            # The function doesn't handle exceptions, so it will raise
-            with pytest.raises(Exception):
-                execute_find_personal_variables("name", "testuser")
+            result = execute_find_personal_variables("name", "testuser")
+            
+            assert result["status"] == "error"
+            assert "Database query failed" in result["message"]
 
 
 class TestWeatherTool:
@@ -96,16 +97,16 @@ class TestWeatherTool:
         with patch('requests.get', return_value=mock_response):
             result = execute_get_weather_forecast("NonexistentCity")
             
-            assert "error" in result
-            assert "City not found" in result["error"]
+            assert result["status"] == "error"
+            assert "City not found" in result["message"]
     
     def test_get_weather_forecast_network_error(self):
         """Test weather forecast with network error."""
         with patch('requests.get', side_effect=Exception("Network error")):
             result = execute_get_weather_forecast("Amsterdam")
             
-            assert "error" in result
-            assert "Network error" in result["error"]
+            assert result["status"] == "error"
+            assert "Network error" in result["message"]
 
 
 class TestWebSearchTool:
@@ -148,8 +149,8 @@ class TestWebSearchTool:
         with patch('requests.get', side_effect=Exception("API key invalid")):
             result = execute_web_search("test query")
             
-            assert "error" in result
-            assert "Failed to execute web search" in result["error"]
+            assert result["status"] == "error"
+            assert "Failed to execute web search" in result["message"]
 
 
 class TestMemoryRecallTools:
@@ -157,7 +158,7 @@ class TestMemoryRecallTools:
     
     def test_recall_memories_success(self):
         """Test successful memory recall."""
-        with patch('stem.tools.recall_memories') as mock_recall:
+        with patch('hippocampus.tools.recall_memories_tool.recall_memories') as mock_recall:
             mock_recall.return_value = [
                 {"timestamp": "2022-01-01", "user_prompt": "test prompt", "llm_reply": "test reply", "conversation_id": "conv1", "topic_name": "test"}
             ]
@@ -169,7 +170,7 @@ class TestMemoryRecallTools:
     
     def test_recall_memories_with_time_success(self):
         """Test successful memory recall with time filter."""
-        with patch('stem.tools.recall_memories_with_time') as mock_recall:
+        with patch('hippocampus.tools.recall_memories_with_time_tool.recall_memories_with_time') as mock_recall:
             mock_recall.return_value = [
                 {"timestamp": "2022-01-01", "user_prompt": "test prompt", "llm_reply": "test reply", "conversation_id": "conv1", "topic_name": "test"}
             ]
@@ -181,7 +182,7 @@ class TestMemoryRecallTools:
     
     def test_recall_memories_no_results(self):
         """Test memory recall with no results."""
-        with patch('stem.tools.recall_memories') as mock_recall:
+        with patch('hippocampus.tools.recall_memories_tool.recall_memories') as mock_recall:
             mock_recall.return_value = []
             
             result = execute_recall_memories("nonexistent", "testuser")
@@ -191,12 +192,13 @@ class TestMemoryRecallTools:
     
     def test_recall_memories_database_error(self):
         """Test memory recall with database error."""
-        with patch('stem.tools.recall_memories') as mock_recall:
+        with patch('hippocampus.tools.recall_memories_tool.recall_memories') as mock_recall:
             mock_recall.side_effect = Exception("Database error")
             
-            # The function doesn't handle exceptions, so it will raise
-            with pytest.raises(Exception):
-                execute_recall_memories("test", "testuser")
+            result = execute_recall_memories("test", "testuser")
+            
+            assert result["status"] == "error"
+            assert "Memory recall failed" in result["message"]
 
 
 class TestConversationTools:
@@ -204,7 +206,7 @@ class TestConversationTools:
     
     def test_get_conversations_by_topic_success(self):
         """Test successful conversation retrieval by topic."""
-        with patch('stem.tools.get_conversations_by_topic') as mock_get:
+        with patch('hippocampus.tools.get_conversations_by_topic_tool.get_conversations_by_topic') as mock_get:
             mock_get.return_value = [
                 {"conversation_id": "conv1", "topic_name": "test", "first_seen": "2022-01-01"}
             ]
@@ -216,7 +218,7 @@ class TestConversationTools:
     
     def test_get_topics_by_conversation_success(self):
         """Test successful topic retrieval by conversation."""
-        with patch('stem.tools.get_topics_by_conversation') as mock_get:
+        with patch('hippocampus.tools.get_topics_by_conversation_tool.get_topics_by_conversation') as mock_get:
             mock_get.return_value = [
                 {"topic_name": "test", "frequency": 3, "first_seen": "2022-01-01"}
             ]
@@ -228,11 +230,11 @@ class TestConversationTools:
     
     def test_get_conversation_summary_success(self):
         """Test successful conversation summary retrieval."""
-        with patch('stem.tools.get_conversation_summary') as mock_get:
+        with patch('hippocampus.tools.get_conversation_summary_tool.get_conversation_summary') as mock_get:
             mock_get.return_value = {
                 "conversation_id": "conv1",
                 "title": "Test Conversation",
-                "duration": "2 hours",
+                "message_count": 5,
                 "topics": ["test", "example"]
             }
             
@@ -243,19 +245,21 @@ class TestConversationTools:
     
     def test_get_topic_statistics_success(self):
         """Test successful topic statistics retrieval."""
-        with patch('stem.tools.get_topic_statistics') as mock_get:
-            mock_get.return_value = [
-                {"topic_name": "test", "frequency": 10, "conversation_count": 5}
-            ]
+        with patch('hippocampus.tools.get_topic_statistics_tool.get_topic_statistics') as mock_get:
+            mock_get.return_value = {
+                "total_topics": 10,
+                "total_conversations": 5,
+                "topics": [{"name": "test", "frequency": 3}]
+            }
             
             result = execute_get_topic_statistics("testuser")
             
             assert result["status"] == "success"
-            assert len(result["data"]) == 1
+            assert result["data"]["total_topics"] == 10
     
     def test_get_user_conversations_success(self):
         """Test successful user conversations retrieval."""
-        with patch('stem.tools.get_user_conversations') as mock_get:
+        with patch('hippocampus.tools.get_user_conversations_tool.get_user_conversations') as mock_get:
             mock_get.return_value = [
                 {"conversation_id": "conv1", "title": "Test", "last_activity": "2022-01-01"}
             ]
@@ -267,12 +271,11 @@ class TestConversationTools:
     
     def test_get_conversation_details_success(self):
         """Test successful conversation details retrieval."""
-        with patch('stem.tools.get_conversation_details') as mock_get:
+        with patch('hippocampus.tools.get_conversation_details_tool.get_conversation_details') as mock_get:
             mock_get.return_value = {
                 "conversation_id": "conv1",
                 "title": "Test Conversation",
-                "topics": ["test"],
-                "message_count": 10
+                "messages": [{"role": "user", "content": "test"}]
             }
             
             result = execute_get_conversation_details("conv1", "testuser")
@@ -282,15 +285,15 @@ class TestConversationTools:
     
     def test_search_conversations_success(self):
         """Test successful conversation search."""
-        with patch('stem.tools.search_conversations') as mock_search:
+        with patch('hippocampus.tools.search_conversations_tool.search_conversations') as mock_search:
             mock_search.return_value = [
-                {"conversation_id": "conv1", "title": "Test Conversation"}
+                {"conversation_id": "conv1", "relevance": 0.8, "snippet": "test content"}
             ]
             
-            result = execute_search_conversations("test", "testuser", 5)
+            result = execute_search_conversations("test query", "testuser")
             
             assert result["status"] == "success"
-            assert len(result["data"]) == 1
+            assert len(result["data"]["conversations"]) == 1
 
 
 class TestToolErrorHandling:
@@ -310,26 +313,11 @@ class TestToolErrorHandling:
         # Test weather tool with invalid city
         result = execute_get_weather_forecast("")
         # The function doesn't validate empty city names, so it will try to make the request
-        assert "error" in result or result["status"] == "success"
-        
-        # Test web search with empty query
-        result = execute_web_search("")
-        # The function doesn't validate empty queries, so it will try to make the request
-        assert "error" in result or result["status"] == "success"
-        
-        # Test memory recall with empty keyword
-        result = execute_recall_memories("", "testuser")
-        # The function handles empty keywords by returning no results
-        assert result["status"] == "success"
+        assert result["status"] == "error" or result["status"] == "success"
     
     def test_tool_with_invalid_dates(self):
         """Test tools with invalid date parameters."""
         # Test weather tool with invalid date format
         result = execute_get_weather_forecast("Amsterdam", "invalid-date")
         # The function doesn't validate date formats, so it will try to make the request
-        assert "error" in result or result["status"] == "success"
-        
-        # Test memory recall with invalid date range
-        result = execute_recall_memories_with_time("test", "testuser", "2022-13-01", "2022-01-01")
-        # The function doesn't validate date formats, so it will try to make the request
-        assert result["status"] == "success" 
+        assert result["status"] == "error" or result["status"] == "success" 

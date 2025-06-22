@@ -12,6 +12,7 @@ import shutil
 from occipital.website_tester import WebsiteTester
 from occipital.visual_analyzer import VisualAnalyzer
 from occipital.run_tests import ScreenshotTestRunner
+from occipital.url_screenshot import take_screenshot_from_url, analyze_screenshot_file
 
 
 class TestWebsiteTester:
@@ -228,6 +229,296 @@ def test_directory_creation():
         baseline_dir = Path(temp_dir) / "baselines"
         analyzer = VisualAnalyzer(baseline_dir=str(baseline_dir))
         assert baseline_dir.exists()
+
+
+class TestTakeScreenshotFromURL:
+    """Test the take_screenshot_from_url function."""
+    
+    @pytest.mark.asyncio
+    async def test_successful_screenshot(self):
+        """Test successful screenshot capture."""
+        with patch('occipital.url_screenshot.get_user_image_path') as mock_get_path:
+            mock_get_path.return_value = "/tmp/test_screenshot.png"
+            
+            with patch('occipital.url_screenshot.WebsiteTester') as mock_tester_class:
+                mock_tester = Mock()
+                mock_tester_class.return_value = mock_tester
+                mock_tester.take_screenshot_from_url = AsyncMock()
+                
+                result = await take_screenshot_from_url(
+                    url="https://example.com",
+                    session_id="test_session",
+                    username="testuser"
+                )
+                
+                assert result["success"] is True
+                assert result["file_path"] == "/tmp/test_screenshot.png"
+                assert result["session_id"] == "test_session"
+                assert result["url"] == "https://example.com"
+                assert "successfully" in result["message"]
+                
+                mock_get_path.assert_called_once_with("testuser", "test_session", ext="png")
+                mock_tester_class.assert_called_once_with(username="testuser")
+                mock_tester.take_screenshot_from_url.assert_called_once_with(
+                    "https://example.com", "/tmp/test_screenshot.png"
+                )
+    
+    @pytest.mark.asyncio
+    async def test_screenshot_error_handling(self):
+        """Test error handling during screenshot capture."""
+        with patch('occipital.url_screenshot.get_user_image_path') as mock_get_path:
+            mock_get_path.return_value = "/tmp/test_screenshot.png"
+            
+            with patch('occipital.url_screenshot.WebsiteTester') as mock_tester_class:
+                mock_tester = Mock()
+                mock_tester_class.return_value = mock_tester
+                mock_tester.take_screenshot_from_url = AsyncMock(side_effect=Exception("Browser error"))
+                
+                result = await take_screenshot_from_url(
+                    url="https://example.com",
+                    session_id="test_session",
+                    username="testuser"
+                )
+                
+                assert result["success"] is False
+                assert result["error"] == "Browser error"
+                assert result["session_id"] == "test_session"
+                assert result["url"] == "https://example.com"
+    
+    @pytest.mark.asyncio
+    async def test_screenshot_with_default_username(self):
+        """Test screenshot with default username."""
+        with patch('occipital.url_screenshot.get_user_image_path') as mock_get_path:
+            mock_get_path.return_value = "/tmp/test_screenshot.png"
+            
+            with patch('occipital.url_screenshot.WebsiteTester') as mock_tester_class:
+                mock_tester = Mock()
+                mock_tester_class.return_value = mock_tester
+                mock_tester.take_screenshot_from_url = AsyncMock()
+                
+                result = await take_screenshot_from_url(
+                    url="https://example.com",
+                    session_id="test_session"
+                )
+                
+                assert result["success"] is True
+                mock_get_path.assert_called_once_with("admin", "test_session", ext="png")
+                mock_tester_class.assert_called_once_with(username="admin")
+
+
+class TestAnalyzeScreenshotFile:
+    """Test the analyze_screenshot_file function."""
+    
+    def test_successful_file_analysis(self):
+        """Test successful file analysis."""
+        with patch('occipital.url_screenshot.get_user_image_path') as mock_get_path:
+            mock_get_path.return_value = "/tmp/test_screenshot.png"
+            
+            with patch('os.path.exists', return_value=True):
+                with patch('os.path.getsize', return_value=1024):
+                    result = analyze_screenshot_file(
+                        session_id="test_session",
+                        original_prompt="Take a screenshot of example.com",
+                        username="testuser"
+                    )
+                    
+                    assert result["success"] is True
+                    assert result["analysis"]["file_path"] == "/tmp/test_screenshot.png"
+                    assert result["analysis"]["file_size_bytes"] == 1024
+                    assert result["analysis"]["file_type"] == "PNG image"
+                    assert result["analysis"]["session_id"] == "test_session"
+                    assert "Image file captured" in result["analysis"]["analysis_summary"]
+                    assert len(result["analysis"]["insights"]) > 0
+                    assert len(result["analysis"]["recommendations"]) > 0
+                    assert "Take a screenshot of example.com" in result["analysis"]["insights"][2]
+                    
+                    mock_get_path.assert_called_once_with("testuser", "test_session", ext="png")
+    
+    def test_file_not_found(self):
+        """Test analysis when file doesn't exist."""
+        with patch('occipital.url_screenshot.get_user_image_path') as mock_get_path:
+            mock_get_path.return_value = "/tmp/nonexistent.png"
+            
+            with patch('os.path.exists', return_value=False):
+                result = analyze_screenshot_file(
+                    session_id="test_session",
+                    original_prompt="Take a screenshot",
+                    username="testuser"
+                )
+                
+                assert result["success"] is False
+                assert "File not found" in result["error"]
+                assert result["session_id"] == "test_session"
+    
+    def test_analysis_error_handling(self):
+        """Test error handling during file analysis."""
+        with patch('occipital.url_screenshot.get_user_image_path') as mock_get_path:
+            mock_get_path.side_effect = Exception("Path error")
+            
+            result = analyze_screenshot_file(
+                session_id="test_session",
+                original_prompt="Take a screenshot",
+                username="testuser"
+            )
+            
+            assert result["success"] is False
+            assert result["error"] == "Path error"
+            assert result["session_id"] == "test_session"
+    
+    def test_analysis_with_default_username(self):
+        """Test analysis with default username."""
+        with patch('occipital.url_screenshot.get_user_image_path') as mock_get_path:
+            mock_get_path.return_value = "/tmp/test_screenshot.png"
+            
+            with patch('os.path.exists', return_value=True):
+                with patch('os.path.getsize', return_value=2048):
+                    result = analyze_screenshot_file(
+                        session_id="test_session",
+                        original_prompt="Test prompt"
+                    )
+                    
+                    assert result["success"] is True
+                    assert result["analysis"]["file_size_bytes"] == 2048
+                    mock_get_path.assert_called_once_with("admin", "test_session", ext="png")
+    
+    def test_analysis_with_empty_prompt(self):
+        """Test analysis with empty original prompt."""
+        with patch('occipital.url_screenshot.get_user_image_path') as mock_get_path:
+            mock_get_path.return_value = "/tmp/test_screenshot.png"
+            
+            with patch('os.path.exists', return_value=True):
+                with patch('os.path.getsize', return_value=512):
+                    result = analyze_screenshot_file(
+                        session_id="test_session",
+                        original_prompt="",
+                        username="testuser"
+                    )
+                    
+                    assert result["success"] is True
+                    assert "Original prompt context: " in result["analysis"]["insights"][2]
+    
+    def test_analysis_with_none_prompt(self):
+        """Test analysis with None original prompt."""
+        with patch('occipital.url_screenshot.get_user_image_path') as mock_get_path:
+            mock_get_path.return_value = "/tmp/test_screenshot.png"
+            
+            with patch('os.path.exists', return_value=True):
+                with patch('os.path.getsize', return_value=512):
+                    result = analyze_screenshot_file(
+                        session_id="test_session",
+                        original_prompt=None,
+                        username="testuser"
+                    )
+                    
+                    assert result["success"] is True
+                    assert "Original prompt context: None" in result["analysis"]["insights"][2]
+    
+    def test_analysis_with_large_file(self):
+        """Test analysis with large file size."""
+        with patch('occipital.url_screenshot.get_user_image_path') as mock_get_path:
+            mock_get_path.return_value = "/tmp/large_screenshot.png"
+            
+            with patch('os.path.exists', return_value=True):
+                with patch('os.path.getsize', return_value=1048576):  # 1MB
+                    result = analyze_screenshot_file(
+                        session_id="test_session",
+                        original_prompt="Large screenshot",
+                        username="testuser"
+                    )
+                    
+                    assert result["success"] is True
+                    assert result["analysis"]["file_size_bytes"] == 1048576
+                    assert "1048576 bytes" in result["analysis"]["analysis_summary"]
+    
+    def test_analysis_with_zero_size_file(self):
+        """Test analysis with zero size file."""
+        with patch('occipital.url_screenshot.get_user_image_path') as mock_get_path:
+            mock_get_path.return_value = "/tmp/empty_screenshot.png"
+            
+            with patch('os.path.exists', return_value=True):
+                with patch('os.path.getsize', return_value=0):
+                    result = analyze_screenshot_file(
+                        session_id="test_session",
+                        original_prompt="Empty screenshot",
+                        username="testuser"
+                    )
+                    
+                    assert result["success"] is True
+                    assert result["analysis"]["file_size_bytes"] == 0
+                    assert "0 bytes" in result["analysis"]["analysis_summary"]
+    
+    def test_analysis_insights_structure(self):
+        """Test that analysis insights have the expected structure."""
+        with patch('occipital.url_screenshot.get_user_image_path') as mock_get_path:
+            mock_get_path.return_value = "/tmp/test_screenshot.png"
+            
+            with patch('os.path.exists', return_value=True):
+                with patch('os.path.getsize', return_value=1024):
+                    result = analyze_screenshot_file(
+                        session_id="test_session",
+                        original_prompt="Test prompt",
+                        username="testuser"
+                    )
+                    
+                    insights = result["analysis"]["insights"]
+                    assert len(insights) == 4
+                    assert "webpage screenshot" in insights[0]
+                    assert "PNG format" in insights[1]
+                    assert "Original prompt context" in insights[2]
+                    assert "computer vision APIs" in insights[3]
+    
+    def test_analysis_recommendations_structure(self):
+        """Test that analysis recommendations have the expected structure."""
+        with patch('occipital.url_screenshot.get_user_image_path') as mock_get_path:
+            mock_get_path.return_value = "/tmp/test_screenshot.png"
+            
+            with patch('os.path.exists', return_value=True):
+                with patch('os.path.getsize', return_value=1024):
+                    result = analyze_screenshot_file(
+                        session_id="test_session",
+                        original_prompt="Test prompt",
+                        username="testuser"
+                    )
+                    
+                    recommendations = result["analysis"]["recommendations"]
+                    assert len(recommendations) == 3
+                    assert "successfully captured" in recommendations[0]
+                    assert "analyze the visual content" in recommendations[1]
+                    assert "original prompt context" in recommendations[2]
+    
+    def test_analysis_with_special_characters_in_prompt(self):
+        """Test analysis with special characters in the original prompt."""
+        with patch('occipital.url_screenshot.get_user_image_path') as mock_get_path:
+            mock_get_path.return_value = "/tmp/test_screenshot.png"
+            
+            with patch('os.path.exists', return_value=True):
+                with patch('os.path.getsize', return_value=1024):
+                    special_prompt = "Take a screenshot of https://example.com?param=value&other=123"
+                    result = analyze_screenshot_file(
+                        session_id="test_session",
+                        original_prompt=special_prompt,
+                        username="testuser"
+                    )
+                    
+                    assert result["success"] is True
+                    assert special_prompt in result["analysis"]["insights"][2]
+    
+    def test_analysis_with_very_long_prompt(self):
+        """Test analysis with very long original prompt."""
+        with patch('occipital.url_screenshot.get_user_image_path') as mock_get_path:
+            mock_get_path.return_value = "/tmp/test_screenshot.png"
+            
+            with patch('os.path.exists', return_value=True):
+                with patch('os.path.getsize', return_value=1024):
+                    long_prompt = "A" * 1000  # Very long prompt
+                    result = analyze_screenshot_file(
+                        session_id="test_session",
+                        original_prompt=long_prompt,
+                        username="testuser"
+                    )
+                    
+                    assert result["success"] is True
+                    assert long_prompt in result["analysis"]["insights"][2]
 
 
 if __name__ == "__main__":

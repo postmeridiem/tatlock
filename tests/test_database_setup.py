@@ -172,7 +172,7 @@ class TestDatabaseSetup:
         # Look for key phrases in the default instructions
         assert any("Tatlock" in text for text in instruction_texts)
         assert any("tool" in text.lower() for text in instruction_texts)
-        assert any("rise and shine" in text.lower() for text in instruction_texts)
+        assert any("rise_and_shine" in text.lower() for text in instruction_texts)
         
         conn.close()
     

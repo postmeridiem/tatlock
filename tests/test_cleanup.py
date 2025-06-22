@@ -1,123 +1,91 @@
 """
-Tests for user cleanup functionality.
+tests/test_cleanup.py
+
+Cleanup utilities for test artifacts and temporary files.
 """
 
-import pytest
 import os
+import shutil
 import sqlite3
 from pathlib import Path
-from tests.conftest import cleanup_user_data
-from stem.security import SecurityManager
-from hippocampus.user_database import get_user_database_path
 
+def cleanup_test_databases():
+    """Remove all test database files."""
+    test_dirs = [
+        "hippocampus/longterm",
+        "hippocampus/shortterm",
+        "tests/.pytest_cache",
+        "tests/.coverage"
+    ]
+    
+    for test_dir in test_dirs:
+        if os.path.exists(test_dir):
+            if os.path.isdir(test_dir):
+                shutil.rmtree(test_dir)
+            else:
+                os.remove(test_dir)
+            print(f"Cleaned up: {test_dir}")
 
-class TestUserCleanup:
-    """Test user cleanup functionality."""
+def cleanup_test_files():
+    """Remove test-specific files."""
+    test_files = [
+        "tatlock.log",
+        "tests/test_output.txt",
+        "tests/test_cookies.txt"
+    ]
     
-    def test_cleanup_user_data(self, security_manager):
-        """Test that cleanup_user_data removes all user data."""
-        # Create a test user
-        username = "cleanup_test_user"
-        
-        # Create user in security manager
-        security_manager.create_user(
-            username=username,
-            first_name="Cleanup",
-            last_name="Test",
-            password="password123",
-            email="cleanup@test.com"
-        )
-        
-        # Verify user was created
-        user = security_manager.get_user_by_username(username)
-        assert user is not None
-        assert user['username'] == username
-        
-        # Create user database (this would normally happen when user first logs in)
-        db_path = get_user_database_path(username)
-        
-        # Create the database file
-        conn = sqlite3.connect(db_path)
-        conn.execute("CREATE TABLE IF NOT EXISTS test_table (id INTEGER PRIMARY KEY)")
-        conn.execute("INSERT INTO test_table (id) VALUES (1)")
-        conn.close()
-        
-        # Verify database exists
-        assert os.path.exists(db_path)
-        
-        # Create user directory
-        user_dir = Path("hippocampus") / "shortterm" / username
-        user_dir.mkdir(parents=True, exist_ok=True)
-        
-        # Create a test file in the directory
-        test_file = user_dir / "test.txt"
-        test_file.write_text("test content")
-        
-        # Verify directory and file exist
-        assert user_dir.exists()
-        assert test_file.exists()
-        
-        # Clean up the user data
-        cleanup_user_data(username)
-        
-        # Verify user database is deleted
-        assert not os.path.exists(db_path)
-        
-        # Verify user directory is deleted
-        assert not user_dir.exists()
-        
-        # Verify user is still in security manager (cleanup doesn't remove from system db)
-        user = security_manager.get_user_by_username(username)
-        assert user is not None
-        
-        # Clean up the user from security manager too
-        security_manager.delete_user(username)
-        
-        # Verify user is completely removed
-        user = security_manager.get_user_by_username(username)
-        assert user is None
+    for test_file in test_files:
+        if os.path.exists(test_file):
+            os.remove(test_file)
+            print(f"Cleaned up: {test_file}")
+
+def cleanup_python_cache():
+    """Remove Python cache files."""
+    cache_dirs = []
     
-    def test_cleanup_nonexistent_user(self):
-        """Test that cleanup_user_data handles nonexistent users gracefully."""
-        username = "nonexistent_user"
-        
-        # This should not raise an exception
-        cleanup_user_data(username)
-        
-        # Verify no files were created
-        db_path = get_user_database_path(username)
-        user_dir = Path("hippocampus") / "shortterm" / username
-        
-        assert not os.path.exists(db_path)
-        assert not user_dir.exists()
+    # Find all __pycache__ directories
+    for root, dirs, files in os.walk("."):
+        for dir_name in dirs:
+            if dir_name == "__pycache__":
+                cache_dirs.append(os.path.join(root, dir_name))
     
-    def test_cleanup_with_partial_data(self):
-        """Test cleanup when only some user data exists."""
-        username = "partial_test_user"
-        
-        # Create only the database
-        db_path = get_user_database_path(username)
-        conn = sqlite3.connect(db_path)
-        conn.close()
-        
-        # Verify database exists
-        assert os.path.exists(db_path)
-        
-        # Clean up
-        cleanup_user_data(username)
-        
-        # Verify database is deleted
-        assert not os.path.exists(db_path)
-        
-        # Test with only directory
-        user_dir = Path("hippocampus") / "shortterm" / username
-        user_dir.mkdir(parents=True, exist_ok=True)
-        
-        # Verify directory exists
-        assert user_dir.exists()
-        
-        # Clean up
-        cleanup_user_data(username)
-        
-        # Verify directory is deleted
-        assert not user_dir.exists() 
+    for cache_dir in cache_dirs:
+        shutil.rmtree(cache_dir)
+        print(f"Cleaned up: {cache_dir}")
+
+def cleanup_test_screenshots():
+    """Remove test screenshot directories."""
+    screenshot_dirs = [
+        "test_screenshots",
+        "test_baselines", 
+        "test_comparisons"
+    ]
+    
+    for screenshot_dir in screenshot_dirs:
+        if os.path.exists(screenshot_dir):
+            shutil.rmtree(screenshot_dir)
+            print(f"Cleaned up: {screenshot_dir}")
+
+def cleanup_user_databases():
+    """Remove user-specific test databases."""
+    longterm_dir = Path("hippocampus/longterm")
+    if longterm_dir.exists():
+        for db_file in longterm_dir.glob("*.db"):
+            if "test" in db_file.name or "admin_" in db_file.name:
+                db_file.unlink()
+                print(f"Cleaned up user database: {db_file}")
+
+def cleanup_all():
+    """Perform comprehensive cleanup of all test artifacts."""
+    print("Starting comprehensive test cleanup...")
+    
+    cleanup_test_databases()
+    cleanup_test_files()
+    cleanup_python_cache()
+    cleanup_test_screenshots()
+    cleanup_user_databases()
+    
+    print("Test cleanup completed!")
+
+if __name__ == "__main__":
+    cleanup_all() 

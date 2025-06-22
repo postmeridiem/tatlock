@@ -5,6 +5,7 @@ URL screenshot functionality for taking screenshots of webpages and saving them 
 """
 
 import logging
+from typing import Optional
 from hippocampus.user_database import get_user_image_path
 from occipital.website_tester import WebsiteTester
 
@@ -49,13 +50,13 @@ async def take_screenshot_from_url(url: str, session_id: str, username: str = "a
         }
 
 
-def analyze_screenshot_file(session_id: str, original_prompt: str, username: str = "admin") -> dict:
+def analyze_screenshot_file(session_id: str, original_prompt: Optional[str], username: str = "admin") -> dict:
     """
     Analyze a screenshot file stored in the user's shortterm storage.
     
     Args:
         session_id (str): The session ID of the file to analyze (same as used when taking screenshot).
-        original_prompt (str): The original user prompt that led to this file being created, for context in analysis.
+        original_prompt (Optional[str]): The original user prompt that led to this file being created, for context in analysis.
         username (str): The username whose storage to use. Defaults to "admin".
         
     Returns:
