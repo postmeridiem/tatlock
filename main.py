@@ -39,6 +39,7 @@ from config import (
     OPENWEATHER_API_KEY, GOOGLE_API_KEY, GOOGLE_CSE_ID, 
     OLLAMA_MODEL, SYSTEM_DB_PATH, PORT
 )
+from parietal.hardware import get_comprehensive_system_info
 
 # Load environment variables from .env file
 load_dotenv()
@@ -244,6 +245,14 @@ async def profile_page(current_user: dict = Depends(get_current_user)):
     Allows users to view and edit their profile information.
     """
     return HTMLResponse(content=get_profile_page())
+
+@app.get("/parietal/system-info", tags=["api"])
+async def system_info_api(current_user: dict = Depends(get_current_user)):
+    """
+    Returns comprehensive system and hardware information for the debug console.
+    Requires authentication.
+    """
+    return get_comprehensive_system_info()
 
 # This allows running the app directly with `python main.py`
 if __name__ == "__main__":
