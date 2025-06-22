@@ -14,8 +14,9 @@ The automated installation script performs the following steps:
 7. Downloads Material Icons for offline web interface
 8. Initializes system.db and longterm.db with authentication and memory tables
 9. Creates default roles, groups, and system prompts
-10. Optionally creates a new admin account
-11. Optionally installs Tatlock as an auto-starting service
+10. **Intelligently handles admin user creation**: Checks for existing admin users and offers to keep or replace them
+11. **Provides detailed debugging**: Enhanced error reporting and system diagnostics
+12. Optionally installs Tatlock as an auto-starting service
 
 ## System Requirements
 
@@ -118,6 +119,98 @@ python3 --version
 
 # Should show Python 3.10.x or higher
 # If not, the installation script will install Python 3.10+
+```
+
+## Admin User Management
+
+The installation script now intelligently handles admin user creation and provides detailed debugging information.
+
+### Admin User Creation Process
+
+**Step 1: Check for Existing Admin**
+- The script checks if an admin user already exists in the database
+- If found, displays "Admin account already exists."
+
+**Step 2: User Choice**
+- **Keep Existing Admin**: Use the default credentials (username: `admin`, password: `admin123`)
+- **Replace Admin**: Delete the existing admin and create a new one with your chosen credentials
+
+### Debugging Features
+
+The script now provides detailed debugging information during admin creation:
+
+**Database Diagnostics:**
+- Database path and file existence
+- Hippocampus directory existence
+- Current working directory
+- Users table existence
+- Existing user detection
+
+**Error Reporting:**
+- Detailed Python exceptions and tracebacks
+- Database connection status
+- SQL query results
+- Security manager error messages
+
+### Common Admin Creation Issues
+
+#### "Failed to create admin user" Error
+
+**What the script now shows:**
+- Detailed debug information about database state
+- Whether the admin user already exists
+- Specific Python exceptions if they occur
+
+**Solutions:**
+
+1. **Admin User Already Exists:**
+   ```
+   Debug: Admin user already exists: True
+   Debug: Existing user found: admin
+   ```
+   - Choose to keep the existing admin user
+   - Or choose to replace it with new credentials
+
+2. **Database Issues:**
+   ```
+   Debug: Database file exists: False
+   ```
+   - The script will automatically create the database directory
+   - Ensure proper file permissions
+
+3. **Table Issues:**
+   ```
+   Debug: Users table exists: False
+   ```
+   - The script will automatically create the required tables
+   - Check if the database initialization step completed successfully
+
+#### "No admin account found" but "Admin user already exists"
+
+This can happen if the admin user exists but has a different password than the default `admin123`.
+
+**Solution:**
+- The script now properly detects existing users regardless of password
+- Choose to replace the admin user if you want to set new credentials
+
+### Manual Admin User Creation
+
+If you need to create an admin user manually:
+
+```bash
+# Activate the virtual environment
+source .venv/bin/activate
+
+# Run the admin creation script
+PYTHONPATH=. python -c "
+from stem.security import security_manager
+if security_manager.create_user('admin', 'Administrator', 'User', 'your_password', 'admin@tatlock.local'):
+    security_manager.add_user_to_role('admin', 'admin')
+    security_manager.add_user_to_group('admin', 'admins')
+    print('Admin user created successfully')
+else:
+    print('Failed to create admin user')
+"
 ```
 
 ## Repository Issues

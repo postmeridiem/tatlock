@@ -70,17 +70,15 @@ Tatlock's architecture is inspired by the human brain, with each module represen
 
    **Note**: The installation script supports apt-based systems (Ubuntu/Debian), yum-based systems (CentOS/RHEL/Fedora), macOS (Intel/Apple Silicon), and Arch Linux. For other distributions, manual installation of dependencies may be required.
 
-   The script will automatically create a `.env` file with all required environment variables and generate a secure `STARLETTE_SECRET` key.
-
-   **Note**: If a `.env` file already exists, the script will ask if you want to overwrite it or keep the existing configuration.
-
-   The script also creates a Python virtual environment in the `.venv` directory for isolated dependency management.
-
-   **Note**: The script safely handles existing virtual environments and will only recreate them if explicitly requested or if they appear to be corrupted.
-
-   The script also makes `wakeup.sh` executable for easy application startup.
-
-   The script optionally offers to install Tatlock as an auto-starting service for automatic startup on system boot.
+   The script will automatically:
+   - Create a `.env` file with all required environment variables and generate a secure `STARLETTE_SECRET` key
+   - Handle existing `.env` files safely (asks if you want to overwrite or keep existing configuration)
+   - Create a Python virtual environment in the `.venv` directory for isolated dependency management
+   - Safely handle existing virtual environments (only recreates if explicitly requested or corrupted)
+   - Make `wakeup.sh` executable for easy application startup
+   - **Intelligently handle admin user creation**: If an admin user already exists, you can choose to keep it or replace it with new credentials
+   - **Provide detailed debugging**: Enhanced error reporting and system diagnostics
+   - Optionally install Tatlock as an auto-starting service for automatic startup on system boot
 
 3. Install and start Ollama:
    ```bash
@@ -116,6 +114,10 @@ Tatlock's architecture is inspired by the human brain, with each module represen
    - **User Profile**: `http://localhost:8000/profile`
    - **Debug Console**: `http://localhost:8000/chat`
    - **API Documentation**: `http://localhost:8000/docs`
+
+   **Default Admin Credentials**: If you kept the existing admin user during installation, use:
+   - **Username**: `admin`
+   - **Password**: `admin123`
 
    **Note**: The default port is 8000. You can change this by modifying the `PORT` variable in your `.env` file.
 
