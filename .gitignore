@@ -1,7 +1,5 @@
 .env
 .venv/
-hippocampus/system.db
-hippocampus/longterm/*.db
 
 # Python cache files
 __pycache__/
@@ -28,4 +26,5 @@ Thumbs.db
 # Temporary files
 *.tmp
 *.temp
-hippocampus/longterm/admin.db
+hippocampus/longterm/
+hippocampus/shortterm/
