@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from 'components/navigation.html' import render_nav %}
 
 {% set show_chat_sidebar = true %}
 {% set welcome_message = "Good day, sir. I am Tatlock, your AI assistant. Pray, what matters require my attention today?" %}
@@ -10,71 +11,81 @@
 {% endblock %}
 
 {% block content %}
-<div class="main-layout">
-    <div class="sidebar-nav">
-        <div class="nav-section">
-            <div class="nav-title">Profile</div>
-            <a href="#profile" class="nav-item active" onclick="showProfileSection('profile')">Profile</a>
-            <a href="#change-password" class="nav-item" onclick="showProfileSection('change-password')">Change Password</a>
+{% set nav_items = [
+    {'href': '#profile', 'text': 'Profile', 'onclick': 'profile', 'active': True},
+    {'href': '#change-password', 'text': 'Change Password', 'onclick': 'change-password'}
+] %}
+{{ render_nav('Profile', nav_items) }}
+
+<div class="content-area">
+    <!-- Profile Information and Edit -->
+    <div id="profile" class="section">
+        <div class="section-title">
+            Profile Information
+        </div>
+        <div id="profile-content">
+            <div class="loading">Loading profile information...</div>
+        </div>
+        <div class="profile-actions" style="margin-top: 20px;">
+            <button type="button" class="button secondary" onclick="toggleProfileEdit()" id="editProfileBtn">
+                Edit Profile
+            </button>
         </div>
     </div>
     
-    <div class="main-content">
-        <!-- Profile Information and Edit -->
-        <div id="profile" class="section">
-            <div class="section-title">
-                Profile Information
-            </div>
-            <div id="profile-content">
-                <div class="loading">Loading profile information...</div>
-            </div>
-            <div class="profile-actions" style="margin-top: 20px;">
-                <button type="button" class="button secondary" onclick="toggleProfileEdit()" id="editProfileBtn">
-                    Edit Profile
-                </button>
-            </div>
-        </div>
-        
-        <!-- Change Password -->
-        <div id="change-password" class="section" style="display: none;">
-            <div class="section-title">Change Password</div>
-            <form id="passwordForm">
-                <div class="form-group">
-                    <label for="currentPassword">Current Password *</label>
-                    <div class="password-input-container">
-                        <input type="password" id="currentPassword" required>
-                        <button type="button" class="password-toggle" onclick="togglePassword('currentPassword')" title="Show/Hide password">
-                            <span class="material-icons">visibility</span>
-                        </button>
-                    </div>
+    <!-- Change Password -->
+    <div id="change-password" class="section" style="display: none;">
+        <div class="section-title">Change Password</div>
+        <form id="passwordForm">
+            <div class="form-group">
+                <label for="currentPassword">Current Password *</label>
+                <div class="password-input-container">
+                    <input type="password" id="currentPassword" required>
+                    <button type="button" class="password-toggle" onclick="togglePassword('currentPassword')" title="Show/Hide password">
+                        <span class="material-icons">visibility</span>
+                    </button>
                 </div>
-                <div class="form-group">
-                    <label for="newPassword">New Password *</label>
-                    <div class="password-input-container">
-                        <input type="password" id="newPassword" required>
-                        <button type="button" class="password-toggle" onclick="togglePassword('newPassword')" title="Show/Hide password">
-                            <span class="material-icons">visibility</span>
-                        </button>
-                    </div>
+            </div>
+            <div class="form-group">
+                <label for="newPassword">New Password *</label>
+                <div class="password-input-container">
+                    <input type="password" id="newPassword" required>
+                    <button type="button" class="password-toggle" onclick="togglePassword('newPassword')" title="Show/Hide password">
+                        <span class="material-icons">visibility</span>
+                    </button>
                 </div>
-                <div class="form-group">
-                    <label for="confirmPassword">Confirm New Password *</label>
-                    <div class="password-input-container">
-                        <input type="password" id="confirmPassword" required>
-                        <button type="button" class="password-toggle" onclick="togglePassword('confirmPassword')" title="Show/Hide password">
-                            <span class="material-icons">visibility</span>
-                        </button>
-                    </div>
+            </div>
+            <div class="form-group">
+                <label for="confirmPassword">Confirm New Password *</label>
+                <div class="password-input-container">
+                    <input type="password" id="confirmPassword" required>
+                    <button type="button" class="password-toggle" onclick="togglePassword('confirmPassword')" title="Show/Hide password">
+                        <span class="material-icons">visibility</span>
+                    </button>
                 </div>
-                <button type="submit" class="button">Change Password</button>
-            </form>
-        </div>
+            </div>
+            <button type="submit" class="button">Change Password</button>
+        </form>
     </div>
 </div>
+{% endblock %}
+
+{% block page_styles %}
+<style>
+    .main-content {
+        display: flex;
+        padding: 0;
+    }
+    .content-area {
+        flex-grow: 1;
+        padding: 20px;
+        overflow-y: auto;
+    }
+</style>
+{% endblock %}
 
 <!-- Snackbar Container -->
 {% include 'components/snackbar.html' %}
-{% endblock %}
 
 {% block scripts %}
 <script src="/static/js/common.js"></script>

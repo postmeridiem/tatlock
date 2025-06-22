@@ -1,14 +1,11 @@
 <!-- Navigation Component -->
+{% macro render_nav(title, items) %}
 <div class="sidebar-nav">
     <div class="nav-section">
-        <div class="nav-title">{{ nav_title|default('Navigation') }}</div>
-        {% for item in nav_items %}
-            <a href="#{{ item.id }}" class="nav-item {% if item.active %}active{% endif %}" onclick="{{ item.onclick|default('showSection(\'' + item.id + '\')') }}">
-                {% if item.icon %}
-                    <span class="material-icons">{{ item.icon }}</span>
-                {% endif %}
-                {{ item.label }}
-            </a>
+        <div class="nav-title">{{ title }}</div>
+        {% for item in items %}
+        <a href="{{ item.href }}" class="nav-item {{ 'active' if item.active else '' }}" onclick="showSection('{{ item.onclick }}')">{{ item.text }}</a>
         {% endfor %}
     </div>
-</div> 
+</div>
+{% endmacro %} 

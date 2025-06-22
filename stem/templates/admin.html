@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from 'components/navigation.html' import render_nav %}
 
 {% set show_chat_sidebar = true %}
 {% set welcome_message = "I'm here to help you manage Tatlock. Ask me about user management, system administration, or any administrative tasks." %}
@@ -10,52 +11,64 @@
 {% endblock %}
 
 {% block content %}
-<div class="main-layout">
-    <div class="sidebar-nav">
-        <div class="nav-section">
-            <div class="nav-title">Admin</div>
-            <a href="#stats" class="nav-item active" onclick="showSection('stats')">Dashboard</a>
-            <a href="#users" class="nav-item" onclick="showSection('users')">User Management</a>
-            <a href="#roles" class="nav-item" onclick="showSection('roles-section')">Roles</a>
-            <a href="#groups" class="nav-item" onclick="showSection('groups-section')">Groups</a>
+{% set nav_items = [
+    {'href': '#stats', 'text': 'Dashboard', 'onclick': 'stats', 'active': True},
+    {'href': '#users', 'text': 'User Management', 'onclick': 'users'},
+    {'href': '#roles', 'text': 'Roles', 'onclick': 'roles-section'},
+    {'href': '#groups', 'text': 'Groups', 'onclick': 'groups-section'}
+] %}
+{{ render_nav('Admin', nav_items) }}
+
+<div class="content-area">
+    <!-- Stats Section -->
+    <div id="stats" class="section">
+        <div class="section-title">System Statistics</div>
+        <div class="stats-grid" id="stats-grid">
+            <div class="loading">Loading statistics...</div>
         </div>
     </div>
     
-    <div class="main-content">
-        <!-- Stats Section -->
-        <div id="stats" class="section">
-            <div class="section-title">System Statistics</div>
-            <div class="stats-grid" id="stats-grid">
-                <div class="loading">Loading statistics...</div>
-            </div>
+    <!-- Users Section -->
+    <div id="users" class="section" style="display: none;">
+        <div class="section-title">User Management</div>
+        <button class="add-btn" onclick="showUserModal()">Add New User</button>
+        <div id="users-content">
+            <div class="loading">Loading users...</div>
         </div>
-        
-        <!-- Users Section -->
-        <div id="users" class="section" style="display: none;">
-            <div class="section-title">User Management</div>
-            <button class="add-btn" onclick="showUserModal()">Add New User</button>
-            <div id="users-content">
-                <div class="loading">Loading users...</div>
-            </div>
+    </div>
+    
+    <!-- Roles Section -->
+    <div id="roles-section" class="section" style="display: none;">
+        <div class="section-title">Roles</div>
+        <div id="roles-content">
+            <div class="loading">Loading roles...</div>
         </div>
-        
-        <!-- Roles Section -->
-        <div id="roles-section" class="section" style="display: none;">
-            <div class="section-title">Roles</div>
-            <div id="roles-content">
-                <div class="loading">Loading roles...</div>
-            </div>
-        </div>
-        
-        <!-- Groups Section -->
-        <div id="groups-section" class="section" style="display: none;">
-            <div class="section-title">Groups</div>
-            <div id="groups-content">
-                <div class="loading">Loading groups...</div>
-            </div>
+    </div>
+    
+    <!-- Groups Section -->
+    <div id="groups-section" class="section" style="display: none;">
+        <div class="section-title">Groups</div>
+        <div id="groups-content">
+            <div class="loading">Loading groups...</div>
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block page_styles %}
+<style>
+    .main-content {
+        display: flex;
+        padding: 0;
+    }
+    .content-area {
+        flex-grow: 1;
+        padding: 20px;
+        overflow-y: auto;
+    }
+</style>
+{% endblock %}
+
 
 <!-- User Modal -->
 <div id="userModal" class="modal">
@@ -151,7 +164,6 @@
 
 <!-- Snackbar Container -->
 {% include 'components/snackbar.html' %}
-{% endblock %}
 
 {% block scripts %}
 <script src="/static/js/common.js"></script>
