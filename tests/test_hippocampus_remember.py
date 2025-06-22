@@ -20,14 +20,13 @@ def make_test_user(username: str) -> UserModel:
 def test_save_interaction_and_get_or_create_topic():
     username = "testremember"
     ensure_user_database(username)
-    user = make_test_user(username)
     # Save an interaction
     interaction_id = save_interaction(
         user_prompt="What is the capital of France?",
         llm_reply="Paris is the capital of France.",
         full_llm_history=[],
         topic="geography",
-        user=user,
+        username=username,
         conversation_id="convgeo"
     )
     assert interaction_id is not None
@@ -42,9 +41,8 @@ def test_save_interaction_and_get_or_create_topic():
 def test_create_or_update_conversation():
     username = "testconvupdate"
     ensure_user_database(username)
-    user = make_test_user(username)
     # Create or update conversation
-    result = create_or_update_conversation("convupdate1", user, title="Test Conversation")
+    result = create_or_update_conversation("convupdate1", username, title="Test Conversation")
     assert result is True
     # Check that the conversation exists
     conn = get_database_connection(username)
@@ -61,7 +59,6 @@ def test_create_or_update_conversation():
 def test_update_conversation_topics_after_save_interaction():
     username = "testtopiclink"
     ensure_user_database(username)
-    user = make_test_user(username)
     topic = "unique_test_topic"
     conversation_id = "convtopiclink1"
     # Save an interaction with the topic
@@ -70,7 +67,7 @@ def test_update_conversation_topics_after_save_interaction():
         llm_reply="This is a reply about the unique test topic.",
         full_llm_history=[],
         topic=topic,
-        user=user,
+        username=username,
         conversation_id=conversation_id
     )
     assert interaction_id is not None

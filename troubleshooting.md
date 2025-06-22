@@ -2,6 +2,179 @@
 
 This guide helps resolve common issues encountered during Tatlock installation.
 
+## Role Types in Tatlock
+
+Tatlock uses several distinct types of "roles" that serve different purposes. Understanding these distinctions is crucial for troubleshooting and development.
+
+### 1. Chat Message Roles (Conversation Flow)
+
+**Purpose**: Define the role of each message in the conversation flow
+**Location**: In-memory during chat processing, stored in conversation history
+**Values**: 
+- `"user"` - Messages from the human user
+- `"assistant"` - Responses from the AI assistant (Tatlock)
+- `"system"` - System instructions and prompts
+- `"tool"` - Output from tool executions
+
+**Example**:
+```python
+messages = [
+    {"role": "user", "content": "What's the weather?"},
+    {"role": "assistant", "content": "Let me check that for you."},
+    {"role": "tool", "content": '{"temperature": "22°C"}'},
+    {"role": "assistant", "content": "The temperature is 22°C."}
+]
+```
+
+**Common Issues**:
+- Missing `role` field in mock responses causes `KeyError: 'role'`
+- Function expects `role` field to identify assistant responses
+- Tests fail when mock responses don't include proper role field
+
+### 2. User Roles (Access Control)
+
+**Purpose**: Define user permissions and access levels in the system
+**Location**: `hippocampus/system.db` in the `roles` table
+**Values**:
+- `"user"` - Basic user role with standard access
+- `"admin"` - Administrator role with full system access
+- `"moderator"` - Moderator role with limited administrative access
+
+**Database Schema**:
+```sql
+CREATE TABLE roles (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    role_name TEXT UNIQUE NOT NULL,
+    description TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+**User-Role Relationship**:
+```sql
+CREATE TABLE user_roles (
+    username TEXT,
+    role_id INTEGER,
+    PRIMARY KEY (username, role_id),
+    FOREIGN KEY (username) REFERENCES users (username) ON DELETE CASCADE,
+    FOREIGN KEY (role_id) REFERENCES roles (id) ON DELETE CASCADE
+);
+```
+
+**Common Issues**:
+- Roles table only exists in system database, not longterm databases
+- Attempting to create roles in longterm database causes `no such table: roles`
+- User roles are separate from chat message roles
+
+### 3. Tool Roles (Function Execution)
+
+**Purpose**: Define the role of tools in the AI's decision-making process
+**Location**: `hippocampus/system.db` in the `tools` table
+**Values**: Tools are identified by their `tool_key` and have enabled/disabled status
+
+**Database Schema**:
+```sql
+CREATE TABLE tools (
+    tool_key TEXT PRIMARY KEY,
+    description TEXT NOT NULL,
+    module TEXT NOT NULL,
+    function_name TEXT NOT NULL,
+    enabled INTEGER DEFAULT 0 NOT NULL
+);
+```
+
+**Example Tools**:
+- `"web_search"` - Web search functionality
+- `"get_weather_forecast"` - Weather information
+- `"recall_memories"` - Memory retrieval
+- `"find_personal_variables"` - Personal information lookup
+
+**Common Issues**:
+- Tools table only exists in system database
+- Tool configuration is global, not user-specific
+- Tool execution uses chat message roles for communication
+
+### 4. Group Roles (User Organization)
+
+**Purpose**: Organize users into groups for easier management
+**Location**: `hippocampus/system.db` in the `groups` table
+**Values**: Custom group names defined by administrators
+
+**Database Schema**:
+```sql
+CREATE TABLE groups (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    group_name TEXT UNIQUE NOT NULL,
+    description TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+**User-Group Relationship**:
+```sql
+CREATE TABLE user_groups (
+    username TEXT,
+    group_id INTEGER,
+    PRIMARY KEY (username, group_id),
+    FOREIGN KEY (username) REFERENCES users (username) ON DELETE CASCADE,
+    FOREIGN KEY (group_id) REFERENCES groups (id) ON DELETE CASCADE
+);
+```
+
+### Database Separation
+
+**System Database** (`hippocampus/system.db`):
+- User roles and groups
+- Tool configurations
+- Authentication data
+- System-wide settings
+
+**Longterm Database** (`hippocampus/longterm/<username>.db`):
+- Conversation history
+- Memory storage
+- Personal variables
+- User-specific data
+
+**Important**: Never try to create user roles, groups, or tool configurations in longterm databases. These belong exclusively in the system database.
+
+### Troubleshooting Role-Related Issues
+
+#### Chat Message Role Issues
+
+**Symptoms**: `KeyError: 'role'` in tests or chat processing
+**Solution**: Ensure mock responses include the `role` field:
+```python
+# Correct
+mock_ollama.chat.return_value = {
+    'message': {'role': 'assistant', 'content': 'Hello!'}
+}
+
+# Incorrect
+mock_ollama.chat.return_value = {
+    'message': {'content': 'Hello!'}
+}
+```
+
+#### User Role Issues
+
+**Symptoms**: `sqlite3.OperationalError: no such table: roles`
+**Solution**: Ensure roles are only created in system database:
+```python
+# Correct - in system database setup
+create_default_roles(cursor)  # Only in create_system_db_tables()
+
+# Incorrect - in longterm database setup
+create_default_roles(cursor)  # Don't do this in create_longterm_db_tables()
+```
+
+#### Tool Configuration Issues
+
+**Symptoms**: Tools not available or configuration errors
+**Solution**: Check tool configuration in system database:
+```bash
+sqlite3 hippocampus/system.db "SELECT tool_key, enabled FROM tools;"
+```
+
 ## What the Installation Script Does
 
 The automated installation script performs the following steps:

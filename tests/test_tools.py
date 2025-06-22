@@ -155,78 +155,70 @@ class TestWebSearchTool:
 
 class TestMemoryRecallTools:
     """Test memory recall tools."""
-    
-    def test_recall_memories_success(self):
+
+    @patch('hippocampus.recall_memories_tool.get_current_user_ctx')
+    @patch('hippocampus.recall_memories_tool.recall_memories')
+    def test_recall_memories_success(self, mock_recall, mock_user_ctx):
         """Test successful memory recall."""
-        with patch('stem.current_user_context.get_current_user_ctx') as mock_user_ctx, \
-             patch('hippocampus.recall_memories_tool.recall_memories') as mock_recall:
-            
-            # Mock the current user context
-            mock_user = MagicMock()
-            mock_user.username = "testuser"
-            mock_user_ctx.return_value = mock_user
-            
-            mock_recall.return_value = [
-                {"timestamp": "2022-01-01", "user_prompt": "test prompt", "llm_reply": "test reply", "conversation_id": "conv1", "topic_name": "test"}
-            ]
-            
-            result = execute_recall_memories("test")
-            
-            assert result["status"] == "success"
-            assert len(result["data"]) == 1
-    
-    def test_recall_memories_with_time_success(self):
+        mock_user = MagicMock()
+        mock_user.username = "testuser"
+        mock_user_ctx.return_value = mock_user
+        
+        mock_recall.return_value = [
+            {"timestamp": "2022-01-01", "user_prompt": "test prompt", "llm_reply": "test reply", "conversation_id": "conv1", "topic_name": "test"}
+        ]
+        
+        result = execute_recall_memories("test")
+        
+        assert result["status"] == "success"
+        assert len(result["data"]) == 1
+
+    @patch('hippocampus.recall_memories_with_time_tool.get_current_user_ctx')
+    @patch('hippocampus.recall_memories_with_time_tool.recall_memories_with_time')
+    def test_recall_memories_with_time_success(self, mock_recall, mock_user_ctx):
         """Test successful memory recall with time filter."""
-        with patch('stem.current_user_context.get_current_user_ctx') as mock_user_ctx, \
-             patch('hippocampus.recall_memories_with_time_tool.recall_memories_with_time') as mock_recall:
-            
-            # Mock the current user context
-            mock_user = MagicMock()
-            mock_user.username = "testuser"
-            mock_user_ctx.return_value = mock_user
-            
-            mock_recall.return_value = [
-                {"timestamp": "2022-01-01", "user_prompt": "test prompt", "llm_reply": "test reply", "conversation_id": "conv1", "topic_name": "test"}
-            ]
-            
-            result = execute_recall_memories_with_time("test", "2022-01-01", "2022-01-02")
-            
-            assert result["status"] == "success"
-            assert len(result["data"]) == 1
-    
-    def test_recall_memories_no_results(self):
+        mock_user = MagicMock()
+        mock_user.username = "testuser"
+        mock_user_ctx.return_value = mock_user
+        
+        mock_recall.return_value = [
+            {"timestamp": "2022-01-01", "user_prompt": "test prompt", "llm_reply": "test reply", "conversation_id": "conv1", "topic_name": "test"}
+        ]
+        
+        result = execute_recall_memories_with_time("test", "2022-01-01", "2022-01-02")
+        
+        assert result["status"] == "success"
+        assert len(result["data"]) == 1
+
+    @patch('hippocampus.recall_memories_tool.get_current_user_ctx')
+    @patch('hippocampus.recall_memories_tool.recall_memories')
+    def test_recall_memories_no_results(self, mock_recall, mock_user_ctx):
         """Test memory recall with no results."""
-        with patch('stem.current_user_context.get_current_user_ctx') as mock_user_ctx, \
-             patch('hippocampus.recall_memories_tool.recall_memories') as mock_recall:
-            
-            # Mock the current user context
-            mock_user = MagicMock()
-            mock_user.username = "testuser"
-            mock_user_ctx.return_value = mock_user
-            
-            mock_recall.return_value = []
-            
-            result = execute_recall_memories("nonexistent")
-            
-            assert result["status"] == "success"
-            assert result["data"] == []
-    
-    def test_recall_memories_database_error(self):
+        mock_user = MagicMock()
+        mock_user.username = "testuser"
+        mock_user_ctx.return_value = mock_user
+        
+        mock_recall.return_value = []
+        
+        result = execute_recall_memories("nonexistent")
+        
+        assert result["status"] == "success"
+        assert result["data"] == []
+
+    @patch('hippocampus.recall_memories_tool.get_current_user_ctx')
+    @patch('hippocampus.recall_memories_tool.recall_memories')
+    def test_recall_memories_database_error(self, mock_recall, mock_user_ctx):
         """Test memory recall with database error."""
-        with patch('stem.current_user_context.get_current_user_ctx') as mock_user_ctx, \
-             patch('hippocampus.recall_memories_tool.recall_memories') as mock_recall:
-            
-            # Mock the current user context
-            mock_user = MagicMock()
-            mock_user.username = "testuser"
-            mock_user_ctx.return_value = mock_user
-            
-            mock_recall.side_effect = Exception("Database error")
-            
-            result = execute_recall_memories("test")
-            
-            assert result["status"] == "error"
-            assert "Memory recall failed" in result["message"]
+        mock_user = MagicMock()
+        mock_user.username = "testuser"
+        mock_user_ctx.return_value = mock_user
+        
+        mock_recall.side_effect = Exception("Database error")
+        
+        result = execute_recall_memories("test")
+        
+        assert result["status"] == "error"
+        assert "Memory recall failed" in result["message"]
 
 
 class TestConversationTools:

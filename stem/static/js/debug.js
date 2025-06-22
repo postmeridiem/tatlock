@@ -397,18 +397,21 @@ exportLogBtn.addEventListener('click', exportLog);
 
 // Initialize debug console
 document.addEventListener('DOMContentLoaded', () => {
-    // Initialize chat functionality
-    const chat = new TatlockChat({
-        chatInput: document.getElementById('sidepane-input'),
-        chatSendBtn: document.getElementById('sidepane-send-btn'),
-        chatMessages: document.getElementById('sidepane-messages'),
-        chatMicBtn: document.getElementById('sidepane-mic-btn'),
-        placeholder: 'Ask Tatlock...'
-    });
+    // Initialize the chat sidebar with logging enabled
+    if (typeof initializeChat === 'function') {
+        initializeChat({
+            enableLogging: true,
+            logFunction: addToInteractionLog,
+            sidebarTitle: 'Debug Assistant',
+            welcomeMessage: "I'm here to help you debug Tatlock. Ask me about system status, logs, or any issues you're encountering."
+        });
+    }
+
+    // Set up other event listeners for the debug page
+    setupDebugEventListeners();
 
     initializeSystemInfo();
     initializeBenchmarks();
-    setupDebugEventListeners();
     initializeHashNavigation('server-log');
 });
 

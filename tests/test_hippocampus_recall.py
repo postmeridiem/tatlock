@@ -16,14 +16,6 @@ from datetime import datetime
 
 def setup_test_memories(username):
     ensure_user_database(username)
-    # Create a mock UserModel for testing
-    user = UserModel(
-        username=username, 
-        email=f"{username}@test.com", 
-        first_name="Test", 
-        last_name="User", 
-        created_at="2024-01-01T00:00:00Z"
-    )
     
     # Save a few interactions with topics and conversation IDs
     save_interaction(
@@ -31,7 +23,7 @@ def setup_test_memories(username):
         llm_reply="It's sunny.",
         full_llm_history=[],
         topic="weather",
-        user=user,
+        username=username,
         conversation_id="conv1"
     )
     save_interaction(
@@ -39,7 +31,7 @@ def setup_test_memories(username):
         llm_reply="Why did the chicken cross the road?",
         full_llm_history=[],
         topic="jokes",
-        user=user,
+        username=username,
         conversation_id="conv2"
     )
 

@@ -44,7 +44,7 @@ def get_or_create_topic(conn: sqlite3.Connection, topic_name: str) -> int | None
         return None
 
 
-def save_interaction(user_prompt: str, llm_reply: str, full_llm_history: list[dict], topic: str, user: UserModel, conversation_id: str | None = None) -> str | None:
+def save_interaction(user_prompt: str, llm_reply: str, full_llm_history: list[dict], topic: str, username: str, conversation_id: str | None = None) -> str | None:
     """
     Save a full interaction, get or create the topic, and link them.
     Args:
@@ -52,7 +52,7 @@ def save_interaction(user_prompt: str, llm_reply: str, full_llm_history: list[di
         llm_reply (str): The LLM's reply.
         full_llm_history (list[dict]): Full conversation history.
         topic (str): The topic name.
-        user (UserModel): The user whose database to use.
+        username (str): The username whose database to use.
         conversation_id (str | None): Conversation ID for grouping. If None, generates from current time.
     Returns:
         str | None: The interaction ID, or None on error.
@@ -65,13 +65,13 @@ def save_interaction(user_prompt: str, llm_reply: str, full_llm_history: list[di
         conversation_id = datetime.now().strftime('%Y-%m-%d-%H-%M-%S')
     
     # Create or update conversation record
-    create_or_update_conversation(conversation_id, user, title=f"Conversation about {topic}")
+    create_or_update_conversation(conversation_id, username, title=f"Conversation about {topic}")
     
     conn = None
 
     try:
         # Get user-specific database connection
-        db_path = ensure_user_database(user.username)
+        db_path = ensure_user_database(username)
         conn = sqlite3.connect(db_path)
         cursor = conn.cursor()
 
@@ -87,7 +87,7 @@ def save_interaction(user_prompt: str, llm_reply: str, full_llm_history: list[di
         # Step 2: Get or Create the Topic
         topic_id = get_or_create_topic(conn, topic)
         if not topic_id:
-            logger.warning(f"Warning: Could not get or create topic ID for '{topic}' in user '{user.username}' database.")
+            logger.warning(f"Warning: Could not get or create topic ID for '{topic}' in user '{username}' database.")
             conn.commit()
             return interaction_id
 
@@ -103,7 +103,7 @@ def save_interaction(user_prompt: str, llm_reply: str, full_llm_history: list[di
 
     except sqlite3.Error as e:
         # This will now catch errors if the tables are missing
-        logger.error(f"Error during save_interaction for user '{user.username}': {e}")
+        logger.error(f"Error during save_interaction for user '{username}': {e}")
         if conn:
             conn.rollback()
         return None
@@ -152,19 +152,19 @@ def update_conversation_topics(conn: sqlite3.Connection, conversation_id: str, t
         raise
 
 
-def create_or_update_conversation(conversation_id: str, user: UserModel, title: str | None = None) -> bool:
+def create_or_update_conversation(conversation_id: str, username: str, title: str | None = None) -> bool:
     """
     Create or update a conversation record in the user's longterm database.
     Args:
         conversation_id (str): The conversation ID.
-        user (UserModel): The user.
+        username (str): The username.
         title (str | None): Optional conversation title.
     Returns:
         bool: True if successful, False otherwise.
     """
     try:
         # Update user's longterm.db conversations table
-        db_path = ensure_user_database(user.username)
+        db_path = ensure_user_database(username)
         conn = sqlite3.connect(db_path)
         cursor = conn.cursor()
         

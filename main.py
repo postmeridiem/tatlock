@@ -28,7 +28,7 @@ from cortex.agent import process_chat_interaction
 from stem.static import mount_static_files, get_chat_page, get_profile_page, get_login_page
 from stem.security import get_current_user, require_admin_role, security_manager, login_user, logout_user
 from stem.models import (
-    ChatRequest, ChatResponse
+    ChatRequest, ChatResponse, UserModel
 )
 from stem.admin import admin_router
 from stem.profile import profile_router
@@ -249,51 +249,53 @@ async def logout_page(request: Request):
 @app.exception_handler(HTTPException)
 async def http_exception_handler(request: Request, exc: HTTPException):
     """
-    Handle HTTP exceptions, redirecting 401 errors to login page.
+    Custom exception handler to redirect to login for 401 Unauthorized errors
+    on HTML routes. Returns JSON for API routes.
     """
-    if exc.status_code == 401:
-        # Redirect to login page with current URL as redirect parameter
-        current_url = str(request.url)
-        login_url = f"/login?redirect={current_url}"
-        return RedirectResponse(url=login_url, status_code=302)
+    # Check if the request is for an HTML page
+    if exc.status_code == 401 and "text/html" in request.headers.get("accept", ""):
+        # Store the original path in the session to redirect after login
+        request.session['login_redirect_path'] = str(request.url.path)
+        return RedirectResponse(url="/login", status_code=302)
     
-    # For other HTTP exceptions, return the default response
-    return HTMLResponse(
-        content=f"<h1>Error {exc.status_code}</h1><p>{exc.detail}</p>",
-        status_code=exc.status_code
+    # Default behavior for API requests or other errors
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"detail": exc.detail}
     )
 
 # --- API Endpoint Definition ---
 @app.post("/cortex", tags=["api"], response_model=ChatResponse)
-async def chat_endpoint(request: ChatRequest, user: dict = Depends(get_current_user)):
+async def chat_endpoint(request: ChatRequest, user: UserModel = Depends(get_current_user)):
     """
-    HTTP entrypoint for chat interactions.
-    Validates the request and calls the backend agent logic.
-    Requires authentication via session-based authentication.
-    Returns AI response with topic classification and updated history.
+    Main chat endpoint for the AI. Processes user messages and returns AI responses.
+    Requires authentication.
     """
-    if user is None:
-        raise HTTPException(status_code=401, detail="Not authenticated")
-    logger = logging.getLogger(__name__)
-    
     try:
+        if not user:
+            raise HTTPException(status_code=401, detail="User not authenticated")
+        
+        # Pydantic models in a list are not automatically converted to dicts,
+        # so we do it manually before passing to the agent.
         history_dicts = [msg.model_dump(exclude_none=True) for msg in request.history]
 
+        # Process the chat interaction
         result_dict = process_chat_interaction(
             user_message=request.message,
             history=history_dicts,
-            username=user['username'],
+            username=user.username,
             conversation_id=request.conversation_id
         )
+        
         if result_dict is None:
-             raise HTTPException(status_code=500, detail="Agent processing returned an unexpected null result.")
+            raise HTTPException(status_code=500, detail="Agent processing returned an unexpected null result.")
 
         return ChatResponse(**result_dict)
-
+        
     except Exception as e:
         logger.error(f"An error occurred in the endpoint: {e}", exc_info=True)
-        # In a real app, you would log the full exception traceback here
-        raise HTTPException(status_code=500, detail=f"An internal error occurred: {str(e)}")
+        # Re-raise as HTTPException to be caught by the handler
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/", tags=["root"])
 async def read_root(request: Request):
@@ -311,19 +313,20 @@ async def read_root(request: Request):
         return RedirectResponse(url="/login", status_code=302)
 
 @app.get("/chat", tags=["html"],  response_class=HTMLResponse)
-async def chat_page(request: Request, user: dict = Depends(get_current_user)):
+async def chat_page(request: Request, user: UserModel = Depends(get_current_user)):
     """
-    Main chat page. Requires authentication.
+    Chat page.
+    Requires authentication via session-based authentication.
     """
     if user is None:
         return RedirectResponse(url="/login", status_code=302)
     return get_chat_page(request, user)
 
 @app.get("/profile")
-async def profile_page(request: Request, user: dict = Depends(get_current_user)):
+async def profile_page(request: Request, user: UserModel = Depends(get_current_user)):
     """
     User profile page.
-    Requires authentication.
+    Requires authentication via session-based authentication.
     """
     if user is None:
         raise HTTPException(status_code=401, detail="Not authenticated")

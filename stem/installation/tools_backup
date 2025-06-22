@@ -1,0 +1,263 @@
+TOOLS = [
+    {
+        "type": "function",
+        "function": {
+            "name": "find_personal_variables",
+            "description": "Finds and retrieves personal properties of the current user (e.g., name, first name, last name, age, domicile, city, country) by searching a local database. Provide the key to search for.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "searchkey": {
+                        "type": "string",
+                        "description": "The key for the personal variable to find."
+                    }
+                },
+                "required": ["searchkey"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_weather_forecast",
+            "description": "Get the weather forecast for a specific city and date range.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "city": {
+                        "type": "string",
+                        "description": "City name."
+                    },
+                    "start_date": {
+                        "type": "string",
+                        "description": "Start date (YYYY-MM-DD). Optional."
+                    },
+                    "end_date": {
+                        "type": "string",
+                        "description": "End date (YYYY-MM-DD). Optional."
+                    }
+                },
+                "required": ["city"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "web_search",
+            "description": "Perform a web search using Google Custom Search API.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "query": {
+                        "type": "string",
+                        "description": "The search query to send to the search engine."
+                    }
+                },
+                "required": ["query"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "recall_memories",
+            "description": "Recall past conversations by searching for a keyword in the user's prompt, the AI's reply, or the topic name.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "keyword": {
+                        "type": "string",
+                        "description": "The keyword to search for in memory (user prompt, reply, or topic)."
+                    }
+                },
+                "required": ["keyword"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "recall_memories_with_time",
+            "description": "Recall past conversations by searching for a keyword and limiting to a date or date range (YYYY-MM-DD).",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "keyword": {
+                        "type": "string",
+                        "description": "The keyword to search for in memory (user prompt, reply, or topic)."
+                    },
+                    "start_date": {
+                        "type": "string",
+                        "description": "Start date (YYYY-MM-DD) to limit the search. Optional."
+                    },
+                    "end_date": {
+                        "type": "string",
+                        "description": "End date (YYYY-MM-DD) to limit the search. Optional."
+                    }
+                },
+                "required": ["keyword"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_conversations_by_topic",
+            "description": "Find all conversations that contain a specific topic, with metadata about when the topic appeared.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "topic_name": {
+                        "type": "string",
+                        "description": "The topic name to search for conversations."
+                    }
+                },
+                "required": ["topic_name"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_topics_by_conversation",
+            "description": "Get all topics that appear in a specific conversation, with metadata about topic frequency.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "conversation_id": {
+                        "type": "string",
+                        "description": "The conversation ID to analyze for topics."
+                    }
+                },
+                "required": ["conversation_id"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_conversation_summary",
+            "description": "Get a comprehensive summary of a conversation including its topics, duration, and key interactions.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "conversation_id": {
+                        "type": "string",
+                        "description": "The conversation ID to summarize."
+                    }
+                },
+                "required": ["conversation_id"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_topic_statistics",
+            "description": "Get statistics about all topics across conversations, including frequency and conversation count.",
+            "parameters": {
+                "type": "object",
+                "properties": {},
+                "required": [],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_user_conversations",
+            "description": "Get all conversations for the current user, ordered by most recent activity.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "limit": {
+                        "type": "integer",
+                        "description": "Maximum number of conversations to return. Defaults to 50."
+                    }
+                },
+                "required": [],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_conversation_details",
+            "description": "Get detailed information about a specific conversation including its topics and metadata.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "conversation_id": {
+                        "type": "string",
+                        "description": "The conversation ID to get details for."
+                    }
+                },
+                "required": ["conversation_id"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "search_conversations",
+            "description": "Search conversations by title or conversation ID for the current user.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "query": {
+                        "type": "string",
+                        "description": "The search query to match against conversation titles or IDs."
+                    },
+                    "limit": {
+                        "type": "integer",
+                        "description": "Maximum number of results to return. Defaults to 20."
+                    }
+                },
+                "required": ["query"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "screenshot_from_url",
+            "description": "Take a full-page screenshot of a webpage and save it to the user's shortterm storage. Useful for capturing web content for analysis.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "url": {
+                        "type": "string",
+                        "description": "The URL of the webpage to capture as a screenshot."
+                    },
+                    "session_id": {
+                        "type": "string",
+                        "description": "A unique session identifier for this screenshot. Use a descriptive name or timestamp."
+                    }
+                },
+                "required": ["url", "session_id"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "analyze_file",
+            "description": "Analyze a file stored in the user's shortterm storage. If it's an image, interpret and summarize the content, providing insights relevant to the original prompt.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "session_id": {
+                        "type": "string",
+                        "description": "The session ID of the file to analyze (same as used when taking screenshot)."
+                    },
+                    "original_prompt": {
+                        "type": "string",
+                        "description": "The original user prompt that led to this file being created, for context in analysis."
+                    }
+                },
+                "required": ["session_id", "original_prompt"],
+            },
+        },
+    },
+]

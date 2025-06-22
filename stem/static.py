@@ -9,6 +9,7 @@ from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse
 from .htmlcontroller import render_template, render_page, get_common_context
+from .models import UserModel
 import logging
 
 logger = logging.getLogger(__name__)
@@ -26,28 +27,28 @@ def get_login_page(request: Request) -> HTMLResponse:
     context = get_common_context(request)
     return render_page("login.html", context)
 
-def get_chat_page(request: Request, user: dict) -> HTMLResponse:
+def get_chat_page(request: Request, user: UserModel) -> HTMLResponse:
     """Get the chat interface HTML page using Jinja2 templating."""
     context = get_common_context(request, user)
     return render_page("chat.html", context)
 
-def get_profile_page(request: Request, user: dict) -> HTMLResponse:
+def get_profile_page(request: Request, user: UserModel) -> HTMLResponse:
     """Get the user profile HTML page using Jinja2 templating."""
     context = get_common_context(request, user)
     return render_page("profile.html", context)
 
-def get_admin_page(request: Request, user: dict) -> HTMLResponse:
+def get_admin_page(request: Request, user: UserModel) -> HTMLResponse:
     """Get the admin dashboard HTML page using Jinja2 templating."""
     context = get_common_context(request, user)
     return render_page("admin.html", context)
 
 # Legacy functions for backward compatibility (deprecated)
-def get_profile_page_with_chat_sidebar(request: Request, user: dict) -> HTMLResponse:
+def get_profile_page_with_chat_sidebar(request: Request, user: UserModel) -> HTMLResponse:
     """Get the user profile HTML page with chat sidebar included (deprecated)."""
     logger.warning("get_profile_page_with_chat_sidebar is deprecated, use get_profile_page instead")
     return get_profile_page(request, user)
 
-def get_admin_page_with_chat_sidebar(request: Request, user: dict) -> HTMLResponse:
+def get_admin_page_with_chat_sidebar(request: Request, user: UserModel) -> HTMLResponse:
     """Get the admin dashboard HTML page with chat sidebar included (deprecated)."""
     logger.warning("get_admin_page_with_chat_sidebar is deprecated, use get_admin_page instead")
     return get_admin_page(request, user)

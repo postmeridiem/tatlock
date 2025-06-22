@@ -313,94 +313,85 @@ AVAILABLE_TOOLS = {
 - **Clear Dependencies**: Each tool file only imports what it needs
 - **Brain-Inspired Organization**: Tools are grouped by functional area
 
-#### Adding New Tools
+#### Adding New Tools (Database-Driven)
 
-1. **Create Tool File**: Add new file in the root of the appropriate module (e.g., `cerebellum/new_tool.py`)
-2. **Implement Function**: Create `execute_tool_name()` function with proper docstring
-3. **Add Imports**: Import the tool in `stem/tools.py`
-4. **Register Tool**: Add tool definition to `TOOLS` list
-5. **Add to Dispatcher**: Add mapping to `AVAILABLE_TOOLS` dictionary
-6. **Write Tests**: Create tests in `tests/` directory
+As of version 3.0, Tatlock's tool system is database-driven, allowing for dynamic management of tools without code changes. Here's the new process for registering a tool:
 
-#### Tool Function Signature
+#### Step 1: Create the Tool Function
 
-All tools should follow this pattern:
+First, create the core Python function for your tool in its appropriate module. For example, a new tool for the `cerebellum` would go in `cerebellum/my_new_tool.py`.
 
 ```python
-def execute_tool_name(param1: str, param2: int = 10, username: str = "admin") -> dict:
+# cerebellum/my_new_tool.py
+def execute_my_new_tool(parameter_one: str, parameter_two: bool) -> dict:
     """
-    Brief description of what the tool does.
-    
-    Args:
-        param1 (str): Description of first parameter
-        param2 (int, optional): Description of second parameter. Defaults to 10.
-        username (str, optional): Username for user-specific operations. Defaults to "admin".
-        
-    Returns:
-        dict: Status and data or error message
+    This is the description of what my new tool does.
+    It will be stored in the database.
     """
-    try:
-        # Tool implementation
-        return {"status": "success", "data": result}
-    except Exception as e:
-        return {"status": "error", "message": str(e)}
+    # Your tool's logic here...
+    return {"status": "success", "result": f"Used {parameter_one}"}
 ```
 
-#### Error Handling
+#### Step 2: Add the Tool to the Database Schema
 
-Tools should handle errors gracefully and return consistent error responses:
+Next, you must add the tool's definition to the canonical list in the database setup script. This ensures the tool is available in the system.
+
+Open `stem/installation/database_setup.py` and update the `populate_tools_table` function:
+
+1.  **Add to `tools_to_insert`**: Add a new tuple for your tool with its `tool_key`, `description`, and `module`.
+2.  **Add to `params_to_insert`**: Add tuples for each of your tool's parameters, specifying the `tool_key`, `parameter_name`, `type`, `description`, and whether it is `required` (1 for true, 0 for false).
 
 ```python
-def execute_example_tool(param: str) -> dict:
-    try:
-        # Tool logic here
-        return {"status": "success", "data": result}
-    except ValueError as e:
-        return {"status": "error", "message": f"Invalid parameter: {e}"}
-    except Exception as e:
-        logger.error(f"Tool execution failed: {e}")
-        return {"status": "error", "message": "Internal tool error"}
+# stem/installation/database_setup.py
+
+# ... inside populate_tools_table ...
+
+# 1. Add the tool
+tools_to_insert = [
+    # ... other tools
+    ('my_new_tool', 'This is the description of what my new tool does.', 'cerebellum.my_new_tool'),
+]
+
+# 2. Add its parameters
+params_to_insert = [
+    # ... other parameters
+    ('my_new_tool', 'parameter_one', 'string', 'Description for the first parameter.', 1),
+    ('my_new_tool', 'parameter_two', 'boolean', 'Description for the second parameter.', 0),
+]
 ```
 
-#### Future Agent Router Integration
+#### Step 3: Register the Tool Function
 
-The `stem/tools.py` file serves as a central catalog for tool registration and will be extended to support future agent routing functionality. This design allows for:
+Now, make the function available to the agent by adding it to the master function map in `stem/tools.py`.
 
-- **Tool Discovery**: The `TOOLS` list provides a complete catalog of available tools
-- **Agent Routing**: Future implementations can route requests to specialized agents based on tool requirements
-- **Load Balancing**: Multiple agents can be registered for the same tool type
-- **Agent Selection**: Intelligent routing based on agent capabilities and current load
+1.  Import your new `execute_` function.
+2.  Add a new entry to the `ALL_TOOL_FUNCTIONS` dictionary.
 
-**Planned Router Features:**
-- **Specialized Agents**: Different agents for different tool categories (memory, web search, visual processing)
-- **Load Distribution**: Route tool requests across multiple available agents
-- **Agent Health Monitoring**: Track agent availability and performance
-- **Dynamic Registration**: Agents can register/deregister tools at runtime
-- **Fallback Mechanisms**: Automatic failover to backup agents
-
-**Example Future Router Structure:**
 ```python
-# stem/tools.py (future enhancement)
-AGENT_ROUTER = {
-    "memory_tools": {
-        "agents": ["memory_agent_1", "memory_agent_2"],
-        "current_agent": "memory_agent_1",
-        "load_balancing": "round_robin"
-    },
-    "web_tools": {
-        "agents": ["web_agent_1"],
-        "current_agent": "web_agent_1",
-        "load_balancing": "single"
-    },
-    "visual_tools": {
-        "agents": ["visual_agent_1"],
-        "current_agent": "visual_agent_1",
-        "load_balancing": "single"
-    }
+# stem/tools.py
+from cerebellum.my_new_tool import execute_my_new_tool
+# ... other imports
+
+ALL_TOOL_FUNCTIONS = {
+    # ... other tools
+    "my_new_tool": execute_my_new_tool,
 }
 ```
 
-This architecture ensures that `stem/tools.py` remains the single source of truth for tool availability and routing decisions.
+*Note: If your tool function requires access to the current user's context (e.g., username), you may need to create a simple wrapper function in `tools.py` to handle passing this context.*
+
+#### Step 4: Enable the Tool
+
+By default, all tools are disabled when first added to the database. To enable your new tool, you must manually update its entry in the `system.db`.
+
+You can do this using a SQLite client:
+```sql
+UPDATE tools
+SET enabled = 1
+WHERE tool_key = 'my_new_tool';
+```
+
+Once these steps are complete, your tool will be loaded by the agent at runtime and will be available for use. This architecture allows you to enable or disable tools on the fly simply by changing the `enabled` flag in the database.
 
 ### Testing
 

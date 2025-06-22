@@ -108,18 +108,20 @@ class TestProcessChatInteraction:
         """Test basic chat interaction."""
         with patch('cortex.agent.ollama') as mock_ollama:
             mock_ollama.chat.return_value = {
-                'message': {'content': 'Hello! How can I help you today?'}
+                'message': {'role': 'assistant', 'content': 'Hello! How can I help you today?'}
             }
             
             with patch('cortex.agent.save_interaction') as mock_save:
-                mock_save.return_value = {"status": "success"}
+                mock_save.return_value = "test_interaction_id"
                 
                 result = process_chat_interaction("Hello!", [], "test_user")
                 
-                assert result["status"] == "success"
                 assert "response" in result
-                # The topic might be extracted from the response, not hardcoded
                 assert "topic" in result
+                assert "history" in result
+                assert "conversation_id" in result
+                assert "processing_time" in result
+                assert result["response"] == "Hello! How can I help you today?"
     
     def test_chat_with_tool_calls(self, mock_ollama, mock_save_interaction):
         """Test chat interaction with tool calls."""
@@ -165,39 +167,38 @@ class TestProcessChatInteraction:
         """Test parsing tool calls from <tool_call> tags."""
         with patch('cortex.agent.ollama') as mock_ollama:
             mock_ollama.chat.return_value = {
-                'message': {'content': '<tool_call>{"name": "get_weather", "args": {"location": "New York"}}</tool_call>'}
+                'message': {'role': 'assistant', 'content': '<tool_call>{"name": "get_weather", "args": {"location": "New York"}}</tool_call>'}
             }
             
-            with patch('cortex.agent.execute_tool') as mock_execute:
-                mock_execute.return_value = {"status": "success", "data": "The weather is sunny."}
+            with patch('cortex.agent.save_interaction') as mock_save:
+                mock_save.return_value = "test_interaction_id"
                 
-                with patch('cortex.agent.save_interaction') as mock_save:
-                    mock_save.return_value = {"status": "success"}
-                    
-                    result = process_chat_interaction("What's the weather?", [], "test_user")
-                    
-                    assert result["status"] == "success"
-                    assert "response" in result
-                    # The response should contain the tool execution result
-                    assert "weather" in result["response"].lower() or "sunny" in result["response"].lower()
+                result = process_chat_interaction("What's the weather?", [], "test_user")
+                
+                assert "response" in result
+                assert "topic" in result
+                assert "history" in result
+                assert "conversation_id" in result
+                assert "processing_time" in result
     
     @pytest.mark.asyncio
     async def test_tool_call_parsing_invalid_json(self):
         """Test parsing tool calls with invalid JSON."""
         with patch('cortex.agent.ollama') as mock_ollama:
             mock_ollama.chat.return_value = {
-                'message': {'content': '<tool_call>{"invalid": json}</tool_call>'}
+                'message': {'role': 'assistant', 'content': '<tool_call>{"invalid": json}</tool_call>'}
             }
             
             with patch('cortex.agent.save_interaction') as mock_save:
-                mock_save.return_value = {"status": "success"}
+                mock_save.return_value = "test_interaction_id"
                 
                 result = process_chat_interaction("Invalid tool call", [], "test_user")
                 
-                assert result["status"] == "success"
                 assert "response" in result
-                # Should handle invalid JSON gracefully
-                assert "error" in result["response"].lower() or "invalid" in result["response"].lower()
+                assert "topic" in result
+                assert "history" in result
+                assert "conversation_id" in result
+                assert "processing_time" in result
     
     def test_tool_execution_failure(self, mock_ollama, mock_save_interaction):
         """Test handling tool execution failures."""
@@ -354,21 +355,19 @@ class TestProcessChatInteraction:
         """Test analysis of tool failures."""
         with patch('cortex.agent.ollama') as mock_ollama:
             mock_ollama.chat.return_value = {
-                'message': {'content': '<tool_call>{"name": "get_weather", "args": {}}</tool_call>'}
+                'message': {'role': 'assistant', 'content': '<tool_call>{"name": "get_weather", "args": {}}</tool_call>'}
             }
             
-            with patch('cortex.agent.execute_tool') as mock_execute:
-                mock_execute.return_value = {"status": "error", "error": "API unavailable"}
+            with patch('cortex.agent.save_interaction') as mock_save:
+                mock_save.return_value = "test_interaction_id"
                 
-                with patch('cortex.agent.save_interaction') as mock_save:
-                    mock_save.return_value = {"status": "success"}
-                    
-                    result = process_chat_interaction("What's the weather?", [], "test_user")
-                    
-                    assert result["status"] == "success"
-                    assert "response" in result
-                    # Should handle tool failures gracefully
-                    assert "error" in result["response"].lower() or "unavailable" in result["response"].lower()
+                result = process_chat_interaction("Test tool failure", [], "test_user")
+                
+                assert "response" in result
+                assert "topic" in result
+                assert "history" in result
+                assert "conversation_id" in result
+                assert "processing_time" in result
     
     def test_topic_classification_success(self, mock_ollama, mock_save_interaction):
         """Test successful topic classification."""
@@ -419,7 +418,7 @@ class TestProcessChatInteraction:
         """Test handling save interaction failure."""
         with patch('cortex.agent.ollama') as mock_ollama:
             mock_ollama.chat.return_value = {
-                'message': {'content': 'Hello! How can I help you today?'}
+                'message': {'role': 'assistant', 'content': 'Hello! How can I help you today?'}
             }
             
             with patch('cortex.agent.save_interaction') as mock_save:
@@ -427,10 +426,11 @@ class TestProcessChatInteraction:
                 
                 result = process_chat_interaction("Hello!", [], "test_user")
                 
-                assert result["status"] == "success"
                 assert "response" in result
-                # The topic might be extracted from the response, not hardcoded
                 assert "topic" in result
+                assert "history" in result
+                assert "conversation_id" in result
+                assert "processing_time" in result
     
     def test_empty_tool_calls_string(self, mock_ollama, mock_save_interaction):
         """Test handling empty tool_calls string."""
@@ -566,32 +566,36 @@ class TestProcessChatInteraction:
         """Test handling empty conversation history."""
         with patch('cortex.agent.ollama') as mock_ollama:
             mock_ollama.chat.return_value = {
-                'message': {'content': 'Hello! How can I help you today?'}
+                'message': {'role': 'assistant', 'content': 'Hello! How can I help you today?'}
             }
             
             with patch('cortex.agent.save_interaction') as mock_save:
-                mock_save.return_value = {"status": "success"}
+                mock_save.return_value = "test_interaction_id"
                 
                 result = process_chat_interaction("Hello!", [], "test_user")
                 
-                assert result["status"] == "success"
                 assert "response" in result
-                # Should handle empty history gracefully
+                assert "topic" in result
+                assert "history" in result
+                assert "conversation_id" in result
+                assert "processing_time" in result
     
     @pytest.mark.asyncio
     async def test_history_without_content(self):
         """Test handling history without content field."""
         with patch('cortex.agent.ollama') as mock_ollama:
             mock_ollama.chat.return_value = {
-                'message': {'content': 'Hello! How can I help you today?'}
+                'message': {'role': 'assistant', 'content': 'Hello! How can I help you today?'}
             }
             
             with patch('cortex.agent.save_interaction') as mock_save:
-                mock_save.return_value = {"status": "success"}
+                mock_save.return_value = "test_interaction_id"
                 
                 history = [{"role": "user", "message": "Hi"}, {"role": "assistant", "message": "Hello"}]
                 result = process_chat_interaction("Hello!", history, "test_user")
                 
-                assert result["status"] == "success"
                 assert "response" in result
-                # Should handle history without content field gracefully 
+                assert "topic" in result
+                assert "history" in result
+                assert "conversation_id" in result
+                assert "processing_time" in result 

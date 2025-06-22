@@ -64,6 +64,24 @@ CREATE TABLE IF NOT EXISTS user_groups (
     FOREIGN KEY (username) REFERENCES users (username) ON DELETE CASCADE,
     FOREIGN KEY (group_id) REFERENCES groups (id) ON DELETE CASCADE
 );
+
+CREATE TABLE IF NOT EXISTS tools (
+    tool_key TEXT PRIMARY KEY,
+    description TEXT NOT NULL,
+    module TEXT NOT NULL,
+    function_name TEXT NOT NULL,
+    enabled INTEGER DEFAULT 0 NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS tool_parameters (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    tool_key TEXT NOT NULL,
+    name TEXT NOT NULL,
+    type TEXT NOT NULL,
+    description TEXT,
+    is_required INTEGER DEFAULT 0 NOT NULL,
+    FOREIGN KEY (tool_key) REFERENCES tools (tool_key) ON DELETE CASCADE
+);
 """
 
 LONGTERM_DB_SCHEMA = """
@@ -133,6 +151,64 @@ CREATE TABLE IF NOT EXISTS personal_variables_join (
     FOREIGN KEY (variable_id) REFERENCES personal_variables (id) ON DELETE CASCADE
 );
 """
+
+def _migrate_tools_table_schema(cursor: sqlite3.Cursor):
+    """
+    Migrates the tools table from a single 'module' column to separate
+    'module' and 'function_name' columns.
+    """
+    try:
+        # Check if migration is needed by looking for the old column structure
+        cursor.execute("PRAGMA table_info(tools)")
+        columns = [column[1] for column in cursor.fetchall()]
+        if 'module' in columns and 'function_name' not in columns:
+            logger.info("Old 'tools' table schema detected. Migrating...")
+            
+            # 1. Rename the old table
+            cursor.execute("ALTER TABLE tools RENAME TO tools_old")
+            
+            # 2. Create the new table
+            cursor.execute("""
+                CREATE TABLE tools (
+                    tool_key TEXT PRIMARY KEY,
+                    description TEXT NOT NULL,
+                    module TEXT NOT NULL,
+                    function_name TEXT NOT NULL,
+                    enabled INTEGER DEFAULT 0 NOT NULL
+                )
+            """)
+
+            # 3. Copy and transform data from the old table to the new one
+            cursor.execute("SELECT tool_key, description, module, enabled FROM tools_old")
+            old_tools = cursor.fetchall()
+            
+            new_tools_data = []
+            for tool in old_tools:
+                full_module_path = tool[2]
+                parts = full_module_path.rsplit('.', 1)
+                module_name = parts[0] if len(parts) > 1 else 'unknown'
+                func_name = parts[1] if len(parts) > 1 else parts[0]
+                new_tools_data.append((
+                    tool[0],  # tool_key
+                    tool[1],  # description
+                    module_name,
+                    func_name,
+                    tool[3]   # enabled
+                ))
+            
+            cursor.executemany(
+                "INSERT INTO tools (tool_key, description, module, function_name, enabled) VALUES (?, ?, ?, ?, ?)",
+                new_tools_data
+            )
+
+            # 4. Drop the old table
+            cursor.execute("DROP TABLE tools_old")
+            logger.info("Successfully migrated 'tools' table to new schema.")
+        else:
+            logger.info("'tools' table already has the new schema. No migration needed.")
+    except Exception as e:
+        logger.error(f"Error during 'tools' table migration: {e}", exc_info=True)
+        raise
 
 def migrate_users_table(cursor: sqlite3.Cursor) -> None:
     """
@@ -215,21 +291,25 @@ def check_and_run_migrations(db_path: str) -> None:
         
         # Check if users table migration has been applied
         cursor.execute("SELECT COUNT(*) FROM migrations WHERE migration_name = 'users_password_separation'")
-        migration_applied = cursor.fetchone()[0] > 0
+        users_migration_applied = cursor.fetchone()[0] > 0
         
-        if not migration_applied:
+        if not users_migration_applied:
             logger.info("Running users table migration...")
             migrate_users_table(cursor)
-            
-            # Mark migration as applied
-            cursor.execute("INSERT INTO migrations (migration_name) VALUES (?)", 
-                         ('users_password_separation',))
-            
-            conn.commit()
-            logger.info("Migration completed and recorded")
-        else:
-            logger.info("Users table migration already applied")
-        
+            cursor.execute("INSERT INTO migrations (migration_name) VALUES (?)", ('users_password_separation',))
+            logger.info("Users table migration recorded.")
+
+        # Check if tools table migration has been applied
+        cursor.execute("SELECT COUNT(*) FROM migrations WHERE migration_name = 'tools_module_split'")
+        tools_migration_applied = cursor.fetchone()[0] > 0
+
+        if not tools_migration_applied:
+            logger.info("Running tools table migration...")
+            _migrate_tools_table_schema(cursor)
+            cursor.execute("INSERT INTO migrations (migration_name) VALUES (?)", ('tools_module_split',))
+            logger.info("Tools table migration recorded.")
+
+        conn.commit()
         conn.close()
         
     except Exception as e:
@@ -253,16 +333,103 @@ def create_default_roles(cursor: sqlite3.Cursor) -> None:
 def create_default_groups(cursor: sqlite3.Cursor) -> None:
     """Create default groups if they don't exist."""
     groups = [
-        ('users', 'All users'),
-        ('admins', 'Administrators'),
-        ('moderators', 'Moderators')
+        ('default', 'Default user group'),
+        ('testers', 'Quality assurance testers')
     ]
+    cursor.executemany(
+        "INSERT OR IGNORE INTO groups (group_name, description) VALUES (?, ?)",
+        groups
+    )
+
+def populate_tools_table(cursor: sqlite3.Cursor) -> None:
+    """
+    Populates the tools and tool_parameters tables with a hardcoded, canonical
+    list of all available tools in the system.
     
-    for group_name, description in groups:
-        cursor.execute(
-            "INSERT OR IGNORE INTO groups (group_name, description) VALUES (?, ?)",
-            (group_name, description)
-        )
+    This function is idempotent; it uses INSERT OR IGNORE to prevent
+    errors if the script is run multiple times.
+    """
+    try:
+        # Canonical list of all tools and their details, including enabled status.
+        # Defaults to enabled (1), except for tools requiring API keys.
+        tools_to_insert = [
+            # (tool_key, description, full_module_path, function_name, enabled_flag)
+            ('find_personal_variables', 'Finds personal user properties from the database.', 'hippocampus.find_personal_variables_tool', 'execute_find_personal_variables', 1),
+            ('get_weather_forecast', 'Get the weather forecast for a specific city.', 'cerebellum.weather_tool', 'execute_get_weather_forecast', 0), # Requires API key
+            ('web_search', 'Perform a web search using Google Custom Search API.', 'cerebellum.web_search_tool', 'execute_web_search', 0), # Requires API key
+            ('recall_memories', 'Recall past conversations by keyword.', 'hippocampus.recall_memories_tool', 'execute_recall_memories', 1),
+            ('recall_memories_with_time', 'Recall past conversations by keyword within a date range.', 'hippocampus.recall_memories_with_time_tool', 'execute_recall_memories_with_time', 1),
+            ('get_conversations_by_topic', 'Find conversations containing a specific topic.', 'hippocampus.get_conversations_by_topic_tool', 'execute_get_conversations_by_topic', 1),
+            ('get_topics_by_conversation', 'Get all topics from a specific conversation.', 'hippocampus.get_topics_by_conversation_tool', 'execute_get_topics_by_conversation', 1),
+            ('get_conversation_summary', 'Get a comprehensive summary of a conversation.', 'hippocampus.get_conversation_summary_tool', 'execute_get_conversation_summary', 1),
+            ('get_topic_statistics', 'Get statistics about all topics across all conversations.', 'hippocampus.get_topic_statistics_tool', 'execute_get_topic_statistics', 1),
+            ('get_user_conversations', 'Get all conversations for the current user.', 'hippocampus.get_user_conversations_tool', 'execute_get_user_conversations', 1),
+            ('get_conversation_details', 'Get detailed information about a specific conversation.', 'hippocampus.get_conversation_details_tool', 'execute_get_conversation_details', 1),
+            ('search_conversations', 'Search conversations by title or content.', 'hippocampus.search_conversations_tool', 'execute_search_conversations', 1),
+            ('screenshot_from_url', 'Take a screenshot of a webpage.', 'occipital.take_screenshot_from_url_tool', 'execute_take_screenshot_from_url', 1),
+            ('analyze_file', 'Analyze a file from the user\'s short-term storage.', 'occipital.take_screenshot_from_url_tool', 'analyze_screenshot_file', 1),
+        ]
+
+        # Canonical list of all tool parameters
+        params_to_insert = [
+            # find_personal_variables
+            ('find_personal_variables', 'searchkey', 'string', 'The key for the personal variable to find.', 1),
+            # get_weather_forecast
+            ('get_weather_forecast', 'city', 'string', 'City name.', 1),
+            ('get_weather_forecast', 'start_date', 'string', 'Start date (YYYY-MM-DD). Optional.', 0),
+            ('get_weather_forecast', 'end_date', 'string', 'End date (YYYY-MM-DD). Optional.', 0),
+            # web_search
+            ('web_search', 'query', 'string', 'The search query.', 1),
+            # recall_memories
+            ('recall_memories', 'keyword', 'string', 'The keyword to search for.', 1),
+            # recall_memories_with_time
+            ('recall_memories_with_time', 'keyword', 'string', 'The keyword to search for.', 1),
+            ('recall_memories_with_time', 'start_date', 'string', 'Start date (YYYY-MM-DD). Optional.', 0),
+            ('recall_memories_with_time', 'end_date', 'string', 'End date (YYYY-MM-DD). Optional.', 0),
+            # get_conversations_by_topic
+            ('get_conversations_by_topic', 'topic_name', 'string', 'The topic name to search for.', 1),
+            # get_topics_by_conversation
+            ('get_topics_by_conversation', 'conversation_id', 'string', 'The conversation ID to analyze.', 1),
+            # get_conversation_summary
+            ('get_conversation_summary', 'conversation_id', 'string', 'The conversation ID to summarize.', 1),
+            # get_user_conversations
+            ('get_user_conversations', 'limit', 'integer', 'Maximum number of conversations to return. Defaults to 50.', 0),
+            # get_conversation_details
+            ('get_conversation_details', 'conversation_id', 'string', 'The conversation ID to get details for.', 1),
+            # search_conversations
+            ('search_conversations', 'query', 'string', 'The search term.', 1),
+            ('search_conversations', 'limit', 'integer', 'Maximum number of results. Defaults to 20.', 0),
+            # screenshot_from_url
+            ('screenshot_from_url', 'url', 'string', 'The URL of the webpage to capture.', 1),
+            ('screenshot_from_url', 'session_id', 'string', 'A unique session identifier for this screenshot.', 1),
+            # analyze_file
+            ('analyze_file', 'session_id', 'string', 'The session ID of the file to analyze.', 1),
+            ('analyze_file', 'original_prompt', 'string', 'The original user prompt for context.', 1),
+        ]
+
+        if tools_to_insert:
+            # The hardcoded data needs to be split for the new schema
+            split_tools = []
+            for key, desc, full_module, func_name, enabled in tools_to_insert:
+                # The module is everything before the last dot
+                module = full_module.rsplit('.', 1)[0]
+                split_tools.append((key, desc, module, func_name, enabled))
+
+            cursor.executemany(
+                "INSERT OR IGNORE INTO tools (tool_key, description, module, function_name, enabled) VALUES (?, ?, ?, ?, ?)",
+                split_tools,
+            )
+            logger.info(f"Populated tools table with {cursor.rowcount} new tools.")
+
+        if params_to_insert:
+            cursor.executemany(
+                "INSERT OR IGNORE INTO tool_parameters (tool_key, name, type, description, is_required) VALUES (?, ?, ?, ?, ?)",
+                params_to_insert,
+            )
+            logger.info(f"Populated tool_parameters table with {cursor.rowcount} new parameters.")
+
+    except Exception as e:
+        logger.error(f"Error populating tools tables: {e}")
 
 def create_default_rise_and_shine(cursor: sqlite3.Cursor) -> None:
     """Create default system instructions in the rise_and_shine table."""
@@ -341,9 +508,10 @@ def create_system_db_tables(db_path: str):
     # Create tables
     cursor.executescript(SYSTEM_DB_SCHEMA)
     
-    # Create default roles and groups
+    # Create default roles, groups, etc.
     create_default_roles(cursor)
     create_default_groups(cursor)
+    populate_tools_table(cursor)
     
     conn.commit()
     conn.close()
