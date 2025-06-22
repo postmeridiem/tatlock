@@ -1080,14 +1080,62 @@ EOF
     esac
 else
     echo "Skipping service installation. You can run Tatlock manually using './wakeup.sh'"
+    
+    # Check for and remove any existing Tatlock services
+    echo ""
+    echo "Checking for existing Tatlock services..."
+    
+    case $SYSTEM in
+        "debian"|"rhel"|"arch")
+            # Linux - Check for systemd service
+            if command -v systemctl &> /dev/null; then
+                if systemctl is-active --quiet tatlock.service 2>/dev/null; then
+                    echo "Found running Tatlock systemd service. Stopping and removing..."
+                    sudo systemctl stop tatlock.service
+                    sudo systemctl disable tatlock.service
+                    sudo rm -f /etc/systemd/system/tatlock.service
+                    sudo systemctl daemon-reload
+                    echo "- Existing Tatlock systemd service removed"
+                elif [ -f "/etc/systemd/system/tatlock.service" ]; then
+                    echo "Found inactive Tatlock systemd service. Removing..."
+                    sudo systemctl disable tatlock.service 2>/dev/null
+                    sudo rm -f /etc/systemd/system/tatlock.service
+                    sudo systemctl daemon-reload
+                    echo "- Existing Tatlock systemd service removed"
+                else
+                    echo "- No existing Tatlock systemd service found"
+                fi
+            fi
+            ;;
+            
+        "macos_arm"|"macos_intel")
+            # macOS - Check for launchd service
+            if launchctl list | grep -q "com.tatlock"; then
+                echo "Found running Tatlock launchd service. Stopping and removing..."
+                launchctl unload ~/Library/LaunchAgents/com.tatlock.plist 2>/dev/null
+                rm -f ~/Library/LaunchAgents/com.tatlock.plist
+                echo "- Existing Tatlock launchd service removed"
+            elif [ -f "~/Library/LaunchAgents/com.tatlock.plist" ]; then
+                echo "Found inactive Tatlock launchd service. Removing..."
+                rm -f ~/Library/LaunchAgents/com.tatlock.plist
+                echo "- Existing Tatlock launchd service removed"
+            else
+                echo "- No existing Tatlock launchd service found"
+            fi
+            ;;
+            
+        *)
+            echo "- Service cleanup not supported on this system"
+            ;;
+    esac
 fi
 
 echo ""
 echo -e "${BOLD}${GREEN}"
-echo "╔══════════════════════════════════════════════════════════════════════════════╗"
-echo "║                        🎉 Installation Complete! 🎉                         ║"
-echo "║                    Tatlock is ready to use!                                 ║"
-echo "╚══════════════════════════════════════════════════════════════════════════════╝"
+echo "════════════════════════════════════════════════════════════════════════════════"
+echo "                         🎉 Installation Complete! 🎉"
+echo "                           Tatlock is ready to use!"
+echo "════════════════════════════════════════════════════════════════════════════════"
 echo -e "${NC}"
 
 echo -e "${BOLD}${CYAN}Installation Summary:${NC}"
@@ -1095,7 +1143,7 @@ echo -e "${CYAN}─────────────────────�
 echo -e "  ${GREEN}[✓]${NC} Python virtual environment created in .venv directory"
 echo -e "  ${GREEN}[✓]${NC} Ollama with Gemma3-enhanced model is ready"
 echo -e "  ${GREEN}[✓]${NC} .env configuration file created with auto-generated secret key"
-echo -e "  ${GREEN}[✓]${NC} Material Icons downloaded for offline web interface"
+echo -e "  ${GREEN}[✓]${NC} Material Icons included for offline web interface"
 echo -e "  ${GREEN}[✓]${NC} system.db and longterm.db are ready in the hippocampus/ directory"
 echo -e "  ${GREEN}[✓]${NC} Default roles, groups, and system prompts are configured"
 echo -e "${CYAN}──────────────────────────────────────────────────────────────────────────────────${NC}"

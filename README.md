@@ -71,13 +71,15 @@ Tatlock's architecture is inspired by the human brain, with each module represen
    **Note**: The installation script supports apt-based systems (Ubuntu/Debian), yum-based systems (CentOS/RHEL/Fedora), macOS (Intel/Apple Silicon), and Arch Linux. For other distributions, manual installation of dependencies may be required.
 
    The script will automatically:
+   - **Configure server settings**: Prompt for HOSTNAME and PORT (defaults to localhost:8000)
    - Create a `.env` file with all required environment variables and generate a secure `STARLETTE_SECRET` key
-   - Handle existing `.env` files safely (asks if you want to overwrite or keep existing configuration)
+   - **Handle existing `.env` files intelligently**: Offers to update HOSTNAME and PORT even when keeping existing configuration
    - Create a Python virtual environment in the `.venv` directory for isolated dependency management
    - Safely handle existing virtual environments (only recreates if explicitly requested or corrupted)
    - Make `wakeup.sh` executable for easy application startup
    - **Intelligently handle admin user creation**: If an admin user already exists, you can choose to keep it or replace it with new credentials
    - **Provide detailed debugging**: Enhanced error reporting and system diagnostics
+   - **Clean up existing services**: If you choose not to install as a service, any existing Tatlock services are automatically stopped and removed
    - Optionally install Tatlock as an auto-starting service for automatic startup on system boot
 
 3. Install and start Ollama:
@@ -109,7 +111,7 @@ Tatlock's architecture is inspired by the human brain, with each module represen
    **Note**: If you installed Tatlock as an auto-starting service, see the [Service Management](#service-management) section below for commands to start, stop, and manage the service.
 
 6. Access the interface:
-   - **Login Page**: `http://localhost:8000/login`
+   - **Login Page**: `http://localhost:8000/login` (or your configured HOSTNAME:PORT)
    - **Admin Dashboard**: `http://localhost:8000/admin/dashboard`
    - **User Profile**: `http://localhost:8000/profile`
    - **Debug Console**: `http://localhost:8000/chat`
@@ -119,7 +121,7 @@ Tatlock's architecture is inspired by the human brain, with each module represen
    - **Username**: `admin`
    - **Password**: `admin123`
 
-   **Note**: The default port is 8000. You can change this by modifying the `PORT` variable in your `.env` file.
+   **Note**: The default configuration is localhost:8000. You can change this by modifying the `HOSTNAME` and `PORT` variables in your `.env` file or during installation.
 
 ### Service Management
 

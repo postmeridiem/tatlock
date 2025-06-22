@@ -10,13 +10,16 @@ The automated installation script performs the following steps:
 3. Creates and activates Python virtual environment (.venv) with Python 3.10+
 4. Installs and configures Ollama with the Gemma3-enhanced model
 5. Installs Python dependencies from requirements.txt
-6. Creates a `.env` configuration file with auto-generated secret key (safely handles existing files)
-7. Downloads Material Icons for offline web interface
-8. Initializes system.db and longterm.db with authentication and memory tables
-9. Creates default roles, groups, and system prompts
-10. **Intelligently handles admin user creation**: Checks for existing admin users and offers to keep or replace them
-11. **Provides detailed debugging**: Enhanced error reporting and system diagnostics
-12. Optionally installs Tatlock as an auto-starting service
+6. **Configures server settings**: Prompts for HOSTNAME and PORT (defaults to localhost:8000)
+7. Creates a `.env` configuration file with auto-generated secret key (safely handles existing files)
+8. **Handles existing `.env` files intelligently**: Offers to update HOSTNAME and PORT even when keeping existing configuration
+9. **Includes Material Icons**: Fonts are now included in the repository (no download required)
+10. Initializes system.db and longterm.db with authentication and memory tables
+11. Creates default roles, groups, and system prompts
+12. **Intelligently handles admin user creation**: Checks for existing admin users and offers to keep or replace them
+13. **Provides detailed debugging**: Enhanced error reporting and system diagnostics
+14. **Cleans up existing services**: If you choose not to install as a service, any existing Tatlock services are automatically stopped and removed
+15. Optionally installs Tatlock as an auto-starting service
 
 ## System Requirements
 
@@ -1047,4 +1050,149 @@ chmod 644 hippocampus/*.db 2>/dev/null || true
 
 # Reinitialize database
 python -c "from stem.installation.database_setup import create_system_db_tables; create_system_db_tables('hippocampus/system.db')"
+```
+
+## Server Configuration (HOSTNAME and PORT)
+
+The installation script now prompts for server configuration settings that determine how Tatlock will be accessible.
+
+### Configuration Options
+
+**HOSTNAME**: The hostname or IP address where Tatlock will be accessible
+- **Default**: `localhost` (only accessible from the local machine)
+- **Common alternatives**:
+  - `0.0.0.0` (accessible from any network interface)
+  - `192.168.1.100` (specific IP address)
+  - `tatlock.local` (custom hostname)
+
+**PORT**: The port number for the web interface
+- **Default**: `8000`
+- **Common alternatives**: `8080`, `3000`, `5000`
+
+### Updating Existing Configuration
+
+If you have an existing `.env` file and choose not to overwrite it, the installer will offer to update just the server configuration:
+
+```
+A .env file already exists in the root directory.
+Do you want to overwrite it? (y/N): n
+Skipping .env file creation. Using existing .env file.
+
+Server Configuration Update:
+──────────────────────────────────────────────────────────────────────────────────
+Would you like to update the server configuration (HOSTNAME and PORT)?
+Update server configuration? (y/N): y
+
+Current Configuration:
+HOSTNAME: localhost
+PORT: 8000
+
+Enter new values (press Enter to keep current value):
+Enter hostname [localhost]: 0.0.0.0
+Enter port [8000]: 8080
+
+✓ Server configuration updated:
+- HOSTNAME: localhost → 0.0.0.0
+- PORT: 8000 → 8080
+- ALLOWED_ORIGINS updated to match new configuration
+```
+
+### Service Configuration
+
+When installing as a service, the installer automatically reads the HOSTNAME and PORT from your `.env` file and configures the service accordingly.
+
+### Common Configuration Scenarios
+
+**Local Development**:
+- HOSTNAME: `localhost`
+- PORT: `8000`
+- Access: `http://localhost:8000`
+
+**Network Access**:
+- HOSTNAME: `0.0.0.0`
+- PORT: `8000`
+- Access: `http://your-ip-address:8000`
+
+**Custom Port**:
+- HOSTNAME: `localhost`
+- PORT: `8080`
+- Access: `http://localhost:8080`
+
+**Production Server**:
+- HOSTNAME: `0.0.0.0`
+- PORT: `80` (requires root privileges) or `8080`
+- Access: `http://your-server-ip:8080`
+
+## Service Cleanup
+
+When you choose not to install Tatlock as a service, the installer automatically cleans up any existing Tatlock services to prevent conflicts.
+
+### What Gets Cleaned Up
+
+**Linux (systemd)**:
+- Stops running `tatlock.service`
+- Disables the service from auto-starting
+- Removes the service file from `/etc/systemd/system/`
+- Reloads systemd daemon
+
+**macOS (launchd)**:
+- Unloads running `com.tatlock` service
+- Removes the plist file from `~/Library/LaunchAgents/`
+
+### Example Cleanup Output
+
+```
+Skipping service installation. You can run Tatlock manually using './wakeup.sh'
+
+Checking for existing Tatlock services...
+Found running Tatlock systemd service. Stopping and removing...
+- Existing Tatlock systemd service removed
+```
+
+### Manual Service Cleanup
+
+If you need to manually clean up services:
+
+**Linux**:
+```bash
+sudo systemctl stop tatlock
+sudo systemctl disable tatlock
+sudo rm /etc/systemd/system/tatlock.service
+sudo systemctl daemon-reload
+```
+
+**macOS**:
+```bash
+launchctl unload ~/Library/LaunchAgents/com.tatlock.plist
+rm ~/Library/LaunchAgents/com.tatlock.plist
+```
+
+## Material Icons (No Download Required)
+
+Material Icons are now included in the repository and no longer need to be downloaded during installation.
+
+### What Changed
+
+- **Before**: Fonts were downloaded from external sources during installation
+- **Now**: Fonts are included in the `stem/static/fonts/` directory
+- **Benefits**: Faster installation, no network dependency, more reliable
+
+### Font Files Included
+
+- `material-icons.woff2` - Modern web font format
+- `material-icons.woff` - Web font format for older browsers
+- `material-icons.ttf` - TrueType font for fallback
+
+### Manual Font Installation
+
+If you need to manually install fonts (rare):
+
+```bash
+# Create fonts directory
+mkdir -p stem/static/fonts
+
+# Download fonts manually if needed
+wget -O stem/static/fonts/material-icons.woff2 "https://fonts.gstatic.com/s/materialicons/v140/flUhRq6tzZclQEJ-Vdg-IuiaDsNcIhQ8tQ.woff2"
+wget -O stem/static/fonts/material-icons.woff "https://cdn.jsdelivr.net/npm/@mdi/font@7.2.96/fonts/materialdesignicons-webfont.woff"
+wget -O stem/static/fonts/material-icons.ttf "https://cdn.jsdelivr.net/npm/@mdi/font@7.2.96/fonts/materialdesignicons-webfont.ttf"
 ``` 
