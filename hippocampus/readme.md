@@ -47,6 +47,7 @@ The Hippocampus module manages all forms of persistent memory for Tatlock, inclu
 ### **Memory Tools** (Root directory)
 All memory-related tools are organized in the root of the `hippocampus/` module:
 
+#### **Core Memory Tools**
 - **`find_personal_variables_tool.py`**: Look up personal information by key
 - **`get_conversation_details_tool.py`**: Get detailed conversation information
 - **`get_conversation_summary_tool.py`**: Get conversation summaries
@@ -57,6 +58,29 @@ All memory-related tools are organized in the root of the `hippocampus/` module:
 - **`recall_memories_tool.py`**: Search memories by keyword
 - **`recall_memories_with_time_tool.py`**: Search memories with temporal filtering
 - **`search_conversations_tool.py`**: Search conversations by content
+
+#### **Advanced Memory Analytics Tools**
+- **`memory_insights_tool.py`**: Advanced analytics for conversation patterns and usage statistics
+  - **Overview Analysis**: Total conversations, memories, topics, and averages
+  - **Pattern Analysis**: Most active days, hours, and conversation length statistics
+  - **Topic Analysis**: Trending topics and engagement metrics
+  - **Temporal Analysis**: Usage patterns over time with day/hour breakdowns
+  - **Usage**: `execute_memory_insights(analysis_type, similarity_threshold)`
+
+- **`memory_cleanup_tool.py`**: Database health and maintenance utilities
+  - **Duplicate Detection**: Find similar memories with configurable similarity thresholds
+  - **Orphaned Records**: Identify and report orphaned database records
+  - **Health Analysis**: Data quality assessment with health scores
+  - **Database Statistics**: Comprehensive database health metrics
+  - **Usage**: `execute_memory_cleanup(cleanup_type, similarity_threshold)`
+
+- **`memory_export_tool.py`**: Data export capabilities in multiple formats
+  - **JSON Export**: Full conversation and memory data with metadata
+  - **CSV Export**: Spreadsheet-friendly format for analysis
+  - **Summary Export**: Key statistics and insights report
+  - **Date Filtering**: Configurable date ranges (last_7_days, last_30_days, custom)
+  - **Topic Inclusion**: Optional topic data in exports
+  - **Usage**: `execute_memory_export(export_type, include_topics, date_range)`
 
 ### **Tool Standards**
 All tools follow the standardized pattern:
@@ -74,6 +98,53 @@ def execute_tool_name(parameters):
     except Exception as e:
         logger.error(f"Tool error: {e}")
         return {"status": "error", "message": str(e)}
+
+### **Advanced Memory Tool Usage Examples**
+
+#### **Memory Insights**
+```python
+# Get overview statistics
+result = execute_memory_insights("overview")
+# Returns: total conversations, memories, topics, averages, date ranges
+
+# Analyze usage patterns
+result = execute_memory_insights("patterns")
+# Returns: most active days/hours, conversation length statistics
+
+# Topic analysis
+result = execute_memory_insights("topics")
+# Returns: trending topics, engagement metrics, topic evolution
+```
+
+#### **Memory Cleanup**
+```python
+# Find duplicate memories (80% similarity threshold)
+result = execute_memory_cleanup("duplicates", 0.8)
+# Returns: duplicate groups, total duplicates, cleanup recommendations
+
+# Check for orphaned records
+result = execute_memory_cleanup("orphans")
+# Returns: orphaned memories, topics, conversation links
+
+# Database health analysis
+result = execute_memory_cleanup("analysis")
+# Returns: data quality scores, completeness metrics, health assessment
+```
+
+#### **Memory Export**
+```python
+# Export all data as JSON
+result = execute_memory_export("json", True, None)
+# Returns: file path, size, total records exported
+
+# Export recent conversations as CSV
+result = execute_memory_export("csv", False, "last_7_days")
+# Returns: CSV file with conversation data
+
+# Export summary report
+result = execute_memory_export("summary", True, "last_30_days")
+# Returns: summary statistics and insights
+```
 
 ## 📊 **Database Schema**
 
@@ -275,6 +346,9 @@ The module includes database setup utilities in `stem/installation/database_setu
 ```bash
 # Run hippocampus-specific tests
 python -m pytest tests/test_hippocampus_*.py -v
+
+# Run new memory tools tests
+python -m pytest tests/test_memory_tools.py -v
 ```
 
 ### **Database Tests**
@@ -283,7 +357,20 @@ python -m pytest tests/test_hippocampus_*.py -v
 python -m pytest tests/test_hippocampus_database.py -v
 python -m pytest tests/test_hippocampus_recall.py -v
 python -m pytest tests/test_hippocampus_remember.py -v
+
+# Test new memory tools
+python -m pytest tests/test_memory_tools.py::TestMemoryInsightsTool -v
+python -m pytest tests/test_memory_tools.py::TestMemoryCleanupTool -v
+python -m pytest tests/test_memory_tools.py::TestMemoryExportTool -v
 ```
+
+### **Test Coverage**
+The memory tools include comprehensive test coverage:
+- **16 test cases** covering all tool functionality
+- **Unit tests** for individual tool features
+- **Integration tests** for helper functions
+- **Error handling** and edge case testing
+- **Mock database** and file operations for reliable testing
 
 ## ⚠️ **Error Handling**
 
@@ -304,9 +391,14 @@ python -m pytest tests/test_hippocampus_remember.py -v
 - **Memory Compression**: Automatic summarization of old conversations
 - **Memory Expiration**: Configurable retention policies for old memories
 - **Memory Search**: Full-text search capabilities across all user data
-- **Memory Analytics**: Usage statistics and insights
-- **Memory Export**: User data export functionality
 - **Memory Backup**: Automatic backup and restore capabilities
+- **Memory Visualization**: Interactive charts and graphs for analytics
+- **Memory Recommendations**: AI-powered suggestions for conversation topics
+
+### **Recently Implemented** ✅
+- **Memory Analytics**: Usage statistics and insights (`memory_insights_tool.py`)
+- **Memory Export**: User data export functionality (`memory_export_tool.py`)
+- **Memory Cleanup**: Database health and maintenance utilities (`memory_cleanup_tool.py`)
 
 ### **Performance Improvements**
 - **Database Indexing**: Additional indexes for faster queries
