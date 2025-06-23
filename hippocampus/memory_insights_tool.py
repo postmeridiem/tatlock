@@ -58,7 +58,7 @@ def execute_memory_insights(analysis_type: str = "overview") -> dict:
         
     except Exception as e:
         logger.error(f"Error generating memory insights for {analysis_type}: {e}")
-        return {"status": "error", "message": f"Memory insights generation failed: {e}"}
+        return {"status": "error", "message": f"Memory insights generation failed for analysis_type '{analysis_type}': {e}"}
 
 def _get_overview_insights(cursor) -> dict:
     """Get overview insights about the user's memory usage."""

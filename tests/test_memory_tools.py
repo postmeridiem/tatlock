@@ -113,6 +113,39 @@ class TestMemoryInsightsTool:
         assert result["status"] == "error"
         assert "Unknown analysis type" in result["message"]
 
+    @patch('hippocampus.memory_insights_tool.get_current_user_ctx')
+    @patch('hippocampus.memory_insights_tool.get_database_connection')
+    def test_memory_insights_topics(self, mock_get_conn, mock_get_user):
+        """Test memory insights topics analysis."""
+        mock_user = MagicMock()
+        mock_user.username = "testuser"
+        mock_get_user.return_value = mock_user
+        
+        mock_conn = MagicMock()
+        mock_cursor = MagicMock()
+        mock_conn.cursor.return_value = mock_cursor
+        mock_get_conn.return_value = mock_conn
+        
+        # Mock database results for topics
+        mock_cursor.fetchall.side_effect = [
+            [("weather", 12), ("music", 8)],  # top_topics
+            [("weather", "2024-01-01", "2024-06-01", 12)],  # topic_evolution
+            [("weather", 5), ("music", 3)]  # topics_by_conversation
+        ]
+        
+        result = execute_memory_insights("topics")
+        
+        assert result["status"] == "success"
+        assert "data" in result
+        data = result["data"]
+        assert "most_discussed_topics" in data
+        assert "topic_evolution" in data
+        assert "topics_by_conversation_frequency" in data
+        assert data["most_discussed_topics"][0]["topic"] == "weather"
+        assert data["most_discussed_topics"][0]["mentions"] == 12
+        
+        mock_conn.close.assert_called_once()
+
 
 class TestMemoryCleanupTool:
     """Test the memory cleanup tool."""
