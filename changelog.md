@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 -
 
 ### Changed
-- Improved formatting of service management commands in `README.md` for easier copy-pasting.
+-
 
 ### Deprecated
 -
@@ -24,6 +24,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 -
+
+## [0.2.1] - 2024-08-01
+
+### Changed
+- Improved formatting of service management commands in `README.md` for easier copy-pasting.
 
 ## [0.2.0] - 2024-08-01
 
