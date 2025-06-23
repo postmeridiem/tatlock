@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Improved
+- Admin password warning now only shows when the user actually uses the default "admin123" password. When a custom password is entered, a confirmation message is shown instead.
+
 ## [0.2.6] - 2024-08-01
 
 ### Fixed

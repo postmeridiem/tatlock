@@ -914,9 +914,33 @@ fi
 echo "- system.db is ready in the hippocampus/ directory. User memory databases will be created automatically when users are added."
 
 # --- Create admin user if not exists ---
-echo -e "${BLUE}[7/10] Checking for admin account...${NC}"
-        # Check if admin user already exists
-        admin_exists=$(PYTHONPATH="$PROJECT_ROOT" $PYTHON_CMD -c "from stem.security import security_manager; import sqlite3; conn = sqlite3.connect(security_manager.db_path); cursor = conn.cursor(); cursor.execute('SELECT username FROM users WHERE username = ?', ('admin',)); result = cursor.fetchone(); conn.close(); print('yes' if result else 'no')")
+echo -e "${BLUE}[7/10] Admin user setup...${NC}"
+
+# Check if admin user already exists
+admin_exists="no"
+if [ -f "hippocampus/system.db" ]; then
+    if PYTHONPATH="$PROJECT_ROOT" $PYTHON_CMD -c "
+import sqlite3
+try:
+    conn = sqlite3.connect('hippocampus/system.db')
+    cursor = conn.cursor()
+    cursor.execute('SELECT username FROM users WHERE username = ?', ('admin',))
+    result = cursor.fetchone()
+    conn.close()
+    if result:
+        print('yes')
+    else:
+        print('no')
+except:
+    print('no')
+" | grep -q "yes"; then
+        admin_exists="yes"
+    fi
+fi
+
+# Track if default password is used
+used_default_password=false
+
 if [ "$admin_exists" = "no" ]; then
     echo "No admin account found. Let's create one."
     read -p "Enter admin username [admin]: " admin_user
@@ -934,6 +958,10 @@ if [ "$admin_exists" = "no" ]; then
     if [ "$admin_pass" != "$admin_pass2" ]; then
         echo "Passwords do not match. Exiting."
         exit 1
+    fi
+    # Check if default password was used
+    if [ "$admin_pass" = "admin123" ]; then
+        used_default_password=true
     fi
     if ! PYTHONPATH="$PROJECT_ROOT" $PYTHON_CMD -c "
 from stem.security import security_manager
@@ -1009,6 +1037,10 @@ else
         if [ "$admin_pass" != "$admin_pass2" ]; then
             echo "Passwords do not match. Exiting."
             exit 1
+        fi
+        # Check if default password was used
+        if [ "$admin_pass" = "admin123" ]; then
+            used_default_password=true
         fi
         if ! PYTHONPATH="$PROJECT_ROOT" $PYTHON_CMD -c "
 from stem.security import security_manager
@@ -1270,7 +1302,14 @@ echo -e "${CYAN}─────────────────────�
 echo -e "To start the application, run: ${BOLD}./wakeup.sh${NC}"
 echo -e "Then, open your browser to: ${YELLOW}http://localhost:8000/login${NC}"
 echo -e ""
-echo -e "Default admin credentials: ${BOLD}admin / admin123${NC}. ${RED}Please change this immediately!${NC}"
+
+# Show appropriate message based on password used
+if [ "$used_default_password" = true ]; then
+    echo -e "Default admin credentials: ${BOLD}admin / admin123${NC}. ${RED}Please change this immediately!${NC}"
+else
+    echo -e "Admin user created with custom credentials. You can log in with your chosen username and password."
+fi
+
 echo -e "If you installed the service, it will start automatically on reboot."
 echo -e "You can manage the service using: ${BOLD}./manage-service.sh${NC}"
 echo -e "${CYAN}──────────────────────────────────────────────────────────────────────────────────${NC}"
