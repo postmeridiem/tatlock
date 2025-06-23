@@ -12,6 +12,7 @@ from fastapi.responses import HTMLResponse
 from jinja2 import Environment, FileSystemLoader, Template
 import logging
 from .models import UserModel
+from config import APP_VERSION
 
 logger = logging.getLogger(__name__)
 
@@ -94,7 +95,7 @@ class TemplateManager:
             'user': user,
             'request': request,
             'app_name': 'Tatlock',
-            'app_version': '3.0.0',
+            'app_version': APP_VERSION,
             'is_authenticated': user is not None,
             'is_admin': is_admin
         }

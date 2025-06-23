@@ -2,6 +2,43 @@
 
 This guide contains developer-specific information for working with Tatlock, including logging, debugging, performance monitoring, and development practices.
 
+## AI Instructions
+
+This section provides guidelines for AI assistants (like Cursor, GitHub Copilot, Claude, GPT, etc.) contributing to the Tatlock project.
+
+**Primary Directive**: Always adhere to the coding standards, patterns, and development practices described in this file. If a request conflicts with these standards, ask for clarification or permission before deviating.
+
+### Core Workflows
+- **Versioning**: When asked to update the application version, you must follow the full "Versioning and Releases" workflow. This includes updating `changelog.md` with all changes since the last version, committing it with the `pyproject.toml` update, and creating a Git tag.
+- **Troubleshooting**: When a fix resolves a common installation or runtime issue, suggest an addition to `troubleshooting.md` to help future users.
+- **Testing**: All new code, whether adding features or fixing bugs, must be accompanied by corresponding tests to ensure correctness and prevent regressions.
+- **Code Organization**: Keep the codebase clean and maintainable. If code is used in multiple places, refactor it into a new shared file, following the Don't Repeat Yourself (DRY) principle. When creating new files, place them in the appropriate module directory, adhering to the existing filesystem structure patterns.
+
+### General Guidance
+1.  **Always Include Standards**: When using coding AI assistants, always include the Tatlock coding standards from this `developer.md` file as part of your prompt.
+2.  **Reference Specific Sections**: Reference relevant sections like "Python Coding Standards", "JavaScript Coding Standards", or "Security Standards" based on the task.
+3.  **Validate Generated Code**: Review AI-generated code to ensure it follows our established patterns and conventions.
+4.  **Update Standards**: If AI suggests improvements to our coding standards, evaluate and update this document accordingly.
+
+**Example AI Prompt:**
+```
+Please help me implement [specific feature] following the Tatlock coding standards:
+
+Python standards:
+- Use type hints for all functions (Python 3.10+ syntax)
+- Include comprehensive docstrings
+- Use structured logging with logger = logging.getLogger(__name__)
+- Follow database patterns with proper error handling
+- Use Pydantic models for input validation
+
+Security standards:
+- Use parameterized queries only
+- Validate all inputs
+- Implement proper user isolation
+
+[Your specific request here]
+```
+
 ## Frontend Development
 
 ### Jinja2 Templating System
@@ -194,6 +231,39 @@ logger.error("Error message", exc_info=True)
 ```
 
 ## Development Practices
+
+### Versioning and Releases
+
+This project uses **Semantic Versioning (SemVer)** and a `changelog.md` to track changes. Adhering to this process is crucial for maintaining a clear and predictable development cycle.
+
+**Single Source of Truth**: The official version number is stored in `pyproject.toml` in the project root. This is the **only** place the version should be updated.
+
+#### Release Workflow
+
+When preparing a new release, follow these steps:
+
+1.  **Update the Changelog**: Before bumping the version, you must update `changelog.md`.
+    *   Create a new release section (e.g., `## [0.2.0] - YYYY-MM-DD`).
+    *   Move all changes from the `[Unreleased]` section to this new version.
+    *   **Separate changes by type**: Place major new features under `### Added` or `### Changed`, while smaller bugfixes go under `### Fixed`. This separation is important for release notes.
+
+2.  **Update the Version**: Modify the `version` field in `pyproject.toml`.
+
+3.  **Commit the Changes**: Commit both `changelog.md` and `pyproject.toml` together.
+    ```bash
+    git add changelog.md pyproject.toml
+    git commit -m "Bump version to 0.2.0"
+    ```
+
+4.  **Tag the Release**: Create an annotated Git tag for the new version.
+    ```bash
+    git tag -a v0.2.0 -m "Release version 0.2.0"
+    ```
+
+5.  **Push to GitHub**: Push your commits and the new tag to the remote repository.
+    ```bash
+    git push origin main --tags
+    ```
 
 ### Code Organization
 
@@ -1290,7 +1360,6 @@ def require_admin_role():
     current_user = get_current_user_ctx()
     if not current_user or not security_manager.user_has_role(current_user.username, 'admin'):
         raise HTTPException(status_code=403, detail="Admin role required")
-    return current_user
 ```
 
 #### Benefits

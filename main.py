@@ -42,7 +42,7 @@ from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.middleware.cors import CORSMiddleware
 from config import (
     OPENWEATHER_API_KEY, GOOGLE_API_KEY, GOOGLE_CSE_ID, 
-    OLLAMA_MODEL, SYSTEM_DB_PATH, PORT, ALLOWED_ORIGINS, HOSTNAME
+    OLLAMA_MODEL, SYSTEM_DB_PATH, PORT, ALLOWED_ORIGINS, HOSTNAME, APP_VERSION
 )
 from temporal.voice_service import VoiceService
 from contextlib import asynccontextmanager
@@ -103,7 +103,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="Tatlock",
     description="As a child I used to play board games against a bucket with a face painted on it.",
-    version="0.1.0",
+    version=APP_VERSION,
     redoc_url=None,  # Disable ReDoc for security
     lifespan=lifespan
 )
