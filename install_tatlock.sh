@@ -14,6 +14,12 @@ CYAN='\033[0;36m'
 BOLD='\033[1m'
 NC='\033[0m' # No Color
 
+# Read version from pyproject.toml
+APP_VERSION="N/A"
+if [ -f "pyproject.toml" ]; then
+    APP_VERSION=$(grep -E '^version = ".*"' pyproject.toml | sed -E 's/version = "(.*)"/\1/')
+fi
+
 # --- Display Tatlock ASCII Art Logo ---
 echo -e "${BOLD}${CYAN}"
 echo "══════════════════════════════════════════════════════════════════════════════════════════"
@@ -26,6 +32,7 @@ echo "                  ██║   ██║  ██║   ██║   ███
 echo "                  ╚═╝   ╚═╝  ╚═╝   ╚═╝   ╚══════╝ ╚═════╝  ╚═════╝╚═╝  ╚═╝"
 echo ""
 echo "                          Brain-Inspired Home Automation Butler"
+echo "                                  Version: $APP_VERSION"
 echo "══════════════════════════════════════════════════════════════════════════════════════════"
 echo -e "${NC}"
 echo ""
@@ -228,11 +235,11 @@ install_python310() {
                 
                 # Install Python 3.10 and related packages
                 echo "Installing Python 3.10..."
-                if ! sudo apt install -y python3.10 python3.10-venv python3.10-dev; then
+                if ! sudo apt install -y python3.10 python3.10-venv python3.10-dev python3.10-apt; then
                     echo "Warning: python3.10 packages not available. Trying alternative installation..."
                     
                     # Try installing just python3.10 and use get-pip.py
-                    if sudo apt install -y python3.10 python3.10-venv python3.10-dev; then
+                    if sudo apt install -y python3.10 python3.10-venv python3.10-dev python3.10-apt; then
                         echo "Python 3.10 installed successfully. Installing pip separately..."
                         
                         # Download and install pip for Python 3.10
