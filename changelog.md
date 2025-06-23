@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - The `install_tatlock.sh` script now makes `manage-service.sh` executable and informs the user about it.
+- Updated `install_tatlock.sh` to provide unified instructions pointing to `manage-service.sh` instead of platform-specific commands.
 - Added CUDA detection logic to `install_tatlock.sh` to prevent PyTorch warnings when NVIDIA drivers are too old by installing CPU-only PyTorch.
 - Updated `README.md` to remove manual Ollama setup steps and point to the new `manage-service.sh` script for service management.
 

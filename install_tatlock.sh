@@ -1084,9 +1084,7 @@ EOF
                 echo "- Tatlock service installed and started"
                 echo "- Service will auto-start on boot"
                 echo "- Service configured to run on $SERVICE_HOSTNAME:$SERVICE_PORT"
-                echo "- Use 'sudo systemctl status tatlock' to check status"
-                echo "- Use 'sudo systemctl stop tatlock' to stop the service"
-                echo "- Use 'sudo systemctl start tatlock' to start the service"
+                echo "- Use './manage-service.sh' to manage the service (status, start, stop, restart)."
                 
                 # Clean up temporary file
                 rm tatlock.service
@@ -1143,9 +1141,7 @@ EOF
             echo "- Tatlock service installed and started"
             echo "- Service will auto-start on login"
             echo "- Service configured to run on $SERVICE_HOSTNAME:$SERVICE_PORT"
-            echo "- Use 'launchctl list | grep tatlock' to check status"
-            echo "- Use 'launchctl unload ~/Library/LaunchAgents/com.tatlock.plist' to stop"
-            echo "- Use 'launchctl load ~/Library/LaunchAgents/com.tatlock.plist' to start"
+            echo "- Use './manage-service.sh' to manage the service (status, start, stop, restart)."
             
             # Clean up temporary file
             rm com.tatlock.plist
