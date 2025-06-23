@@ -12,18 +12,37 @@ from hippocampus.user_database import execute_user_query, get_database_connectio
 
 def get_base_instructions(username: str = "") -> list[str]:
     """
-    Queries the database to get all enabled base instructions for the system prompt.
+    Queries the system database to get all enabled base instructions for the system prompt.
+    
+    IMPORTANT: This function reads from the system database (hippocampus/system.db), 
+    NOT from user databases. The rise_and_shine table contains global Tatlock prompts
+    that all users share. These instructions define Tatlock's personality, behavior,
+    and tool usage guidelines.
+    
     Args:
-        username (str): The username whose database to query. Defaults to "admin".
+        username (str): The username (not used, kept for compatibility).
     Returns:
         list[str]: Enabled instructions in order.
     """
-    if username == "":
-        raise ValueError("Username is required")
-    query = "SELECT instruction FROM rise_and_shine WHERE enabled = 1 ORDER BY id;"
+    # Read from system database instead of user database
+    system_db_path = "hippocampus/system.db"
+    if not os.path.exists(system_db_path):
+        raise FileNotFoundError(f"System database not found at {system_db_path}")
     
-    results = execute_user_query(username, query)
-    instructions = [row['instruction'] for row in results]
+    conn = sqlite3.connect(system_db_path)
+    cursor = conn.cursor()
+    
+    query = "SELECT instruction FROM rise_and_shine WHERE enabled = 1 ORDER BY id;"
+    cursor.execute(query)
+    results = cursor.fetchall()
+    
+    conn.close()
+    
+    instructions = [row[0] for row in results]
+    # Add explicit guidance for topic analysis
+    instructions.append(
+        "When the user asks about what topics are discussed most, trending subjects, what we talk about a lot, or what are our main discussion themes, use the memory_insights tool with analysis_type='topics'."
+    )
     return instructions
 
 

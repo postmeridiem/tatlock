@@ -25,8 +25,9 @@ def execute_recall_memories(keyword: str) -> dict:
     try:
         user = get_current_user_ctx()
         if user is None:
+            logger.error("recall_memories: get_current_user_ctx() returned None! No user context available.")
             return {"status": "error", "message": "User not authenticated"}
-        
+        logger.debug(f"recall_memories: current user is {user.username}")
         results = recall_memories(user, keyword)
         
         if not results:

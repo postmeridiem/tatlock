@@ -7,8 +7,8 @@ The Hippocampus module manages all forms of persistent memory for Tatlock, inclu
 ## ✅ **Core Features**
 
 ### 🗄️ **Database Management**
-- **{username}_longterm.db**: Per-user conversation memory, topics, and system prompts
-- **system.db**: Stores user authentication, roles, and groups (shared across all users)
+- **{username}_longterm.db**: Per-user conversation memory, topics, and personal variables
+- **system.db**: Stores user authentication, roles, groups, tools, and GLOBAL system prompts
 - **Short-term Storage**: User-specific temporary file storage in `shortterm/{username}/`
 
 ### 🧠 **Memory Functions**
@@ -212,8 +212,8 @@ CREATE TABLE conversations (
 );
 ```
 
-#### **rise_and_shine**
-System prompts and instructions for the LLM (copied to each user's database)
+#### **rise_and_shine** (GLOBAL - in system.db)
+System prompts and instructions for the LLM (GLOBAL table, shared by all users)
 ```sql
 CREATE TABLE rise_and_shine (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -226,17 +226,28 @@ CREATE TABLE rise_and_shine (
 ### **system.db Tables (Shared)**
 
 #### **users**
-User accounts with hashed passwords, salts, and profile information
+User accounts with profile information
 ```sql
 CREATE TABLE users (
     username TEXT PRIMARY KEY,
-    password_hash TEXT NOT NULL,
-    salt TEXT NOT NULL,
-    first_name TEXT,
-    last_name TEXT,
+    first_name TEXT NOT NULL,
+    last_name TEXT NOT NULL,
     email TEXT,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    last_login DATETIME
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+#### **passwords**
+Separate table for password hashes and salts
+```sql
+CREATE TABLE passwords (
+    username TEXT PRIMARY KEY,
+    password_hash TEXT NOT NULL,
+    salt TEXT NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (username) REFERENCES users (username) ON DELETE CASCADE
 );
 ```
 
@@ -245,7 +256,7 @@ Available roles (user, admin, moderator)
 ```sql
 CREATE TABLE roles (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT UNIQUE NOT NULL,
+    role_name TEXT UNIQUE NOT NULL,
     description TEXT,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
@@ -256,7 +267,7 @@ Available groups (users, admins, moderators)
 ```sql
 CREATE TABLE groups (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT UNIQUE NOT NULL,
+    group_name TEXT UNIQUE NOT NULL,
     description TEXT,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
@@ -268,8 +279,10 @@ Links users to roles
 CREATE TABLE user_roles (
     username TEXT,
     role_id INTEGER,
-    FOREIGN KEY (username) REFERENCES users(username),
-    FOREIGN KEY (role_id) REFERENCES roles(id)
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (username, role_id),
+    FOREIGN KEY (username) REFERENCES users (username) ON DELETE CASCADE,
+    FOREIGN KEY (role_id) REFERENCES roles (id) ON DELETE CASCADE
 );
 ```
 
@@ -279,20 +292,50 @@ Links users to groups
 CREATE TABLE user_groups (
     username TEXT,
     group_id INTEGER,
-    FOREIGN KEY (username) REFERENCES users(username),
-    FOREIGN KEY (group_id) REFERENCES groups(id)
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (username, group_id),
+    FOREIGN KEY (username) REFERENCES users (username) ON DELETE CASCADE,
+    FOREIGN KEY (group_id) REFERENCES groups (id) ON DELETE CASCADE
+);
+```
+
+#### **tools**
+Tool registry for the system
+```sql
+CREATE TABLE tools (
+    tool_key TEXT PRIMARY KEY,
+    description TEXT NOT NULL,
+    module TEXT NOT NULL,
+    function_name TEXT NOT NULL,
+    enabled INTEGER DEFAULT 0 NOT NULL
+);
+```
+
+#### **tool_parameters**
+Tool parameter definitions
+```sql
+CREATE TABLE tool_parameters (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    tool_key TEXT NOT NULL,
+    name TEXT NOT NULL,
+    type TEXT NOT NULL,
+    description TEXT,
+    is_required INTEGER DEFAULT 0 NOT NULL,
+    FOREIGN KEY (tool_key) REFERENCES tools (tool_key) ON DELETE CASCADE
 );
 ```
 
 ## 🔧 **System Prompts**
 
-**Important**: All future system prompts (base instructions) for the LLM should be stored as records in the `rise_and_shine` table, except for the current date, which is injected dynamically. Each user gets their own copy of system prompts in their database.
+### 🌟 **Global System Prompts (rise_and_shine)**
+- **Location**: `hippocampus/system.db` (NOT in user databases)
+- **Purpose**: Contains Tatlock's base instructions, personality, and tool usage guidelines
+- **Scope**: Global - all users share the same system prompts
+- **Content**: Tatlock's personality, behavior rules, tool usage instructions, and system guidelines
+- **Access**: Retrieved by `get_base_instructions()` function for all users
+- **Management**: Updated through system database operations, not per-user
 
-The `rise_and_shine` table contains:
-- Tatlock's personality and behavior instructions
-- Tool usage guidelines
-- Silent tool execution directive
-- Improvement suggestion instructions
+**IMPORTANT**: The `rise_and_shine` table MUST remain in the system database. Moving it to user databases would break the system architecture and create inconsistencies across users.
 
 ## 🎯 **Memory Recall Features**
 

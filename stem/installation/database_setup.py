@@ -4,6 +4,11 @@ stem/installation/database_setup.py
 Database setup utilities for Tatlock.
 Provides functions to create tables for system.db (authentication) and longterm.db (memory).
 Assumes clean installs only - no migration support.
+
+IMPORTANT: The rise_and_shine table contains global Tatlock system prompts and instructions.
+This table MUST be in the system database (system.db), NOT in user databases.
+All users share the same base instructions from this global table.
+Moving this table to user databases would break the system architecture.
 """
 
 import sqlite3
@@ -82,6 +87,15 @@ CREATE TABLE IF NOT EXISTS tool_parameters (
     is_required INTEGER DEFAULT 0 NOT NULL,
     FOREIGN KEY (tool_key) REFERENCES tools (tool_key) ON DELETE CASCADE
 );
+
+-- GLOBAL SYSTEM PROMPTS: This table contains Tatlock's base instructions and system prompts.
+-- All users share these same instructions. DO NOT move this to user databases.
+CREATE TABLE IF NOT EXISTS rise_and_shine (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    instruction TEXT NOT NULL,
+    enabled INTEGER DEFAULT 1,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
 """
 
 LONGTERM_DB_SCHEMA = """
@@ -124,13 +138,6 @@ CREATE TABLE IF NOT EXISTS conversations (
     started_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     last_activity TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     message_count INTEGER DEFAULT 0
-);
-
-CREATE TABLE IF NOT EXISTS rise_and_shine (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    instruction TEXT NOT NULL,
-    enabled INTEGER DEFAULT 1,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS personal_variables_keys (
@@ -366,7 +373,7 @@ def populate_tools_table(cursor: sqlite3.Cursor) -> None:
             ('get_user_conversations', 'Get all conversations for the current user.', 'hippocampus.get_user_conversations_tool', 'execute_get_user_conversations', 1),
             ('get_conversation_details', 'Get detailed information about a specific conversation.', 'hippocampus.get_conversation_details_tool', 'execute_get_conversation_details', 1),
             ('search_conversations', 'Search conversations by title or content.', 'hippocampus.search_conversations_tool', 'execute_search_conversations', 1),
-            ('memory_insights', 'Provide insights and analytics about conversation patterns and memory usage.', 'hippocampus.memory_insights_tool', 'execute_memory_insights', 1),
+            ('memory_insights', 'Analyze and summarize what topics are discussed most often, trending subjects, and conversation patterns. Use for questions like "what do we talk about a lot?", "what topics are frequent?", "what are our main discussion themes?", "what do we discuss often?", "what are our most common topics?"', 'hippocampus.memory_insights_tool', 'execute_memory_insights', 1),
             ('memory_cleanup', 'Perform memory cleanup operations to maintain database health and remove duplicates.', 'hippocampus.memory_cleanup_tool', 'execute_memory_cleanup', 1),
             ('memory_export', 'Export user memory data in various formats for backup or analysis.', 'hippocampus.memory_export_tool', 'execute_memory_export', 1),
             ('screenshot_from_url', 'Take a screenshot of a webpage.', 'occipital.take_screenshot_from_url_tool', 'execute_take_screenshot_from_url', 1),
@@ -444,7 +451,13 @@ def populate_tools_table(cursor: sqlite3.Cursor) -> None:
         logger.error(f"Error populating tools tables: {e}")
 
 def create_default_rise_and_shine(cursor: sqlite3.Cursor) -> None:
-    """Create default system instructions in the rise_and_shine table."""
+    """
+    Create default system instructions in the rise_and_shine table.
+    
+    IMPORTANT: This function should ONLY be called for the system database (system.db).
+    The rise_and_shine table contains global Tatlock prompts that all users share.
+    These instructions define Tatlock's personality, behavior, and tool usage guidelines.
+    """
     instructions = [
         "You are a helpful personal assistant named Tatlock. You speak formally like a British butler, calling me sir.  You are not too apologetic and a little snarky at times. Your responses should be concise and to the point, unless asked for details. You should reveal you are AI when asked. If you see an opportunity to make pun or a joke, grab it.",
         "If you need to use a tool, always call the tool directly and silently. Do not narrate, announce, or ask for permission to use a tool, unless the tool definition or system instructions specify otherwise.",
@@ -527,6 +540,7 @@ def create_system_db_tables(db_path: str):
     create_default_roles(cursor)
     create_default_groups(cursor)
     populate_tools_table(cursor)
+    create_default_rise_and_shine(cursor)
     
     conn.commit()
     conn.close()
@@ -545,9 +559,6 @@ def create_longterm_db_tables(db_path: str):
     
     # Create tables
     cursor.executescript(LONGTERM_DB_SCHEMA)
-    
-    # Create default rise_and_shine instructions
-    create_default_rise_and_shine(cursor)
     
     # Create default personal variables
     create_default_personal_variables(cursor)

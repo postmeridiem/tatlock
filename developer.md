@@ -1481,44 +1481,31 @@ python temporal/integration_example.py server
 
 ### System Database (system.db)
 
-The system database contains user authentication and authorization data.
+The system database contains global, shared data:
+- **User authentication**: users, passwords, roles, groups
+- **Tool registry**: tools, tool_parameters
+- **Global system prompts**: rise_and_shine table
 
-#### Tables
+### User Databases ({username}_longterm.db)
+Each user has their own isolated database containing:
+- **Conversation memories**: memories, topics, memory_topics
+- **Conversation metadata**: conversations, conversation_topics
+- **Personal variables**: personal_variables_keys, personal_variables, personal_variables_join
 
-- **users**: User account information (username, first_name, last_name, email, timestamps)
-- **passwords**: Password hashes and salts (separated from users table for security)
-- **roles**: Available roles in the system
-- **groups**: Available groups in the system
-- **user_roles**: Many-to-many relationship between users and roles
-- **user_groups**: Many-to-many relationship between users and groups
-- **migrations**: Tracks applied database migrations
+### Critical: rise_and_shine Table Location
+**IMPORTANT**: The `rise_and_shine` table MUST be in the system database (system.db), NOT in user databases.
 
-#### Password Table Migration
+**Purpose**: Contains Tatlock's global system prompts and instructions that all users share.
 
-The password data has been migrated from the `users` table to a separate `passwords` table for better security and data organization. The migration system automatically handles this transition:
+**Why system database**: 
+- All users should have the same base instructions
+- Ensures consistency across the system
+- Simplifies prompt management and updates
+- Prevents user-specific prompt variations
 
-- **Old Schema**: `users` table contained `password_hash` and `salt` columns
-- **New Schema**: `passwords` table with foreign key relationship to `users` table
-- **Migration**: Automatic migration preserves existing data and updates schema
-- **Benefits**: Better separation of concerns, improved security, easier password management
+**Access**: The `get_base_instructions()` function reads from the system database.
 
-The migration is idempotent and safe to run multiple times.
-
-### Long-term Memory Database (longterm/<username>.db)
-
-Each user has their own long-term memory database for storing conversation history and personal data.
-
-#### Tables
-
-- **memories**: Individual conversation interactions
-- **topics**: Available conversation topics
-- **memory_topics**: Many-to-many relationship between memories and topics
-- **conversation_topics**: Topic tracking per conversation
-- **conversations**: Conversation metadata
-- **rise_and_shine**: System instructions and prompts
-- **personal_variables_keys**: Keys for personal variables
-- **personal_variables**: Values for personal variables
-- **personal_variables_join**: Many-to-many relationship between keys and values
+**NEVER move this table to user databases** - it would break the system architecture and create inconsistencies.
 
 ## User Context Management
 
