@@ -2,6 +2,11 @@
 # install_tatlock.sh
 # CLI installer for Tatlock: sets up system dependencies, Python packages, 
 # Ollama LLM, Material Icons, and initializes databases with authentication.
+#
+# IMPORTANT: This script will NEVER modify the system's default Python interpreter
+# (e.g., /usr/bin/python3 symlink). It only installs Python 3.10+ alongside the
+# existing system Python and uses it specifically for Tatlock's virtual environment.
+# This ensures system tools and scripts continue to work normally.
 
 set -e
 
