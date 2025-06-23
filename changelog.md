@@ -8,22 +8,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- Created `manage-service.sh`, a unified, interactive script for starting, stopping, restarting, and viewing logs for the Tatlock service on Linux and macOS.
+-
 
 ### Changed
-- The `install_tatlock.sh` script now makes `manage-service.sh` executable and informs the user about it.
+-
 
 ### Deprecated
 -
 
 ### Removed
-- Deleted `start.sh` and `stop.sh` in favor of the more comprehensive `manage-service.sh`.
+-
 
 ### Fixed
 -
 
 ### Security
 -
+
+## [0.2.2] - 2024-08-01
+
+### Added
+- Created `manage-service.sh`, a unified, interactive script for starting, stopping, restarting, and viewing logs for the Tatlock service on Linux and macOS.
+
+### Changed
+- The `install_tatlock.sh` script now makes `manage-service.sh` executable and informs the user about it.
+
+### Removed
+- Deleted `start.sh` and `stop.sh` in favor of the more comprehensive `manage-service.sh`.
 
 ## [0.2.1] - 2024-08-01
 
