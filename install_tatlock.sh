@@ -1178,4 +1178,21 @@ echo -e "${CYAN}  ${BOLD}./wakeup.sh${NC}"
 echo ""
 
 echo -e "${CYAN}If you need to re-run this script, it is safe to do so (tables will not be duplicated).${NC}"
-echo "" 
+echo ""
+
+# --- Final Instructions ---
+echo -e "${BOLD}${GREEN}Tatlock installation is complete!${NC}"
+echo -e "${CYAN}──────────────────────────────────────────────────────────────────────────────────${NC}"
+echo -e "To start the application, run: ${BOLD}./wakeup.sh${NC}"
+echo -e "Then, open your browser to: ${YELLOW}http://localhost:8000/login${NC}"
+echo -e ""
+echo -e "Default admin credentials: ${BOLD}admin / admin123${NC}. ${RED}Please change this immediately!${NC}"
+echo -e "If you installed the service, it will start automatically on reboot."
+echo -e "You can manage the service using: ${BOLD}./manage-service.sh${NC}"
+echo -e "${CYAN}──────────────────────────────────────────────────────────────────────────────────${NC}"
+
+# Make the wakeup and management scripts executable
+chmod +x wakeup.sh
+chmod +x manage-service.sh
+
+echo -e "${GREEN}Enjoy using Tatlock!${NC}" 
