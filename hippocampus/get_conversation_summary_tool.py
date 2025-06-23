@@ -40,4 +40,4 @@ def execute_get_conversation_summary(conversation_id: str) -> dict:
         
     except Exception as e:
         logger.error(f"Error getting conversation summary for '{conversation_id}': {e}")
-        return {"status": "error", "message": f"Conversation summary retrieval failed: {e}"} 
+        return {"status": "error", "message": f"Conversation summary retrieval failed for conversation '{conversation_id}': {e}"} 

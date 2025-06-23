@@ -57,7 +57,7 @@ def execute_memory_cleanup(cleanup_type: str = "duplicates", similarity_threshol
         
     except Exception as e:
         logger.error(f"Error performing memory cleanup for {cleanup_type}: {e}")
-        return {"status": "error", "message": f"Memory cleanup failed: {e}"}
+        return {"status": "error", "message": f"Memory cleanup failed for cleanup_type '{cleanup_type}': {e}"}
 
 def _find_duplicate_memories(cursor, similarity_threshold: float) -> dict:
     """Find duplicate or very similar memories."""

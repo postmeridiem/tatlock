@@ -49,5 +49,6 @@ def execute_recall_memories_with_time(keyword: str, start_date: str | None = Non
         return {"status": "success", "data": results}
         
     except Exception as e:
-        logger.error(f"Error recalling memories with time for '{keyword}': {e}")
-        return {"status": "error", "message": f"Time-based memory recall failed: {e}"} 
+        time_range_info = f"{start_date or 'start'} to {end_date or 'end'}"
+        logger.error(f"Error recalling memories for keyword '{keyword}' with time range '{time_range_info}': {e}")
+        return {"status": "error", "message": f"Memory recall with time failed for keyword '{keyword}' and time range '{time_range_info}': {e}"} 

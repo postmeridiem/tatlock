@@ -39,5 +39,5 @@ def execute_get_user_conversations(limit: int = 50) -> dict:
         return {"status": "success", "data": results}
         
     except Exception as e:
-        logger.error(f"Error getting user conversations: {e}")
-        return {"status": "error", "message": f"User conversation retrieval failed: {e}"} 
+        logger.error(f"Error getting user conversations with limit {limit}: {e}")
+        return {"status": "error", "message": f"User conversations retrieval failed with limit {limit}: {e}"} 

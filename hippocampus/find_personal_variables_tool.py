@@ -34,5 +34,5 @@ def execute_find_personal_variables(searchkey: str, username: str = "admin") -> 
         return {"status": "success", "data": results}
         
     except Exception as e:
-        logger.error(f"Error finding personal variables for '{searchkey}': {e}")
-        return {"status": "error", "message": f"Database query failed: {e}"} 
+        logger.error(f"Error finding personal variables for '{searchkey}' for user '{username}': {e}")
+        return {"status": "error", "message": f"Database query failed for searchkey '{searchkey}' and user '{username}': {e}"} 

@@ -38,9 +38,5 @@ def execute_search_conversations(query: str, limit: int = 20) -> dict:
         }
         
     except Exception as e:
-        logger.error(f"Error searching conversations for '{query}': {e}")
-        return {
-            "status": "error", 
-            "message": f"Conversation search failed: {e}",
-            "data": {"conversations": [], "count": 0}
-        } 
+        logger.error(f"Error searching conversations for query '{query}' with limit {limit}: {e}")
+        return {"status": "error", "message": f"Conversation search failed for query '{query}' with limit {limit}: {e}"} 

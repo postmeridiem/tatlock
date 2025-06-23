@@ -16,14 +16,14 @@ from stem.current_user_context import get_current_user_ctx
 # Set up logging for this module
 logger = logging.getLogger(__name__)
 
-def execute_memory_export(export_type: str = "json", include_topics: bool = True, date_range: str = None) -> dict:
+def execute_memory_export(export_type: str = "json", include_topics: bool = True, date_range: str | None = None) -> dict:
     """
     Export user memory data in various formats for backup or analysis.
     
     Args:
         export_type (str): Export format. Options: "json", "csv", "summary"
         include_topics (bool): Whether to include topic information in the export
-        date_range (str): Optional date range filter (e.g., "last_30_days", "2024-01-01:2024-12-31")
+        date_range (str | None): Optional date range filter (e.g., "last_30_days", "2024-01-01:2024-12-31")
         
     Returns:
         dict: Status and export results or message.
@@ -69,9 +69,9 @@ def execute_memory_export(export_type: str = "json", include_topics: bool = True
         
     except Exception as e:
         logger.error(f"Error performing memory export for {export_type}: {e}")
-        return {"status": "error", "message": f"Memory export failed: {e}"}
+        return {"status": "error", "message": f"Memory export failed for export_type '{export_type}': {e}"}
 
-def _export_to_json(cursor, export_dir: Path, filename: str, include_topics: bool, date_range: str) -> dict:
+def _export_to_json(cursor, export_dir: Path, filename: str, include_topics: bool, date_range: str | None) -> dict:
     """Export memory data to JSON format."""
     try:
         # Build date filter
@@ -190,7 +190,7 @@ def _export_to_json(cursor, export_dir: Path, filename: str, include_topics: boo
         logger.error(f"Error exporting to JSON: {e}")
         return {}
 
-def _export_to_csv(cursor, export_dir: Path, filename: str, include_topics: bool, date_range: str) -> dict:
+def _export_to_csv(cursor, export_dir: Path, filename: str, include_topics: bool, date_range: str | None) -> dict:
     """Export memory data to CSV format."""
     try:
         # Build date filter
@@ -259,7 +259,7 @@ def _export_to_csv(cursor, export_dir: Path, filename: str, include_topics: bool
         logger.error(f"Error exporting to CSV: {e}")
         return {}
 
-def _export_summary(cursor, export_dir: Path, filename: str, date_range: str) -> dict:
+def _export_summary(cursor, export_dir: Path, filename: str, date_range: str | None) -> dict:
     """Export a summary report of memory data."""
     try:
         # Build date filter
@@ -342,7 +342,7 @@ def _export_summary(cursor, export_dir: Path, filename: str, date_range: str) ->
         logger.error(f"Error exporting summary: {e}")
         return {}
 
-def _build_date_filter(date_range: str) -> dict:
+def _build_date_filter(date_range: str | None) -> dict:
     """Build date filter conditions and parameters."""
     if not date_range:
         return {

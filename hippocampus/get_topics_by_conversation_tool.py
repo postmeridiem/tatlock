@@ -40,4 +40,4 @@ def execute_get_topics_by_conversation(conversation_id: str) -> dict:
         
     except Exception as e:
         logger.error(f"Error getting topics for conversation '{conversation_id}': {e}")
-        return {"status": "error", "message": f"Conversation-based topic retrieval failed: {e}"} 
+        return {"status": "error", "message": f"Conversation-based topic retrieval failed for conversation '{conversation_id}': {e}"} 

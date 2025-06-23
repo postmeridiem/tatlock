@@ -47,5 +47,5 @@ def execute_recall_memories(keyword: str) -> dict:
         return {"status": "success", "data": results}
         
     except Exception as e:
-        logger.error(f"Error recalling memories for '{keyword}': {e}")
-        return {"status": "error", "message": f"Memory recall failed: {e}"} 
+        logger.error(f"Error recalling memories for keyword '{keyword}': {e}")
+        return {"status": "error", "message": f"Memory recall failed for keyword '{keyword}': {e}"} 

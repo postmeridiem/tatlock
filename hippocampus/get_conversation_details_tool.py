@@ -38,5 +38,5 @@ def execute_get_conversation_details(conversation_id: str) -> dict:
         return {"status": "success", "data": details}
         
     except Exception as e:
-        logger.error(f"Error getting details for conversation '{conversation_id}': {e}")
-        return {"status": "error", "message": f"Conversation detail retrieval failed: {e}"} 
+        logger.error(f"Error getting conversation details for '{conversation_id}': {e}")
+        return {"status": "error", "message": f"Conversation details retrieval failed for conversation '{conversation_id}': {e}"} 
