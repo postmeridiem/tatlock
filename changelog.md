@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Created `manage-service.sh`, a unified, interactive script for starting, stopping, restarting, and viewing logs for the Tatlock service on Linux and macOS.
+- The `install_tatlock.sh` script now dynamically reads the version from `pyproject.toml` and displays it in the header.
 
 ### Changed
 - The `install_tatlock.sh` script now makes `manage-service.sh` executable and informs the user about it.
