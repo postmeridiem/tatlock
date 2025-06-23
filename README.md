@@ -135,26 +135,36 @@ Tatlock's architecture is inspired by the human brain, with each module represen
 If you installed Tatlock as an auto-starting service during installation:
 
 ### **Linux (systemd)**
+
+**Check service status:**
 ```bash
-# Check service status
 sudo systemctl status tatlock
+```
 
-# Start the service
+**Start the service:**
+```bash
 sudo systemctl start tatlock
+```
 
-# Stop the service
+**Stop the service:**
+```bash
 sudo systemctl stop tatlock
 ```
 
 ### **macOS (LaunchAgent)**
+
+**Check service status:**
 ```bash
-# Check service status
 launchctl list | grep tatlock
+```
 
-# Start the service
+**Start the service:**
+```bash
 launchctl load ~/Library/LaunchAgents/com.tatlock.plist
+```
 
-# Stop the service
+**Stop the service:**
+```bash
 launchctl unload ~/Library/LaunchAgents/com.tatlock.plist
 ```
 
