@@ -121,6 +121,7 @@ Do not attempt to call any more tools - provide a final response analyzing the s
 """
             messages_for_ollama.append({'role': 'system', 'content': failure_analysis_prompt})
         
+        logger.info(f"LLM_TOOL_CALL | Tool: chat_completion | CallID: chat_{uuid.uuid4().hex[:8]} | Args: {{'model': '{OLLAMA_MODEL}', 'messages_count': {len(messages_for_ollama)}, 'tools_count': {len(TOOLS)}}}")
         response = ollama.chat(model=OLLAMA_MODEL, messages=messages_for_ollama, tools=TOOLS)
         response_message = dict(response['message'])
         
@@ -217,6 +218,7 @@ Do not attempt to call any more tools - provide a final response analyzing the s
             logger.warning("Content is empty and no tool calls found, requesting new response from LLM")
             # Add a system message to request a proper response
             messages_for_ollama.append({'role': 'system', 'content': 'Please provide a helpful response to the user\'s message.'})
+            logger.info(f"LLM_TOOL_CALL | Tool: chat_completion_retry | CallID: chat_retry_{uuid.uuid4().hex[:8]} | Args: {{'model': '{OLLAMA_MODEL}', 'messages_count': {len(messages_for_ollama)}, 'tools_count': {len(TOOLS)}}}")
             response = ollama.chat(model=OLLAMA_MODEL, messages=messages_for_ollama, tools=TOOLS)
             response_message = dict(response['message'])
             messages_for_ollama[-1] = response_message  # Replace the system message with the new response
@@ -235,8 +237,8 @@ Do not attempt to call any more tools - provide a final response analyzing the s
                 function_args = tool_call.get('function', {}).get('arguments')
                 tool_call_id = tool_call.get('id')
                 
-                # Print single line tool call information
-                logger.info(f"TOOL: {function_name} | Args: {json.dumps(function_args)}")
+                # Single comprehensive log entry for each tool call
+                logger.info(f"LLM_TOOL_CALL | Tool: {function_name} | CallID: {tool_call_id} | Args: {json.dumps(function_args, default=str)}")
                 
                 if not function_name or not isinstance(function_args, dict): 
                     failed_tools.append(f"Invalid tool call format for {function_name}")
@@ -311,6 +313,7 @@ Do not attempt to call any more tools - provide a final response analyzing the s
                 {'role': 'user', 'content': history_for_summary}
             ]
             try:
+                logger.info(f"LLM_TOOL_CALL | Tool: topic_generation | CallID: topic_{uuid.uuid4().hex[:8]} | Args: {{'model': '{OLLAMA_MODEL}', 'messages_count': {len(messages_for_summary)}}}")
                 topic_response = ollama.chat(model=OLLAMA_MODEL, messages=messages_for_summary)
                 topic_str = topic_response['message']['content'].strip().lower().replace(" ", "_")
 
