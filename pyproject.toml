@@ -1,4 +1,4 @@
 [project]
-name = "Tatlock"
-version = "0.2.5"
-description = "As a child I used to play board games against a bucket with a face painted on it." 
+name = "tatlock"
+version = "0.2.6"
+description = "A comprehensive AI assistant framework with modular architecture" 

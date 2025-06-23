@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.6] - 2024-08-01
+
 ### Fixed
 - Removed reference to non-existent `python3.10-apt` package from installer script. The `apt` hook disabling mechanism is sufficient to prevent installation issues.
 
