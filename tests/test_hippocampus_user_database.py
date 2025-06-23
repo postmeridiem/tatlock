@@ -35,13 +35,14 @@ def test_get_database_connection_and_execute_query():
     db_path = ensure_user_database(username)
     conn = get_database_connection(username)
     assert isinstance(conn, sqlite3.Connection)
-    # Insert and query
+    # Insert and query using personal_variables table which exists in user databases
     cursor = conn.cursor()
-    cursor.execute("INSERT INTO rise_and_shine (instruction, enabled) VALUES (?, ?)", ("Test instruction", 1))
+    cursor.execute("INSERT INTO personal_variables_keys (key) VALUES (?)", ("test_key",))
+    cursor.execute("INSERT INTO personal_variables (value) VALUES (?)", ("test_value",))
     conn.commit()
     conn.close()
     # Use execute_user_query
-    results = execute_user_query(username, "SELECT instruction FROM rise_and_shine WHERE enabled = 1")
-    assert any(r["instruction"] == "Test instruction" for r in results)
+    results = execute_user_query(username, "SELECT key FROM personal_variables_keys WHERE key = 'test_key'")
+    assert any(r["key"] == "test_key" for r in results)
     # Cleanup
     delete_user_database(username) 

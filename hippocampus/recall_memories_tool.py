@@ -7,7 +7,7 @@ Tool for recalling memories from the user's database.
 import logging
 from hippocampus.recall import recall_memories
 from stem.models import UserModel
-from stem.current_user_context import get_current_user_ctx
+from stem.security import current_user
 
 # Set up logging for this module
 logger = logging.getLogger(__name__)
@@ -23,9 +23,8 @@ def execute_recall_memories(keyword: str) -> dict:
         dict: Status and recall results or message.
     """
     try:
-        user = get_current_user_ctx()
+        user = current_user
         if user is None:
-            logger.error("recall_memories: get_current_user_ctx() returned None! No user context available.")
             return {"status": "error", "message": "User not authenticated"}
         logger.debug(f"recall_memories: current user is {user.username}")
         results = recall_memories(user, keyword)

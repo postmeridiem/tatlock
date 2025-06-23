@@ -1334,7 +1334,7 @@ Tatlock now uses a context-based, per-request user model for all authentication 
   from stem.current_user_context import get_current_user_ctx
   user = get_current_user_ctx()
   if user is None:
-      raise HTTPException(status_code=401, detail="Not authenticated")
+      raise Exception(status_code=401, detail="Not authenticated")
   # Access fields as attributes:
   username = user.username
   roles = security_manager.get_user_roles(user.username)
@@ -1348,7 +1348,7 @@ Tatlock now uses a context-based, per-request user model for all authentication 
 ```python
 @app.get("/profile")
 async def profile_page(request: Request, _: None = Depends(get_current_user)):
-    user = get_current_user_ctx()
+    user = current_user
     if user is None:
         raise HTTPException(status_code=401, detail="Not authenticated")
     return get_profile_page(request, user.model_dump())
@@ -1357,8 +1357,8 @@ async def profile_page(request: Request, _: None = Depends(get_current_user)):
 #### Security/Admin Example
 ```python
 def require_admin_role():
-    current_user = get_current_user_ctx()
-    if not current_user or not security_manager.user_has_role(current_user.username, 'admin'):
+    user = current_user
+    if not user or not security_manager.user_has_role(user.username, 'admin'):
         raise HTTPException(status_code=403, detail="Admin role required")
 ```
 
@@ -1370,7 +1370,7 @@ def require_admin_role():
 
 #### When Adding New Endpoints
 - Use `_: None = Depends(get_current_user)` in the signature.
-- Use `user = get_current_user_ctx()` in the body.
+- Use `user = current_user` in the body.
 - Raise 401 if user is None.
 - Pass `user.model_dump()` to templates.
 
@@ -1511,10 +1511,10 @@ Each user has their own isolated database containing:
 
 ### Current User Context
 
-The application uses a context-local user storage system to avoid passing user data through function parameters:
+The application uses a global user variable system to avoid passing user data through function parameters:
 
 ```python
-from stem.current_user_context import get_current_user_ctx, UserModel
+from stem.security import current_user
 
 # In FastAPI dependency
 def get_current_user(request: Request):
@@ -1527,15 +1527,39 @@ def get_current_user(request: Request):
         roles=roles,
         groups=groups
     )
-    set_current_user_ctx(user_model)
+    global current_user
+    current_user = user_model
     return user_model
 
 # In endpoint functions
 def some_endpoint(_: None = Depends(get_current_user)):
-    user = get_current_user_ctx()
+    user = current_user
     # Access user attributes directly
     username = user.username
     roles = user.roles
+```
+
+### Tool Functions
+
+For tool functions that can be called from various contexts (not just HTTP endpoints), use error responses instead of exceptions:
+
+```python
+def execute_some_tool(parameter: str) -> dict:
+    """
+    Example tool function that uses current user context.
+    """
+    try:
+        user = current_user
+        if user is None:
+            return {"status": "error", "message": "User not authenticated"}
+        
+        # Tool logic here
+        result = process_data(user.username, parameter)
+        
+        return {"status": "success", "data": result}
+    except Exception as e:
+        logger.error(f"Tool error: {e}")
+        return {"status": "error", "message": f"Tool failed: {e}"}
 ```
 
 ### Benefits
@@ -1544,6 +1568,7 @@ def some_endpoint(_: None = Depends(get_current_user)):
 - **Clean APIs**: No need to pass user data through function parameters
 - **Consistency**: Uniform user access pattern across the application
 - **Security**: User data is properly encapsulated and validated
+- **Context Flexibility**: Tools work in both HTTP and non-HTTP contexts
 
 ## Security
 
@@ -1561,8 +1586,18 @@ Passwords are stored securely using:
 1. User submits username/password
 2. System retrieves password hash and salt from `passwords` table
 3. Password is verified using bcrypt
-4. User session is created with context-local storage
+4. User session is created with global current_user variable
 5. User data is available throughout the request lifecycle
+
+> **Note:** The `stem/security.py` module is now import-clean. Only the following imports are required for authentication and authorization:
+>
+> ```python
+> from stem.security import (
+>     security_manager, get_current_user, require_admin_role, login_user, logout_user, current_user
+> )
+> ```
+>
+> All unused imports and variables have been removed for clarity and maintainability. Do not import unused dependencies or legacy variables.
 
 ### Authorization
 
@@ -1607,7 +1642,6 @@ Migration tests verify that database schema changes work correctly:
 
 - **stem/**: Core application logic
   - **security.py**: Authentication and authorization
-  - **current_user_context.py**: User context management
   - **installation/**: Database setup and migrations
 - **hippocampus/**: Memory and conversation management
 - **cortex/**: AI agent logic
@@ -1616,7 +1650,7 @@ Migration tests verify that database schema changes work correctly:
 ### Patterns
 
 - **Dependency Injection**: FastAPI dependencies for authentication
-- **Context Variables**: Thread-local storage for user data
+- **Global Variables**: Global current_user variable for user data
 - **Pydantic Models**: Type-safe data structures
 - **Migration System**: Automatic database schema updates
 - **Test Isolation**: Temporary databases for testing
@@ -1626,7 +1660,7 @@ Migration tests verify that database schema changes work correctly:
 ### Adding New Features
 
 1. **Database Changes**: Use migration system for schema updates
-2. **User Context**: Access user data via `get_current_user_ctx()`
+2. **User Context**: Access user data via `current_user` global variable
 3. **Type Safety**: Use Pydantic models for data validation
 4. **Testing**: Write comprehensive tests with temporary databases
 5. **Documentation**: Update relevant documentation

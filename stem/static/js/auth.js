@@ -158,9 +158,10 @@ async function loadUserInfo() {
             }
         } else {
             console.error('Failed to load user info:', response.status);
-            // If unauthorized, redirect to login
+            // If unauthorized, redirect to login with current path
             if (response.status === 401) {
-                window.location.href = '/login';
+                const currentPath = window.location.pathname + window.location.search;
+                window.location.href = `/login?redirect=${encodeURIComponent(currentPath)}`;
             }
         }
     } catch (error) {

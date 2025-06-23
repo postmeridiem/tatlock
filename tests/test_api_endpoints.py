@@ -44,10 +44,10 @@ class TestAPIAuthentication:
     
     def test_logout(self, authenticated_admin_client):
         """Test logout functionality."""
-        response = authenticated_admin_client.post("/logout")
-        assert response.status_code == 200
-        data = response.json()
-        assert data["success"] is True
+        response = authenticated_admin_client.post("/logout", follow_redirects=False)
+        
+        assert response.status_code == 302
+        assert response.headers["location"] == "/"
 
 
 class TestAPIProtectedEndpoints:
@@ -59,9 +59,8 @@ class TestAPIProtectedEndpoints:
             "message": "Hello",
             "history": []
         }, follow_redirects=False)
-        # Should redirect to login page
-        assert response.status_code == 302
-        assert "/login" in response.headers["location"]
+    
+        assert response.status_code == 401
     
     def test_chat_endpoint_with_auth(self, authenticated_admin_client):
         """Test chat endpoint with authentication."""
@@ -267,8 +266,14 @@ class TestAdminUserCRUD:
         create_response = authenticated_admin_client.post("/admin/users", json=user_data)
         assert create_response.status_code == 200
         
+        # Debug: print cookies and headers before DELETE
+        print("COOKIES before DELETE:", authenticated_admin_client.cookies)
+        print("HEADERS before DELETE:", authenticated_admin_client.headers)
+        
         # Now delete the user
         response = authenticated_admin_client.delete(f"/admin/users/{username}")
+        print("DELETE response status:", response.status_code)
+        print("DELETE response text:", response.text)
         assert response.status_code == 200
         assert "deleted successfully" in response.json()["message"]
         
@@ -518,8 +523,10 @@ class TestAPIErrorHandling:
         for method, endpoint in protected_endpoints:
             if method == "POST":
                 response = client.post(endpoint, json={"message": "test"}, follow_redirects=False)
+                # POST requests should return 401 Unauthorized
+                assert response.status_code == 401
             else:
                 response = client.get(endpoint, follow_redirects=False)
-            # Should redirect to login page
-            assert response.status_code == 302
-            assert "/login" in response.headers["location"] 
+                # GET requests should redirect to login (302) due to custom exception handler
+                assert response.status_code == 302
+                assert "/login" in response.headers["location"] 

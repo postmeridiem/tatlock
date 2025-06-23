@@ -297,7 +297,7 @@ class TestTemporalContext:
         # Add some interactions
         now = datetime.now()
         context.add_interaction("Short message", now)
-        context.add_interaction("This is a very long message that should be truncated when displayed in the summary", now)
+        context.add_interaction("This is a very long message that should be truncated when displayed in the summary because it exceeds the character limit", now)
         context.add_interaction("Another message", now)
         
         summary = context.get_interaction_summary()
@@ -340,9 +340,12 @@ class TestTemporalContext:
         old_time = datetime.now() - timedelta(hours=2)
         context.add_interaction("Old interaction", old_time)
         
-        # Add new interaction (should trigger cleanup)
+        # Add new interaction
         new_time = datetime.now() - timedelta(minutes=30)
         context.add_interaction("New interaction", new_time)
+        
+        # Manually trigger cleanup
+        context.clean_old_interactions()
         
         # Should only have the new interaction
         assert len(context.interaction_history) == 1
@@ -395,6 +398,9 @@ class TestTemporalContext:
         # Add interaction within context window
         new_time = datetime.now() - timedelta(hours=3)
         context.add_interaction("New interaction", new_time)
+        
+        # Manually trigger cleanup
+        context.clean_old_interactions()
         
         # Should only have the new interaction after cleanup
         assert len(context.interaction_history) == 1

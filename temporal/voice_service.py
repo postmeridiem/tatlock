@@ -55,12 +55,16 @@ class VoiceService:
                 temp_file = f.name
                 
             # Transcribe with Whisper
-            result = self.whisper_model.transcribe(temp_file)
-            os.unlink(temp_file)
-            
-            transcribed_text = result["text"].strip()
-            logger.info(f"Transcribed audio: '{transcribed_text}'")
-            return transcribed_text
+            if self.whisper_model is not None:
+                result = self.whisper_model.transcribe(temp_file)
+                os.unlink(temp_file)
+                
+                transcribed_text = str(result["text"]).strip()
+                logger.info(f"Transcribed audio: '{transcribed_text}'")
+                return transcribed_text
+            else:
+                logger.error("Whisper model not initialized")
+                return None
             
         except Exception as e:
             logger.error(f"Transcription error: {e}")
@@ -146,6 +150,10 @@ class VoiceService:
                     text = await self.transcribe_audio(audio_data)
                     if text:
                         await self.process_voice_command(text, websocket)
+                elif isinstance(message, bytes):
+                    # Convert bytes to string and process as text
+                    text_message = message.decode('utf-8', errors='ignore')
+                    await self.process_voice_command(text_message, websocket)
                 elif isinstance(message, str):
                     # Handle text messages
                     try:

@@ -33,9 +33,6 @@ class TemporalContext:
         self.interaction_history.append(interaction)
         logger.debug(f"Added interaction: {text[:50]}... at {timestamp}")
         
-        # Clean old interactions
-        self.clean_old_interactions()
-        
     def get_current_context(self) -> Dict[str, Any]:
         """Get current temporal context"""
         now = datetime.now()

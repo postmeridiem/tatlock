@@ -54,9 +54,8 @@ class TestProfileEndpoints:
             "email": "updated@test.com"
         }
         response = client.put("/profile/", json=update_data, follow_redirects=False)
-        # Should redirect to login page
-        assert response.status_code == 302
-        assert "/login" in response.headers["location"]
+        # Should return 401 Unauthorized
+        assert response.status_code == 401
     
     def test_update_profile_with_auth(self, authenticated_admin_client, admin_user):
         """Test updating profile information with authentication."""
@@ -115,9 +114,8 @@ class TestProfileEndpoints:
             "new_password": "newpass"
         }
         response = client.put("/profile/password", json=password_data, follow_redirects=False)
-        # Should redirect to login page
-        assert response.status_code == 302
-        assert "/login" in response.headers["location"]
+        # Should return 401 Unauthorized
+        assert response.status_code == 401
     
     def test_change_password_success(self, authenticated_admin_client, admin_user):
         """Test successful password change."""

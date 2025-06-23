@@ -26,7 +26,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse, FileResponse, JSON
 import uvicorn
 from cortex.agent import process_chat_interaction
 from stem.static import mount_static_files, get_chat_page, get_profile_page, get_login_page
-from stem.security import get_current_user, require_admin_role, security_manager, login_user, logout_user
+from stem.security import get_current_user, require_admin_role, security_manager, login_user, logout_user, current_user
 from stem.models import (
     ChatRequest, ChatResponse, UserModel
 )
@@ -48,7 +48,6 @@ from temporal.voice_service import VoiceService
 from contextlib import asynccontextmanager
 import base64
 from hippocampus.user_database import get_user_image_path
-from stem.current_user_context import get_current_user_ctx
 from fastapi.logger import logger
 from stem.api_metadata import tags_metadata
 
@@ -229,7 +228,7 @@ async def test_auth(_: None = Depends(get_current_user)):
     """
     Simple test endpoint to verify authentication is working.
     """
-    user = get_current_user_ctx()
+    user = current_user
     if user is None:
         raise HTTPException(status_code=401, detail="Not authenticated")
     return {"message": "Authentication working", "user": user.model_dump()}
@@ -250,15 +249,25 @@ async def logout_page(request: Request):
 async def http_exception_handler(request: Request, exc: HTTPException):
     """
     Custom exception handler to redirect to login for 401 Unauthorized errors
-    on HTML routes. Returns JSON for API routes.
+    on browser navigation (GET requests). Returns JSON for API requests.
     """
-    # Check if the request is for an HTML page
-    if exc.status_code == 401 and "text/html" in request.headers.get("accept", ""):
-        # Store the original path in the session to redirect after login
-        request.session['login_redirect_path'] = str(request.url.path)
-        return RedirectResponse(url="/login", status_code=302)
+    if exc.status_code == 401:
+        # Check if this is a browser navigation (GET request) or API call
+        if request.method == "GET":
+            # Browser navigation - redirect to login with original path
+            original_path = str(request.url.path)
+            if request.url.query:
+                original_path += f"?{request.url.query}"
+            login_url = f"/login?redirect={original_path}"
+            return RedirectResponse(url=login_url, status_code=302)
+        else:
+            # API call - return JSON
+            return JSONResponse(
+                status_code=exc.status_code,
+                content={"detail": exc.detail}
+            )
     
-    # Default behavior for API requests or other errors
+    # Default behavior for other HTTP errors
     return JSONResponse(
         status_code=exc.status_code,
         content={"detail": exc.detail}
@@ -309,8 +318,12 @@ async def read_root(request: Request):
         # If we get here, user is authenticated
         return RedirectResponse(url="/chat", status_code=302)
     except HTTPException:
-        # User is not authenticated, redirect to login
-        return RedirectResponse(url="/login", status_code=302)
+        # User is not authenticated, redirect to login with original path
+        original_path = str(request.url.path)
+        if request.url.query:
+            original_path += f"?{request.url.query}"
+        login_url = f"/login?redirect={original_path}"
+        return RedirectResponse(url=login_url, status_code=302)
 
 @app.get("/chat", tags=["html"],  response_class=HTMLResponse)
 async def chat_page(request: Request, user: UserModel = Depends(get_current_user)):
@@ -319,7 +332,11 @@ async def chat_page(request: Request, user: UserModel = Depends(get_current_user
     Requires authentication via session-based authentication.
     """
     if user is None:
-        return RedirectResponse(url="/login", status_code=302)
+        original_path = str(request.url.path)
+        if request.url.query:
+            original_path += f"?{request.url.query}"
+        login_url = f"/login?redirect={original_path}"
+        return RedirectResponse(url=login_url, status_code=302)
     return get_chat_page(request, user)
 
 @app.get("/profile")

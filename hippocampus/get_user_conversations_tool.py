@@ -7,7 +7,7 @@ Tool for retrieving user conversations.
 import logging
 from hippocampus.recall import get_user_conversations
 from stem.models import UserModel
-from stem.current_user_context import get_current_user_ctx
+from stem.security import current_user
 
 # Set up logging for this module
 logger = logging.getLogger(__name__)
@@ -23,7 +23,7 @@ def execute_get_user_conversations(limit: int = 50) -> dict:
         dict: Status and conversation list or message.
     """
     try:
-        user = get_current_user_ctx()
+        user = current_user
         if user is None:
             return {"status": "error", "message": "User not authenticated"}
         

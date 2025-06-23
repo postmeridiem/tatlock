@@ -2,7 +2,37 @@
 
 **Status: Production Ready - Core Infrastructure & Authentication**
 
-The Stem module provides shared utilities, tool definitions, session-based authentication system, admin dashboard, and static file serving for Tatlock. Named after the brain stem responsible for basic life functions and autonomic processes, this module contains essential helper functions, tool implementations, and infrastructure components used across the system.
+The Stem module provides authentication, admin dashboard, tool registration, static file serving, and shared utilities for Tatlock. It is the backbone for user management, session security, and system-wide services.
+
+## Core Features
+- Session-based authentication and user management
+- Role and group management
+- Admin dashboard and profile management
+- Tool registration and dispatch (see developer.md for tool patterns)
+- Static file and template serving
+- Shared utility modules (logging, text, JSON, time awareness)
+
+## Integration
+- All authentication and admin endpoints are routed through Stem
+- Tools are registered and dispatched via Stem, following the patterns in developer.md
+- Static assets and templates are managed here for the web interface
+
+## Standards & Patterns
+- All coding, tool, and security standards are defined in [developer.md](../developer.md). Refer to it for:
+  - Tool implementation and registration
+  - Logging and error handling
+  - Pydantic models and validation
+  - Security and user isolation
+
+## API & Endpoints
+- Admin: `/admin/dashboard`, `/admin/users`, `/admin/roles`, `/admin/groups`
+- Profile: `/profile`
+- Static: `/static/`, `/templates/`
+
+## See Also
+- [Developer Guide](../developer.md) – All standards and patterns
+- [Troubleshooting](../troubleshooting.md)
+- [Module Docs](../README.md)
 
 ## ✅ **Core Features**
 
@@ -18,6 +48,16 @@ Comprehensive user management and security system with session-based authenticat
 - **Security Protection**: Prevents deletion of critical roles/groups and last admin user
 - **Login/Logout**: Session-based authentication with proper redirects
 - **User Context**: Provides user information to other modules for personalization
+
+> **Note:** As of this release, `security.py` has been thoroughly cleaned up. Only the following imports are required for most use cases:
+>
+> ```python
+> from stem.security import (
+>     security_manager, get_current_user, require_admin_role, login_user, logout_user, current_user
+> )
+> ```
+>
+> All unused imports and variables have been removed for clarity and maintainability. The module now follows best practices for import hygiene and code clarity.
 
 ### 🛠️ **Admin Dashboard** (`admin.py`)
 Complete administrative interface with FastAPI router:
@@ -265,267 +305,68 @@ python -m pytest tests/test_admin_frontend.py -v
 
 ## 🧑‍💻 User Context and Authentication
 
-Tatlock uses a context-based, per-request user model for all authentication, admin, and profile operations, as described in the main developer documentation. All user access in the Stem module is type-safe and uses the current user context, which is set automatically for each request.
+Tatlock uses a global user variable system for all authentication and user info access. All memory and user operations in the Stem module are type-safe and use the current user context, which is set automatically for each request.
 
 - The current user is available as a Pydantic `UserModel` via:
   ```python
-  from stem.current_user_context import get_current_user_ctx
-  user = get_current_user_ctx()
+  from stem.security import current_user
+  user = current_user
   if user is None:
       raise HTTPException(status_code=401, detail="Not authenticated")
   # Access fields as attributes, e.g. user.username
   ```
-- All admin, profile, and authentication operations use the current user context for security and personalization.
+- All memory and recall functions are scoped to the current user, ensuring privacy and isolation.
 - When passing the user to templates or tools, use `user.model_dump()` to convert to a dict if needed.
-- See the [developer.md](../developer.md) for full details and examples of the context-based user pattern.
+- See the [developer.md](../developer.md) for full details and examples of the global user variable pattern.
 
-**Note:** All legacy patterns using `current_user` as a dict have been removed. Always use the context-based UserModel for user access in new code.
+**Note:** All legacy patterns using `current_user` as a dict have been removed. Always use the global UserModel variable for user access in new code.
 
 ## Core Components
 
-### Security Management (`security.py`)
+### Authentication & Security (`security.py`)
+Comprehensive user management and security system with session-based authentication:
 
-Handles user authentication, authorization, and password management.
+- **User Management**: Create, authenticate, update, and delete users
+- **Password Security**: PBKDF2 hashing with unique salts for each user
+- **Session Management**: Secure cookie-based session authentication
+- **Role Management**: Create, assign, and manage user roles (user, admin, moderator)
+- **Group Management**: Create, assign, and manage user groups (users, admins, moderators)
+- **Access Control**: Role-based and group-based permission checking
+- **Global User Context**: Access current user via `current_user` global variable
 
-#### Key Features
+### Development Guidelines
 
-- **User Authentication**: Secure login with bcrypt password hashing
-- **Password Management**: Passwords stored in separate `passwords` table for security
-- **Role-Based Access Control**: Fine-grained permissions via roles and groups
-- **Session Management**: Secure session handling with proper cleanup
+1. **Database Changes**: Use migration system for schema updates
+2. **User Context**: Access user data via `current_user` global variable
+3. **Type Safety**: Use Pydantic models for data validation
+4. **Testing**: Write comprehensive tests with temporary databases
+5. **Documentation**: Update relevant documentation
 
-#### Password Table Migration
+## 🔒 **Security Features**
 
-The password data has been migrated from the `users` table to a separate `passwords` table:
-
-- **Old Schema**: `users` table contained `password_hash` and `salt` columns
-- **New Schema**: `passwords` table with foreign key relationship to `users` table
-- **Benefits**: Better separation of concerns, improved security, easier password management
-
-#### Database Schema
-
-```sql
--- Users table (no longer contains password data)
-CREATE TABLE users (
-    username TEXT PRIMARY KEY,
-    first_name TEXT NOT NULL,
-    last_name TEXT NOT NULL,
-    email TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
--- Passwords table (separate for security)
-CREATE TABLE passwords (
-    username TEXT PRIMARY KEY,
-    password_hash TEXT NOT NULL,
-    salt TEXT NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (username) REFERENCES users (username) ON DELETE CASCADE
-);
-```
-
-### User Context Management (`current_user_context.py`)
-
-Provides context-local user storage to avoid passing user data through function parameters.
-
-#### Usage
-
-```python
-from stem.current_user_context import get_current_user_ctx, UserModel
-
-# In FastAPI dependency
-def get_current_user(request: Request):
-    # ... authentication logic ...
-    user_model = UserModel(
-        username=user_data['username'],
-        first_name=user_data['first_name'],
-        last_name=user_data['last_name'],
-        email=user_data['email'],
-        roles=roles,
-        groups=groups
-    )
-    set_current_user_ctx(user_model)
-    return user_model
-
-# In endpoint functions
-def some_endpoint(_: None = Depends(get_current_user)):
-    user = get_current_user_ctx()
-    # Access user attributes directly
-    username = user.username
-    roles = user.roles
-```
-
-### Database Setup (`installation/`)
-
-Handles database initialization and migrations.
-
-#### Migration System
-
-The migration system automatically handles database schema updates:
-
-- **Automatic Detection**: Detects if the old schema exists (users table with `password_hash` and `salt` columns)
-- **Data Preservation**: Maintains existing data during schema changes
-- **Idempotent**: Safe to run multiple times
-- **Tracking**: Records applied migrations in `migrations` table
-
-#### Key Functions
-
-- `create_system_db_tables()`: Creates system database tables
-- `create_longterm_db_tables()`: Creates user-specific memory databases
-- `check_and_run_migrations()`: Runs pending migrations
-- `migrate_users_table()`: Migrates password data to separate table
-
-### Password Management Tools
-
-#### Password Reset Script (`reset_password.sh`)
-
-A comprehensive CLI script for resetting user passwords with the same visual style as the installation script.
-
-**Features:**
-- **Interactive Interface**: Prompts for username and password with confirmation
-- **Password Validation**: Checks password strength and confirms input
-- **Secure Hashing**: Uses bcrypt with proper salt generation
-- **Database Verification**: Confirms password update and displays user info
-- **Error Handling**: Comprehensive error checking and user-friendly messages
-
-**Usage:**
-```bash
-./stem/reset_password.sh
-```
-
-**Process:**
-1. **Prerequisites Check**: Verifies virtual environment and database exist
-2. **User Input**: Prompts for username and validates existence
-3. **Password Input**: Securely prompts for new password with confirmation
-4. **Database Update**: Updates password hash in `passwords` table
-5. **Verification**: Confirms password was updated correctly
-6. **User Info Display**: Shows updated user information
-
-**Security Features:**
-- Passwords never logged or stored in plain text
-- Uses bcrypt with secure salt generation
-- Validates password strength (minimum 8 characters with warning)
-- Records password update timestamps
-- Handles both new and existing password entries
-
-**Example Output:**
-```
-══════════════════════════════════════════════════════════════════════════════════════════
-                        Tatlock Password Reset Script                                     
-                    Reset user passwords in the system database                          
-══════════════════════════════════════════════════════════════════════════════════════════
-
-[1/5] Checking if user exists in database...
-[✓] User 'admin' found in database
-
-[2/5] Setting new password...
-Enter new password: 
-Confirm new password: 
-[✓] Password confirmed
-
-[3/5] Updating password in database...
-[✓] Password updated successfully
-
-[4/5] Verifying password update...
-[✓] Password verification successful
-
-[5/5] Retrieving updated user information...
-[✓] User information retrieved
-
-Updated User Information:
-──────────────────────────────────────────────────────────────────────────────────
-  Username:         admin
-  Name:             Admin User
-  Email:            admin@example.com
-  Password Updated: 2024-01-01 12:00:00
-──────────────────────────────────────────────────────────────────────────────────
-
-══════════════════════════════════════════════════════════════════════════════════════════
-                                    Password Reset Complete!                              
-══════════════════════════════════════════════════════════════════════════════════════════
-```
-
-#### Database Inspection Script (`scripts/check_user_passwords.py`)
-
-A Python script to inspect user and password data in the database.
-
-**Usage:**
-```bash
-python scripts/check_user_passwords.py <username> [db_path]
-```
-
-**Features:**
-- **User Verification**: Checks if user exists in `users` table
-- **Password Inspection**: Shows password hash and salt from `passwords` table
-- **Database Flexibility**: Supports custom database paths
-- **Error Handling**: Graceful handling of missing users or database errors
-
-**Example Output:**
-```
-Checking user 'admin' in database: hippocampus/system.db
-
-[users] table entry:
-  username:   admin
-  first_name: Admin
-  last_name:  User
-  email:      admin@example.com
-  created_at: 2024-01-01 12:00:00
-
-[passwords] table entry:
-  username:      admin
-  password_hash: $2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewdBPj4J/8KqQKqK
-  salt:          $2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewdBPj4J/8KqQKqK
-  created_at:    2024-01-01 12:00:00
-```
-
-## API Endpoints
-
-### Authentication
-
-- `POST /login`: User login
-- `POST /logout`: User logout
-- `POST /register`: User registration
-
-### User Management
-
-- `GET /admin/users`: List all users (admin only)
-- `POST /admin/users`: Create new user (admin only)
-- `PUT /admin/users/{username}`: Update user (admin only)
-- `DELETE /admin/users/{username}`: Delete user (admin only)
-
-### Profile Management
-
-- `GET /profile`: Get user profile
-- `PUT /profile`: Update user profile
-- `PUT /profile/password`: Change password
-
-## Security Features
-
-### Password Security
+### **Password Security**
 
 - **Hashing**: bcrypt with configurable rounds
 - **Salting**: Unique salt per password
 - **Separation**: Password data in separate table
 - **Validation**: Pydantic models for type safety
 
-### Session Security
+### **Session Security**
 
 - **Secure Cookies**: HttpOnly, Secure, SameSite attributes
 - **Session Cleanup**: Proper logout handling
 - **Context Isolation**: Thread-local user storage
 
-### Authorization
+### **Authorization**
 
 - **Role-Based**: Fine-grained permissions via roles
 - **Group-Based**: User grouping for bulk operations
 - **Middleware**: Automatic role checking
 - **Dependencies**: FastAPI dependency injection
 
-## Database Operations
+## 🔧 **Database Operations**
 
-### User CRUD Operations
+### **User CRUD Operations**
 
 ```python
 from stem.security import SecurityManager
@@ -555,7 +396,7 @@ success = security.update_user(
 success = security.delete_user('testuser')
 ```
 
-### Role and Group Management
+### **Role and Group Management**
 
 ```python
 # Add user to role
@@ -573,9 +414,9 @@ groups = security.get_user_groups('testuser')
 has_group = security.user_has_group('testuser', 'moderators')
 ```
 
-## Testing
+## 🧪 **Testing**
 
-### Database Tests
+### **Database Tests**
 
 Tests use temporary SQLite databases for isolation:
 
@@ -610,7 +451,7 @@ def test_user_creation():
             os.unlink(db_path)
 ```
 
-### Migration Tests
+### **Migration Tests**
 
 Tests verify migration process works correctly:
 
@@ -618,39 +459,3 @@ Tests verify migration process works correctly:
 - **Data Preservation**: Existing data maintained
 - **Idempotency**: Multiple runs don't cause issues
 - **Rollback Safety**: Data integrity verified
-
-## Development Guidelines
-
-### Adding New Features
-
-1. **Database Changes**: Use migration system for schema updates
-2. **User Context**: Access user data via `get_current_user_ctx()`
-3. **Type Safety**: Use Pydantic models for data validation
-4. **Testing**: Write comprehensive tests with temporary databases
-5. **Documentation**: Update relevant documentation
-
-### Security Considerations
-
-- **Password Storage**: Always use separate passwords table
-- **User Context**: Validate user data in dependencies
-- **Input Validation**: Use Pydantic models for all inputs
-- **Session Management**: Proper session cleanup on logout
-- **Authorization**: Check roles and permissions appropriately
-
-### Database Migrations
-
-When adding new database changes:
-
-1. **Schema Updates**: Modify `SYSTEM_DB_SCHEMA` in `database_setup.py`
-2. **Migration Function**: Create migration function
-3. **Migration Tracking**: Add migration record to `migrations` table
-4. **Testing**: Write tests for migration process
-5. **Documentation**: Update schema documentation
-
-### Password Management Best Practices
-
-1. **Use Reset Script**: Always use `reset_password.sh` for password changes
-2. **Inspect Database**: Use `check_user_passwords.py` for troubleshooting
-3. **Migration Safety**: Test migrations on backup databases first
-4. **Security Logging**: Monitor authentication attempts and failures
-5. **Regular Audits**: Periodically check for orphaned password entries

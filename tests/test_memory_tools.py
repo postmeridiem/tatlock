@@ -21,14 +21,14 @@ from hippocampus.memory_export_tool import execute_memory_export
 class TestMemoryInsightsTool:
     """Test the memory insights tool."""
     
-    @patch('hippocampus.memory_insights_tool.get_current_user_ctx')
+    @patch('hippocampus.memory_insights_tool.current_user')
     @patch('hippocampus.memory_insights_tool.get_database_connection')
-    def test_memory_insights_overview(self, mock_get_conn, mock_get_user):
+    def test_memory_insights_overview(self, mock_get_conn, mock_current_user):
         """Test memory insights overview analysis."""
         # Mock user
         mock_user = MagicMock()
         mock_user.username = "testuser"
-        mock_get_user.return_value = mock_user
+        mock_current_user.return_value = mock_user
         
         # Mock database connection
         mock_conn = MagicMock()
@@ -36,11 +36,11 @@ class TestMemoryInsightsTool:
         mock_conn.cursor.return_value = mock_cursor
         mock_get_conn.return_value = mock_conn
         
-        # Mock database results
+        # Mock database results for overview
         mock_cursor.fetchone.side_effect = [
             (10,),  # total_conversations
-            (50,),  # total_memories
-            (5,),   # total_topics
+            (100,), # total_memories
+            (50,),  # total_topics
             ("2024-01-01", "2024-12-31")  # date_range
         ]
         
@@ -49,20 +49,24 @@ class TestMemoryInsightsTool:
         assert result["status"] == "success"
         assert "data" in result
         data = result["data"]
+        assert "total_conversations" in data
+        assert "total_memories" in data
+        assert "total_topics" in data
+        assert "avg_memories_per_conversation" in data
         assert data["total_conversations"] == 10
-        assert data["total_memories"] == 50
-        assert data["total_topics"] == 5
-        assert data["avg_memories_per_conversation"] == 5.0
+        assert data["total_memories"] == 100
+        assert data["total_topics"] == 50
+        assert data["avg_memories_per_conversation"] == 10.0
         
         mock_conn.close.assert_called_once()
     
-    @patch('hippocampus.memory_insights_tool.get_current_user_ctx')
+    @patch('hippocampus.memory_insights_tool.current_user')
     @patch('hippocampus.memory_insights_tool.get_database_connection')
-    def test_memory_insights_patterns(self, mock_get_conn, mock_get_user):
+    def test_memory_insights_patterns(self, mock_get_conn, mock_current_user):
         """Test memory insights pattern analysis."""
         mock_user = MagicMock()
         mock_user.username = "testuser"
-        mock_get_user.return_value = mock_user
+        mock_current_user.return_value = mock_user
         
         mock_conn = MagicMock()
         mock_cursor = MagicMock()
@@ -71,9 +75,9 @@ class TestMemoryInsightsTool:
         
         # Mock pattern analysis results
         mock_cursor.fetchall.side_effect = [
-            [("1", 5), ("2", 3), ("3", 2)],  # active_days
-            [("14", 10), ("15", 8), ("16", 6)],  # active_hours
-            [("1", 20), ("2", 15), ("3", 10)]  # conversation_lengths
+            [("1", 5), ("2", 3)],  # day_activity (day numbers, not names)
+            [("14", 8), ("15", 6)],  # hour_activity
+            [("conv1", 3), ("conv2", 2), ("conv3", 1)]  # conversation_lengths
         ]
         
         result = execute_memory_insights("patterns")
@@ -87,23 +91,21 @@ class TestMemoryInsightsTool:
         
         mock_conn.close.assert_called_once()
     
-    @patch('hippocampus.memory_insights_tool.get_current_user_ctx')
-    def test_memory_insights_no_user(self, mock_get_user):
+    @patch('stem.security.current_user', None)
+    def test_memory_insights_no_user(self):
         """Test memory insights with no authenticated user."""
-        mock_get_user.return_value = None
-        
         result = execute_memory_insights("overview")
         
         assert result["status"] == "error"
         assert "not authenticated" in result["message"]
     
-    @patch('hippocampus.memory_insights_tool.get_current_user_ctx')
+    @patch('hippocampus.memory_insights_tool.current_user')
     @patch('hippocampus.memory_insights_tool.get_database_connection')
-    def test_memory_insights_invalid_type(self, mock_get_conn, mock_get_user):
+    def test_memory_insights_invalid_type(self, mock_get_conn, mock_current_user):
         """Test memory insights with invalid analysis type."""
         mock_user = MagicMock()
         mock_user.username = "testuser"
-        mock_get_user.return_value = mock_user
+        mock_current_user.return_value = mock_user
         
         mock_conn = MagicMock()
         mock_get_conn.return_value = mock_conn
@@ -113,13 +115,13 @@ class TestMemoryInsightsTool:
         assert result["status"] == "error"
         assert "Unknown analysis type" in result["message"]
 
-    @patch('hippocampus.memory_insights_tool.get_current_user_ctx')
+    @patch('hippocampus.memory_insights_tool.current_user')
     @patch('hippocampus.memory_insights_tool.get_database_connection')
-    def test_memory_insights_topics(self, mock_get_conn, mock_get_user):
+    def test_memory_insights_topics(self, mock_get_conn, mock_current_user):
         """Test memory insights topics analysis."""
         mock_user = MagicMock()
         mock_user.username = "testuser"
-        mock_get_user.return_value = mock_user
+        mock_current_user.return_value = mock_user
         
         mock_conn = MagicMock()
         mock_cursor = MagicMock()
@@ -150,13 +152,13 @@ class TestMemoryInsightsTool:
 class TestMemoryCleanupTool:
     """Test the memory cleanup tool."""
     
-    @patch('hippocampus.memory_cleanup_tool.get_current_user_ctx')
+    @patch('hippocampus.memory_cleanup_tool.current_user')
     @patch('hippocampus.memory_cleanup_tool.get_database_connection')
-    def test_memory_cleanup_duplicates(self, mock_get_conn, mock_get_user):
+    def test_memory_cleanup_duplicates(self, mock_get_conn, mock_current_user):
         """Test memory cleanup duplicate detection."""
         mock_user = MagicMock()
         mock_user.username = "testuser"
-        mock_get_user.return_value = mock_user
+        mock_current_user.return_value = mock_user
         
         mock_conn = MagicMock()
         mock_cursor = MagicMock()
@@ -181,13 +183,13 @@ class TestMemoryCleanupTool:
         
         mock_conn.close.assert_called_once()
     
-    @patch('hippocampus.memory_cleanup_tool.get_current_user_ctx')
+    @patch('hippocampus.memory_cleanup_tool.current_user')
     @patch('hippocampus.memory_cleanup_tool.get_database_connection')
-    def test_memory_cleanup_orphans(self, mock_get_conn, mock_get_user):
+    def test_memory_cleanup_orphans(self, mock_get_conn, mock_current_user):
         """Test memory cleanup orphan detection."""
         mock_user = MagicMock()
         mock_user.username = "testuser"
-        mock_get_user.return_value = mock_user
+        mock_current_user.return_value = mock_user
         
         mock_conn = MagicMock()
         mock_cursor = MagicMock()
@@ -214,13 +216,13 @@ class TestMemoryCleanupTool:
         
         mock_conn.close.assert_called_once()
     
-    @patch('hippocampus.memory_cleanup_tool.get_current_user_ctx')
+    @patch('hippocampus.memory_cleanup_tool.current_user')
     @patch('hippocampus.memory_cleanup_tool.get_database_connection')
-    def test_memory_cleanup_analysis(self, mock_get_conn, mock_get_user):
+    def test_memory_cleanup_analysis(self, mock_get_conn, mock_current_user):
         """Test memory cleanup health analysis."""
         mock_user = MagicMock()
         mock_user.username = "testuser"
-        mock_get_user.return_value = mock_user
+        mock_current_user.return_value = mock_user
         
         mock_conn = MagicMock()
         mock_cursor = MagicMock()
@@ -254,23 +256,21 @@ class TestMemoryCleanupTool:
         
         mock_conn.close.assert_called_once()
     
-    @patch('hippocampus.memory_cleanup_tool.get_current_user_ctx')
-    def test_memory_cleanup_no_user(self, mock_get_user):
+    @patch('stem.security.current_user', None)
+    def test_memory_cleanup_no_user(self):
         """Test memory cleanup with no authenticated user."""
-        mock_get_user.return_value = None
-        
         result = execute_memory_cleanup("duplicates")
         
         assert result["status"] == "error"
         assert "not authenticated" in result["message"]
     
-    @patch('hippocampus.memory_cleanup_tool.get_current_user_ctx')
+    @patch('hippocampus.memory_cleanup_tool.current_user')
     @patch('hippocampus.memory_cleanup_tool.get_database_connection')
-    def test_memory_cleanup_invalid_type(self, mock_get_conn, mock_get_user):
+    def test_memory_cleanup_invalid_type(self, mock_get_conn, mock_current_user):
         """Test memory cleanup with invalid cleanup type."""
         mock_user = MagicMock()
         mock_user.username = "testuser"
-        mock_get_user.return_value = mock_user
+        mock_current_user.return_value = mock_user
         
         mock_conn = MagicMock()
         mock_get_conn.return_value = mock_conn
@@ -284,133 +284,115 @@ class TestMemoryCleanupTool:
 class TestMemoryExportTool:
     """Test the memory export tool."""
     
-    @patch('hippocampus.memory_export_tool.get_current_user_ctx')
+    @patch('hippocampus.memory_export_tool.current_user')
     @patch('hippocampus.memory_export_tool.get_database_connection')
-    def test_memory_export_json(self, mock_get_conn, mock_get_user):
+    def test_memory_export_json(self, mock_get_conn, mock_current_user):
         """Test memory export to JSON format."""
         mock_user = MagicMock()
         mock_user.username = "testuser"
-        mock_get_user.return_value = mock_user
+        mock_current_user.return_value = mock_user
         
         mock_conn = MagicMock()
         mock_cursor = MagicMock()
         mock_conn.cursor.return_value = mock_cursor
         mock_get_conn.return_value = mock_conn
         
-        # Mock database results
-        mock_cursor.fetchall.side_effect = [
-            [(1, "Test Conversation", "2024-01-01", "2024-01-01", 5)],  # conversations
-            [(1, "Hello", "Hi there", "2024-01-01", "general")],       # memories for conv 1
-            [],  # additional topics for memory 1
-            [],  # standalone memories
+        # Mock export data
+        mock_cursor.fetchall.return_value = [
+            (1, "Hello", "Hi there", "2024-01-01", 1)
         ]
         
-        # Create the export directory first
-        os.makedirs("hippocampus/shortterm/testuser/exports", exist_ok=True)
+        result = execute_memory_export("json")
         
-        result = execute_memory_export("json", True, "last_30_days")
-        
-        # Check that the function executed without errors
-        # The actual file creation might fail in tests, but we can verify the logic worked
-        assert result["status"] in ["success", "error"]
-        if result["status"] == "success":
-            assert "data" in result
-            data = result["data"]
-            assert data["total_conversations"] == 1
-            assert data["total_standalone_memories"] == 0
+        assert result["status"] == "success"
+        assert "data" in result
+        data = result["data"]
+        assert "total_conversations" in data
+        assert "total_standalone_memories" in data
+        assert "file_path" in data
+        assert data["total_conversations"] == 1
+        assert data["total_standalone_memories"] == 1
         
         mock_conn.close.assert_called_once()
     
-    @patch('hippocampus.memory_export_tool.get_current_user_ctx')
+    @patch('hippocampus.memory_export_tool.current_user')
     @patch('hippocampus.memory_export_tool.get_database_connection')
-    def test_memory_export_csv(self, mock_get_conn, mock_get_user):
+    def test_memory_export_csv(self, mock_get_conn, mock_current_user):
         """Test memory export to CSV format."""
         mock_user = MagicMock()
         mock_user.username = "testuser"
-        mock_get_user.return_value = mock_user
+        mock_current_user.return_value = mock_user
         
         mock_conn = MagicMock()
         mock_cursor = MagicMock()
         mock_conn.cursor.return_value = mock_cursor
         mock_get_conn.return_value = mock_conn
         
-        # Mock database results with proper string types
+        # Mock export data with correct number of columns
         mock_cursor.fetchall.return_value = [
-            ("1", "Hello", "Hi there", "2024-01-01", "general", "Test Conv", "2024-01-01")
+            ("1", "Hello", "Hi there", "2024-01-01", "1", "Test Conv", "general")
         ]
-        mock_cursor.fetchone.return_value = None  # No additional topics
         
-        # Create the export directory first
-        os.makedirs("hippocampus/shortterm/testuser/exports", exist_ok=True)
+        result = execute_memory_export("csv")
         
-        result = execute_memory_export("csv", True, None)
-        
-        # Check that the function executed without errors
-        assert result["status"] in ["success", "error"]
-        if result["status"] == "success":
-            assert "data" in result
-            data = result["data"]
-            assert data["total_memories"] == 1
+        assert result["status"] == "success"
+        assert "data" in result
+        data = result["data"]
+        assert "total_memories" in data
+        assert "file_path" in data
+        assert data["total_memories"] == 1
         
         mock_conn.close.assert_called_once()
     
-    @patch('hippocampus.memory_export_tool.get_current_user_ctx')
+    @patch('hippocampus.memory_export_tool.current_user')
     @patch('hippocampus.memory_export_tool.get_database_connection')
-    def test_memory_export_summary(self, mock_get_conn, mock_get_user):
+    def test_memory_export_summary(self, mock_get_conn, mock_current_user):
         """Test memory export summary format."""
         mock_user = MagicMock()
         mock_user.username = "testuser"
-        mock_get_user.return_value = mock_user
+        mock_current_user.return_value = mock_user
         
         mock_conn = MagicMock()
         mock_cursor = MagicMock()
         mock_conn.cursor.return_value = mock_cursor
         mock_get_conn.return_value = mock_conn
         
-        # Mock database results
+        # Mock summary data
         mock_cursor.fetchone.side_effect = [
             (100,),  # total_memories
             (10,),   # total_conversations
-            (5,),    # total_topics
-        ]
-        mock_cursor.fetchall.side_effect = [
-            [("topic1", 10), ("topic2", 5)],  # top_topics
-            [("conv1", 20, "2024-01-01", "2024-01-01")],  # top_conversations
+            (5,)     # total_topics
         ]
         
-        # Create the export directory first
-        os.makedirs("hippocampus/shortterm/testuser/exports", exist_ok=True)
+        result = execute_memory_export("summary")
         
-        result = execute_memory_export("summary", True, "last_7_days")
-        
-        # Check that the function executed without errors
-        assert result["status"] in ["success", "error"]
-        if result["status"] == "success":
-            assert "data" in result
-            data = result["data"]
-            assert data["total_memories"] == 100
-            assert data["total_conversations"] == 10
-            assert data["total_topics"] == 5
+        assert result["status"] == "success"
+        assert "data" in result
+        data = result["data"]
+        assert "total_memories" in data
+        assert "total_conversations" in data
+        assert "total_topics" in data
+        assert data["total_memories"] == 100
+        assert data["total_conversations"] == 10
+        assert data["total_topics"] == 5
         
         mock_conn.close.assert_called_once()
     
-    @patch('hippocampus.memory_export_tool.get_current_user_ctx')
-    def test_memory_export_no_user(self, mock_get_user):
+    @patch('stem.security.current_user', None)
+    def test_memory_export_no_user(self):
         """Test memory export with no authenticated user."""
-        mock_get_user.return_value = None
-        
         result = execute_memory_export("json")
         
         assert result["status"] == "error"
         assert "not authenticated" in result["message"]
     
-    @patch('hippocampus.memory_export_tool.get_current_user_ctx')
+    @patch('hippocampus.memory_export_tool.current_user')
     @patch('hippocampus.memory_export_tool.get_database_connection')
-    def test_memory_export_invalid_type(self, mock_get_conn, mock_get_user):
+    def test_memory_export_invalid_type(self, mock_get_conn, mock_current_user):
         """Test memory export with invalid export type."""
         mock_user = MagicMock()
         mock_user.username = "testuser"
-        mock_get_user.return_value = mock_user
+        mock_current_user.return_value = mock_user
         
         mock_conn = MagicMock()
         mock_get_conn.return_value = mock_conn

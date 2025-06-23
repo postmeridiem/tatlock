@@ -11,9 +11,8 @@ import shutil
 from pathlib import Path
 from fastapi import APIRouter, HTTPException, Depends, Request
 from fastapi.responses import HTMLResponse
-from stem.security import get_current_user, require_admin_role, security_manager
+from stem.security import get_current_user, require_admin_role, security_manager, current_user
 from stem.static import get_admin_page
-from stem.current_user_context import get_current_user_ctx
 from stem.models import (
     CreateUserRequest, UpdateUserRequest, UserResponse, AdminStatsResponse,
     CreateRoleRequest, UpdateRoleRequest, RoleResponse,
@@ -82,15 +81,12 @@ admin_router = APIRouter(prefix="/admin", tags=["admin"])
 async def admin_page(request: Request, user: UserModel = Depends(require_admin_role)):
     """
     Admin dashboard page.
-    Requires admin role.
     Provides user, role, and group management interface.
     """
     if user is None:
         logger.warning("admin_page: No user from require_admin_role")
         raise HTTPException(status_code=401, detail="Not authenticated")
-    # Convert UserModel to dict for compatibility with get_admin_page
-    user_dict = user.model_dump()
-    return get_admin_page(request, user_dict)
+    return get_admin_page(request, user)
 
 @admin_router.get("/")
 async def admin_endpoint(_: None = Depends(require_admin_role)):
@@ -98,7 +94,7 @@ async def admin_endpoint(_: None = Depends(require_admin_role)):
     Admin-only endpoint for administrative functions.
     Requires admin role.
     """
-    user = get_current_user_ctx()
+    user = current_user
     if user is None:
         raise HTTPException(status_code=401, detail="Not authenticated")
     
@@ -310,24 +306,22 @@ async def update_user(username: str, request: UpdateUserRequest, _: None = Depen
         raise HTTPException(status_code=500, detail=f"Error updating user: {str(e)}")
 
 @admin_router.delete("/users/{username}")
-async def delete_user(username: str, _: None = Depends(require_admin_role)):
+async def delete_user(username: str, request: Request, user: UserModel = Depends(require_admin_role)):
     """
     Delete a user.
     Requires admin role.
     """
+    # Debug: log cookies and headers
+    logger.warning(f"DELETE /users/{{username}} cookies: {request.cookies}")
+    logger.warning(f"DELETE /users/{{username}} headers: {request.headers}")
     try:
         # Check if user exists
-        user = security_manager.get_user_by_username(username)
-        if not user:
+        user_to_delete = security_manager.get_user_by_username(username)
+        if not user_to_delete:
             raise HTTPException(status_code=404, detail="User not found")
         
-        # Get current user from context
-        current_user = get_current_user_ctx()
-        if current_user is None:
-            raise HTTPException(status_code=401, detail="Not authenticated")
-        
         # Prevent admin from deleting themselves
-        if username == current_user.username:
+        if username == user.username:
             raise HTTPException(status_code=400, detail="Cannot delete your own account")
         
         # Check if this is the last admin user
@@ -356,12 +350,12 @@ async def delete_user(username: str, _: None = Depends(require_admin_role)):
         if not delete_user_directories(username):
             logger.warning(f"Failed to delete user directories for {username}, but user was deleted successfully")
         
-        return {"message": f"User {user['username']} deleted successfully"}
+        return {"message": f"User {user_to_delete['username']} deleted successfully"}
     except HTTPException:
         raise
     except Exception as e:
         logger.error(f"Error deleting user: {e}")
-        raise HTTPException(status_code=500, detail=f"Error deleting user: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error deleting user: {e}")
 
 @admin_router.get("/roles")
 async def list_roles(_: None = Depends(require_admin_role)):

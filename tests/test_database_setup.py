@@ -64,15 +64,14 @@ class TestDatabaseSetup:
         
         expected_tables = [
             'memories', 'topics', 'memory_topics', 'conversation_topics',
-            'conversations', 'rise_and_shine'
+            'conversations'
         ]
         for table in expected_tables:
             assert table in tables
         
-        # Check that default rise_and_shine instructions exist
-        cursor.execute("SELECT instruction FROM rise_and_shine")
-        instructions = [row[0] for row in cursor.fetchall()]
-        assert len(instructions) >= 3  # Should have default instructions
+        # Note: rise_and_shine table should NOT be in user databases
+        # It should only exist in the system database (system.db)
+        assert 'rise_and_shine' not in tables
         
         conn.close()
     

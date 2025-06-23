@@ -9,6 +9,7 @@ import platform
 import psutil
 import subprocess
 import os
+import ollama
 from typing import Dict, List, Optional, Any
 from datetime import datetime
 def get_operating_system_info() -> Dict[str, Any]:
@@ -407,7 +408,6 @@ def run_llm_benchmark() -> Dict[str, Any]:
         dict: Benchmark results including response times and analysis.
     """
     import time
-    import ollama
     from config import OLLAMA_MODEL
     
     benchmark_results = {
@@ -684,10 +684,22 @@ def run_comprehensive_benchmark() -> Dict[str, Any]:
     comprehensive_results = {
         "timestamp": datetime.now().isoformat(),
         "system_info": get_comprehensive_system_info(),
-        "llm_benchmark": run_llm_benchmark(),
-        "tool_benchmark": run_tool_benchmark(),
+        "llm_benchmark": {},
+        "tool_benchmark": {},
         "overall_analysis": {}
     }
+    
+    # Run LLM benchmark with error handling
+    try:
+        comprehensive_results["llm_benchmark"] = run_llm_benchmark()
+    except Exception as e:
+        comprehensive_results["llm_benchmark"] = {"error": f"LLM benchmark failed: {str(e)}"}
+    
+    # Run tool benchmark with error handling
+    try:
+        comprehensive_results["tool_benchmark"] = run_tool_benchmark()
+    except Exception as e:
+        comprehensive_results["tool_benchmark"] = {"error": f"Tool benchmark failed: {str(e)}"}
     
     try:
         # Overall performance analysis

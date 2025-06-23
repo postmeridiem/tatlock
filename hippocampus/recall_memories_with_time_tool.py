@@ -7,7 +7,7 @@ Tool for recalling memories with time-based filtering.
 import logging
 from hippocampus.recall import recall_memories_with_time
 from stem.models import UserModel
-from stem.current_user_context import get_current_user_ctx
+from stem.security import current_user
 
 # Set up logging for this module
 logger = logging.getLogger(__name__)
@@ -25,7 +25,7 @@ def execute_recall_memories_with_time(keyword: str, start_date: str | None = Non
         dict: Status and recall results or message.
     """
     try:
-        user = get_current_user_ctx()
+        user = current_user
         if user is None:
             return {"status": "error", "message": "User not authenticated"}
         

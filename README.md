@@ -2,13 +2,13 @@
 
 **Status: Production Ready - Brain-Inspired Conversational AI Platform**
 
-Tatlock is a modular, brain-inspired conversational AI platform with built-in authentication, security, and comprehensive user management. It provides a context-aware, tool-using agent with persistent memory, extensible skills, and a modern web interface with Material Design aesthetics. Designed as a privacy-minded solution for home automation, all models run locally and the datastore is on disk.
+Tatlock is a modular, brain-inspired conversational AI platform with built-in authentication, security, and comprehensive user management. It provides a context-aware, tool-using agent with persistent memory, extensible skills, and a modern web interface. All models run locally and the datastore is on disk.
 
 ## 🚀 Quick Start
 
 ### Prerequisites
-- **Linux**: Ubuntu/Debian-based system (apt), CentOS/RHEL/Fedora (yum), or Arch Linux (pacman)
-- **macOS**: Intel or Apple Silicon (M1/M2) with Homebrew
+- **Linux**: Ubuntu/Debian, CentOS/RHEL/Fedora, or Arch Linux
+- **macOS**: Intel or Apple Silicon (M1/M2)
 - Python 3.10 or higher
 - Git
 - Ollama (for local LLM inference)
@@ -21,7 +21,7 @@ Tatlock is a modular, brain-inspired conversational AI platform with built-in au
    chmod +x install_tatlock.sh
    ./install_tatlock.sh
    ```
-   The installation script will handle system dependencies, Python packages, and the automatic setup of Ollama.
+   The installation script handles dependencies, Python packages, and Ollama setup.
 
 2. **Update API Keys**:
    ```bash
@@ -31,7 +31,7 @@ Tatlock is a modular, brain-inspired conversational AI platform with built-in au
    # GOOGLE_CSE_ID - Get from https://programmablesearchengine.google.com/
    ```
 
-4. **Start the Application**:
+3. **Start the Application**:
    ```bash
    ./wakeup.sh
    ```
@@ -43,11 +43,20 @@ Tatlock is a modular, brain-inspired conversational AI platform with built-in au
    - **Debug Console**: `http://localhost:8000/chat`
    - **API Documentation**: `http://localhost:8000/docs`
 
-   **Default Admin Credentials**: `admin` / `admin123` - CHANGE THESE
+   **Default Admin Credentials**: `admin` / `admin123` (change after first login)
 
-## 🧠 Brain-Inspired Architecture
+## 🧠 Architecture Overview
 
-Tatlock's architecture is inspired by the human brain, with each module representing a specific brain region:
+Tatlock is organized into modules inspired by brain regions:
+- **Cortex**: Core agent logic
+- **Hippocampus**: Memory system
+- **Stem**: Authentication, admin, tools
+- **Parietal**: Hardware monitoring
+- **Occipital**: Visual processing
+- **Cerebellum**: External API tools
+- **Temporal**: Language/voice (in development)
+- **Thalamus**: Information routing (planned)
+- **Amygdala**: Emotional context (planned)
 
 ### ✅ **Production Ready Modules**
 - **🧠 Cortex**: Core agent logic with tool dispatch and agentic loop
@@ -100,32 +109,10 @@ Tatlock's architecture is inspired by the human brain, with each module represen
 - **No External Data Transmission**: Sensitive data stays within your system
 
 ## 📚 Documentation
-
-### **Core Documentation**
-- **[Developer Guide](developer.md)** - Developer-specific information, logging, debugging, and development practices
-- **[In-Depth Technical Information](moreinfo.md)** - Detailed architecture, implementation details, and advanced features
-- **[Troubleshooting](troubleshooting.md)** - Common installation issues and solutions
-
-### **Module Documentation**
-- **[Cortex](cortex/readme.md)** - Core agent logic and decision-making
-- **[Hippocampus](hippocampus/readme.md)** - Memory system and storage
-- **[Stem](stem/readme.md)** - Authentication, utilities, and core services
-- **[Parietal](parietal/readme.md)** - Hardware monitoring and performance analysis
-- **[Occipital](occipital/readme.md)** - Visual processing and screenshot testing
-- **[Cerebellum](cerebellum/readme.md)** - External API tools and utilities
-
-### **Planned Module Documentation**
-- **[Amygdala](amygdala/readme.md)** - Emotional processing and mood awareness (planned)
-- **[Temporal](temporal/readme.md)** - Language processing and temporal context (in development)
-- **[Thalamus](thalamus/readme.md)** - Information routing and coordination (in development)
-
-## 🔧 Service Management
-
-If you installed Tatlock as an auto-starting service, you can manage it using the interactive service manager script. This script provides options to check the status, start, stop, restart, and view live logs for the service.
-
-```bash
-./manage-service.sh
-```
+- **[Developer Guide](developer.md)** – Coding standards, tool patterns, and development practices (single source of truth)
+- **[In-Depth Technical Information](moreinfo.md)** – Architecture and advanced features
+- **[Troubleshooting](troubleshooting.md)** – Installation and runtime help
+- **Module Docs**: See each module's `readme.md` for purpose and integration
 
 ## 🤝 Contributing
 

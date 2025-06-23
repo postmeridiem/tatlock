@@ -6,7 +6,7 @@ Tool for retrieving detailed information about a specific conversation.
 
 import logging
 from hippocampus.recall import get_conversation_details
-from stem.current_user_context import get_current_user_ctx
+from stem.security import current_user
 
 # Set up logging for this module
 logger = logging.getLogger(__name__)
@@ -22,7 +22,7 @@ def execute_get_conversation_details(conversation_id: str) -> dict:
         dict: Status and conversation details or message.
     """
     try:
-        user = get_current_user_ctx()
+        user = current_user
         if user is None:
             return {"status": "error", "message": "User not authenticated"}
         

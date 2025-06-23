@@ -8,7 +8,7 @@ import logging
 from datetime import datetime, timedelta
 from hippocampus.recall import get_user_conversations, get_topic_statistics
 from hippocampus.database import get_database_connection
-from stem.current_user_context import get_current_user_ctx
+from stem.security import current_user
 
 # Set up logging for this module
 logger = logging.getLogger(__name__)
@@ -24,7 +24,7 @@ def execute_memory_insights(analysis_type: str = "overview") -> dict:
         dict: Status and insights data or message.
     """
     try:
-        user = get_current_user_ctx()
+        user = current_user
         if user is None:
             return {"status": "error", "message": "User not authenticated"}
         

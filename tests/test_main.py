@@ -23,7 +23,7 @@ class TestRootEndpoint:
         response = client.get("/", follow_redirects=False)
         
         assert response.status_code == 302
-        assert response.headers["location"] == "/login"
+        assert "/login?redirect=" in response.headers["location"]
 
 
 class TestLoginEndpoints:
@@ -75,11 +75,10 @@ class TestLoginEndpoints:
     
     def test_logout_success(self, authenticated_admin_client):
         """Test successful logout."""
-        response = authenticated_admin_client.post("/logout")
+        response = authenticated_admin_client.post("/logout", follow_redirects=False)
         
-        assert response.status_code == 200
-        data = response.json()
-        assert data["success"] is True
+        assert response.status_code == 302
+        assert response.headers["location"] == "/"
     
     def test_logout_clears_session(self, authenticated_admin_client):
         """Test that logout actually clears the session."""
@@ -88,10 +87,10 @@ class TestLoginEndpoints:
         assert response.status_code == 200
         
         # Now logout
-        logout_response = authenticated_admin_client.post("/logout")
-        assert logout_response.status_code == 200
+        logout_response = authenticated_admin_client.post("/logout", follow_redirects=False)
+        assert logout_response.status_code == 302
         
-        # Try to access a protected endpoint - should redirect to login
+        # Try to access a protected endpoint - should redirect to login (302) due to custom exception handler
         response = authenticated_admin_client.get("/chat", follow_redirects=False)
         assert response.status_code == 302
         assert "/login" in response.headers["location"]
@@ -114,8 +113,7 @@ class TestChatEndpoint:
             "history": []
         }, follow_redirects=False)
         
-        assert response.status_code == 302
-        assert "/login" in response.headers["location"]
+        assert response.status_code == 401
     
     def test_chat_endpoint_with_auth(self, authenticated_admin_client):
         """Test chat endpoint with authentication."""
@@ -199,7 +197,7 @@ class TestChatEndpoint:
             })
             
             assert response.status_code == 500
-            assert "internal error" in response.text
+            assert "null result" in response.text
     
     def test_chat_endpoint_agent_exception(self, authenticated_admin_client):
         """Test chat endpoint when agent raises exception."""
@@ -212,7 +210,7 @@ class TestChatEndpoint:
             })
             
             assert response.status_code == 500
-            assert "internal error" in response.text
+            assert "Agent error" in response.text
 
 
 class TestChatPage:
@@ -295,8 +293,7 @@ class TestExceptionHandling:
         response = client.get("/test-401", follow_redirects=False)
         
         assert response.status_code == 302
-        assert "/login" in response.headers["location"]
-        assert "redirect" in response.headers["location"]
+        assert "/login?redirect=" in response.headers["location"]
     
     def test_other_exceptions_not_redirected(self, client):
         """Test other HTTP exceptions are not redirected."""

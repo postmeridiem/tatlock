@@ -26,6 +26,13 @@ class TestAdminFrontend:
         
         # Check that the password field has the correct structure
         content = response.text
+        print(f"Content length: {len(content)}")
+        user_modal_id = 'id="userModal"'
+        password_required_id = 'id="password-required"'
+        password_id = 'id="password"'
+        print(f"Contains 'userModal': {user_modal_id in content}")
+        print(f"Contains 'password-required': {password_required_id in content}")
+        print(f"Contains 'password': {password_id in content}")
         
         # Should have password field with dynamic required indicator
         assert 'id="password-required"' in content

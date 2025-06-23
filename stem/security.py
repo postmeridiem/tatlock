@@ -8,25 +8,19 @@ Provides user authentication, authorization, and security utilities.
 import logging
 import sqlite3
 import hashlib
-import os
 import secrets
 from typing import Optional, Dict, Any, List
-from datetime import datetime, timedelta
-import sys
-sys.path.append('..')
 from config import SYSTEM_DB_PATH
-from fastapi import HTTPException, Depends, status, Request
-from fastapi.security import HTTPBasic, HTTPBasicCredentials, HTTPBearer, HTTPAuthorizationCredentials
-from hippocampus.user_database import ensure_user_database, delete_user_database
-from stem.current_user_context import set_current_user, get_current_user_ctx
+from fastapi import HTTPException, status, Request
+from hippocampus.user_database import ensure_user_database
 from stem.models import UserModel
 import bcrypt
 
 # Set up logging for this module
 logger = logging.getLogger(__name__)
 
-# Security setup
-security = HTTPBasic()
+#global variable for the current user
+current_user = None
 
 class SecurityManager:
     """Manages authentication, authorization, and user management."""
@@ -1035,7 +1029,7 @@ security_manager = SecurityManager()
 def get_current_user(request: Request):
     """
     Authenticate user from session and return user data.
-    Sets the current user in a context variable for this request.
+    Sets the current user in a global variable for this request.
     Args:
         request: FastAPI request object
     Returns:
@@ -1043,6 +1037,7 @@ def get_current_user(request: Request):
     Raises:
         HTTPException: If authentication fails
     """
+    global current_user
     username = request.session.get("user")
     if not username:
         logger.warning("get_current_user: No username in session")
@@ -1061,16 +1056,16 @@ def get_current_user(request: Request):
     user['roles'] = security_manager.get_user_roles(username)
     user['groups'] = security_manager.get_user_groups(username)
     try:
-        # Create UserModel and set context
+        # Create UserModel and set global current_user
         user_model = UserModel(**{k: user[k] for k in UserModel.model_fields if k in user})
+        current_user = user_model
+        return user_model
     except Exception as e:
         logger.error(f"Error creating UserModel for user '{username}': {e}. User dict: {user}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"User data is incomplete or invalid: {e}"
         )
-    set_current_user(user_model)
-    return user_model
 
 def require_admin_role(request: Request):
     """
@@ -1106,11 +1101,10 @@ def require_admin_role(request: Request):
             detail="Admin role required"
         )
     
-    # Create UserModel and set context for the rest of the request
+    # Create UserModel for the rest of the request
     user['roles'] = security_manager.get_user_roles(username)
     user['groups'] = security_manager.get_user_groups(username)
     user_model = UserModel(**{k: user[k] for k in UserModel.model_fields if k in user})
-    set_current_user(user_model)
     
     return user_model
 

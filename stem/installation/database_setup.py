@@ -340,6 +340,9 @@ def create_default_roles(cursor: sqlite3.Cursor) -> None:
 def create_default_groups(cursor: sqlite3.Cursor) -> None:
     """Create default groups if they don't exist."""
     groups = [
+        ('users', 'All users'),
+        ('admins', 'Administrators'),
+        ('moderators', 'Moderators'),
         ('default', 'Default user group'),
         ('testers', 'Quality assurance testers')
     ]
