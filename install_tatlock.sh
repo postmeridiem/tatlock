@@ -382,6 +382,26 @@ install_system_dependencies() {
         "apt")
             echo -e "${BOLD}Using apt package manager...${NC}"
             
+            # --- Temporarily disable command-not-found hook to prevent apt update errors ---
+            CNF_CONF_FILE="/etc/apt/apt.conf.d/50command-not-found"
+            RENAMED_CNF_CONF_FILE="${CNF_CONF_FILE}.disabled_by_tatlock_installer"
+            
+            cleanup_apt_hook() {
+                if [ -f "$RENAMED_CNF_CONF_FILE" ]; then
+                    echo -e "${CYAN}Re-enabling command-not-found apt hook...${NC}"
+                    sudo mv "$RENAMED_CNF_CONF_FILE" "$CNF_CONF_FILE"
+                fi
+            }
+            
+            # Set up a trap to re-enable the hook on script exit
+            trap cleanup_apt_hook EXIT
+            
+            if [ -f "$CNF_CONF_FILE" ]; then
+                echo -e "${YELLOW}Temporarily disabling command-not-found apt hook to prevent errors...${NC}"
+                sudo mv "$CNF_CONF_FILE" "$RENAMED_CNF_CONF_FILE"
+            fi
+            # --- End of temporary disabling logic ---
+
             # Clean up any problematic repositories first
             echo -e "${CYAN}Cleaning up package lists...${NC}"
             sudo apt clean

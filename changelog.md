@@ -16,7 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated `install_tatlock.sh` to provide unified instructions pointing to `manage-service.sh` instead of platform-specific commands.
 
 ### Fixed
-- Fixed a critical bug in `install_tatlock.sh` that was unsafely changing the system's default Python interpreter, causing `apt` errors (like `ModuleNotFoundError: No module named 'apt_pkg'`) on Debian/Ubuntu-based systems. The script now installs `python3.10-apt` to ensure compatibility.
+- Fixed a critical bug in `install_tatlock.sh` that was unsafely changing the system's default Python interpreter, causing `apt` errors (like `ModuleNotFoundError: No module named 'apt_pkg'`) on Debian/Ubuntu-based systems. The script now installs `python3.10-apt` to ensure compatibility and temporarily disables the `command-not-found` hook to prevent installation deadlocks.
 
 ## [0.2.3] - 2024-08-01
 
