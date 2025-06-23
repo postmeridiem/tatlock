@@ -651,6 +651,58 @@ fi
 
 echo -e "${BLUE}[4/10] Installing Python dependencies...${NC}"
 
+# Check CUDA availability and driver version to prevent PyTorch warnings
+echo -e "${CYAN}Checking CUDA availability...${NC}"
+CUDA_AVAILABLE=false
+CUDA_DRIVER_VERSION=""
+
+# Check if nvidia-smi is available
+if command -v nvidia-smi &> /dev/null; then
+    echo -e "${GREEN}[✓]${NC} NVIDIA GPU detected"
+    
+    # Get CUDA driver version
+    CUDA_DRIVER_VERSION=$(nvidia-smi --query-gpu=driver_version --format=csv,noheader,nounits | head -1)
+    if [ -n "$CUDA_DRIVER_VERSION" ]; then
+        echo -e "${CYAN}NVIDIA Driver Version: $CUDA_DRIVER_VERSION${NC}"
+        
+        # Check if CUDA runtime is available
+        if command -v nvcc &> /dev/null; then
+            CUDA_RUNTIME_VERSION=$(nvcc --version | grep "release" | sed 's/.*release \([0-9]\+\.[0-9]\+\).*/\1/')
+            echo -e "${CYAN}CUDA Runtime Version: $CUDA_RUNTIME_VERSION${NC}"
+            
+            # Check if driver version is compatible (driver version should be >= runtime version * 100)
+            # This is a simplified check - in practice, PyTorch has specific version requirements
+            if [ -n "$CUDA_RUNTIME_VERSION" ]; then
+                # Convert runtime version to driver version requirement (rough estimate)
+                RUNTIME_MAJOR=$(echo "$CUDA_RUNTIME_VERSION" | cut -d. -f1)
+                RUNTIME_MINOR=$(echo "$CUDA_RUNTIME_VERSION" | cut -d. -f2)
+                REQUIRED_DRIVER=$((RUNTIME_MAJOR * 100 + RUNTIME_MINOR * 10))
+                DRIVER_NUMERIC=$(echo "$CUDA_DRIVER_VERSION" | cut -d. -f1)
+                
+                if [ "$DRIVER_NUMERIC" -ge "$REQUIRED_DRIVER" ]; then
+                    echo -e "${GREEN}[✓]${NC} CUDA driver version is compatible"
+                    CUDA_AVAILABLE=true
+                else
+                    echo -e "${YELLOW}[⚠]${NC} CUDA driver version ($CUDA_DRIVER_VERSION) may be too old for PyTorch"
+                    echo -e "${CYAN}Will install CPU-only PyTorch to avoid warnings${NC}"
+                fi
+            else
+                echo -e "${YELLOW}[⚠]${NC} Could not determine CUDA runtime version"
+                echo -e "${CYAN}Will install CPU-only PyTorch to avoid warnings${NC}"
+            fi
+        else
+            echo -e "${YELLOW}[⚠]${NC} CUDA runtime (nvcc) not found"
+            echo -e "${CYAN}Will install CPU-only PyTorch to avoid warnings${NC}"
+        fi
+    else
+        echo -e "${YELLOW}[⚠]${NC} Could not determine NVIDIA driver version"
+        echo -e "${CYAN}Will install CPU-only PyTorch to avoid warnings${NC}"
+    fi
+else
+    echo -e "${CYAN}[ℹ]${NC} No NVIDIA GPU detected or nvidia-smi not available"
+    echo -e "${CYAN}Will install CPU-only PyTorch${NC}"
+fi
+
 # Ensure we're using the virtual environment's pip
 if [ -f ".venv/bin/pip" ]; then
     PIP_CMD=".venv/bin/pip"
@@ -673,6 +725,16 @@ echo "Using pip: $PIP_CMD"
 # Upgrade pip first
 echo "Upgrading pip..."
 $PIP_CMD install --upgrade pip
+
+# Install PyTorch CPU version first if CUDA is not available
+if [ "$CUDA_AVAILABLE" != "true" ]; then
+    echo -e "${CYAN}Installing CPU-only PyTorch to prevent CUDA warnings...${NC}"
+    if ! $PIP_CMD install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu; then
+        echo -e "${YELLOW}Warning: Failed to install CPU-only PyTorch. Continuing with default installation...${NC}"
+    else
+        echo -e "${GREEN}[✓]${NC} CPU-only PyTorch installed successfully"
+    fi
+fi
 
 if ! $PIP_CMD install -r requirements.txt; then
     echo "Error: Failed to install Python dependencies."

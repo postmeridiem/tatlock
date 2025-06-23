@@ -11,7 +11,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 -
 
 ### Changed
--
+- The `install_tatlock.sh` script now makes `manage-service.sh` executable and informs the user about it.
+- Added CUDA detection logic to `install_tatlock.sh` to prevent PyTorch warnings when NVIDIA drivers are too old by installing CPU-only PyTorch.
 
 ### Deprecated
 -
@@ -20,7 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 -
 
 ### Fixed
--
+- Corrected an issue in `manage-service.sh` where terminal color codes were not being interpreted correctly in the menu display.
 
 ### Security
 -

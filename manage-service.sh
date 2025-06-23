@@ -123,11 +123,11 @@ while true; do
     show_status
     
     echo -e "\n${BOLD}Please choose an option:${NC}"
-    echo "  ${GREEN}1.${NC} Start Service"
-    echo "  ${GREEN}2.${NC} Stop Service"
-    echo "  ${GREEN}3.${NC} Restart Service"
-    echo "  ${YELLOW}4.${NC} View Live Logs"
-    echo "  ${RED}5.${NC} Exit"
+    echo -e "  ${GREEN}1.${NC} Start Service"
+    echo -e "  ${GREEN}2.${NC} Stop Service"
+    echo -e "  ${GREEN}3.${NC} Restart Service"
+    echo -e "  ${YELLOW}4.${NC} View Live Logs"
+    echo -e "  ${RED}5.${NC} Exit"
     echo ""
     read -p "Enter your choice [1-5]: " choice
     
