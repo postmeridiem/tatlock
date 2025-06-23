@@ -33,7 +33,7 @@ class LanguageProcessor:
         self.weather_keywords = ["weather", "temperature", "forecast", "rain", "sunny", "cloudy"]
         self.time_keywords = ["time", "clock", "schedule", "appointment", "meeting"]
         
-        logger.info("LanguageProcessor initialized")
+        logger.debug("LanguageProcessor initialized")
         
     def process_with_context(self, text: str, context: Dict[str, Any]) -> str:
         """Process text with temporal context"""

@@ -85,5 +85,5 @@ def get_enabled_tools_from_db() -> list[dict]:
         if conn:
             conn.close()
             
-    logger.info(f"Loaded {len(tools_list)} enabled tools from the database.")
+    logger.debug(f"Loaded {len(tools_list)} enabled tools from the database.")
     return tools_list 

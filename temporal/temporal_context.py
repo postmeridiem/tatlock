@@ -15,7 +15,7 @@ class TemporalContext:
     def __init__(self, context_window_hours: int = 24):
         self.interaction_history: List[Dict[str, Any]] = []
         self.context_window = timedelta(hours=context_window_hours)
-        logger.info(f"TemporalContext initialized with {context_window_hours}h context window")
+        logger.debug(f"TemporalContext initialized with {context_window_hours}h context window")
         
     def add_interaction(self, text: str, timestamp: Optional[datetime] = None) -> None:
         """Add new interaction to temporal context"""

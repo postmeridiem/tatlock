@@ -196,12 +196,12 @@ async def login(request: Request):
     data = await request.json() if request.headers.get("content-type", "").startswith("application/json") else await request.form()
     username = str(data.get("username", ""))
     password = str(data.get("password", ""))
-    logger.info(f"/login/auth called with username='{username}' and password length={len(password)}")
+    logger.debug(f"/login/auth called with username='{username}' and password length={len(password)}")
     if not username or not password:
         logger.warning("/login/auth missing username or password")
         return HTMLResponse(content="Missing username or password", status_code=status.HTTP_400_BAD_REQUEST)
     result = login_user(request, username, password)
-    logger.info(f"/login/auth authentication result for '{username}': {result}")
+    logger.debug(f"/login/auth authentication result for '{username}': {result}")
     if result["success"]:
         return {"success": True}
     else:

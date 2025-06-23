@@ -81,7 +81,7 @@ class SecurityManager:
                             """, (bcrypt_hash, bcrypt_salt, username))
                             conn.commit()
                             conn.close()
-                            logger.info(f"Migrated password for user '{username}' to bcrypt.")
+                            logger.debug(f"Migrated password for user '{username}' to bcrypt.")
                         except Exception as e:
                             logger.error(f"Failed to migrate password for user '{username}': {e}")
                     return True
@@ -130,14 +130,14 @@ class SecurityManager:
             # Create user's longterm database
             try:
                 ensure_user_database(username)
-                logger.info(f"Created longterm database for user '{username}'")
+                logger.debug(f"Created longterm database for user '{username}'")
             except Exception as e:
                 logger.warning(f"Warning: Failed to create longterm database for user '{username}': {e}")
             
             return True
             
         except sqlite3.IntegrityError:
-            logger.info(f"User '{username}' already exists")
+            logger.debug(f"User '{username}' already exists")
             return False
         except Exception as e:
             logger.error(f"Error creating user: {e}")
@@ -672,7 +672,7 @@ class SecurityManager:
             return True
             
         except sqlite3.IntegrityError:
-            logger.info(f"Role '{role_name}' already exists")
+            logger.debug(f"Role '{role_name}' already exists")
             return False
         except Exception as e:
             logger.error(f"Error creating role: {e}")
@@ -862,7 +862,7 @@ class SecurityManager:
             return True
             
         except sqlite3.IntegrityError:
-            logger.info(f"Group '{group_name}' already exists")
+            logger.debug(f"Group '{group_name}' already exists")
             return False
         except Exception as e:
             logger.error(f"Error creating group: {e}")
@@ -1126,9 +1126,9 @@ def login_user(request: Request, username: str, password: str) -> dict:
     """
     user = security_manager.authenticate_user(username, password)
     if user:
-        logger.info(f"login_user: Setting session for user '{username}'")
+        logger.debug(f"login_user: Setting session for user '{username}'")
         request.session["user"] = username
-        logger.info(f"login_user: Session set, session data: {dict(request.session)}")
+        logger.debug(f"login_user: Session set, session data: {dict(request.session)}")
         return {"success": True, "message": "Login successful"}
     else:
         logger.warning(f"login_user: Authentication failed for user '{username}'")
@@ -1150,7 +1150,7 @@ def logout_user(request: Request) -> dict:
         if "user" in request.session:
             del request.session["user"]
         
-        logger.info("Session cleared successfully")
+        logger.debug("Session cleared successfully")
         return {"success": True, "message": "Logout successful"}
     except Exception as e:
         logger.error(f"Error during logout: {e}")
@@ -1180,11 +1180,11 @@ def create_initial_admin():
             admin_dir = Path("hippocampus") / "shortterm" / "admin"
             images_dir = admin_dir / "images"
             images_dir.mkdir(parents=True, exist_ok=True)
-            logger.info(f"Created admin directories: {images_dir}")
+            logger.debug(f"Created admin directories: {images_dir}")
         except Exception as e:
             logger.warning(f"Failed to create admin directories: {e}")
     else:
-        logger.info("Admin user already exists or creation failed")
+        logger.debug("Admin user already exists or creation failed")
 
 if __name__ == "__main__":
     # Create initial admin user when script is run directly

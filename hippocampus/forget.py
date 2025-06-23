@@ -38,7 +38,7 @@ def purge_all_memories(user: UserModel) -> None:
         # Reset auto-increment counters for all cleared tables
         execute_user_query(user.username, "DELETE FROM sqlite_sequence WHERE name IN ('memories', 'conversations', 'topics', 'conversation_topics', 'memory_topics')")
         
-        logger.info(f"Successfully purged all memories for user: {user.username}")
+        logger.debug(f"Successfully purged all memories for user: {user.username}")
         
     except Exception as e:
         logger.error(f"Error purging all memories for user '{user.username}': {e}")

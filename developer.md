@@ -1661,3 +1661,51 @@ When adding new database changes:
 3. **Migration Tracking**: Add migration record to `migrations` table
 4. **Testing**: Write tests for migration process
 5. **Documentation**: Update schema documentation
+
+## **Logging Standards**
+
+### **Log Level Guidelines**
+- **Use `logger.debug()` by default** for all logging unless specified otherwise
+- **Use `logger.error()` inside exception handlers** - always use error level for exceptions
+- **Use `logger.info()` only for important business events** (user actions, system state changes, etc.)
+- **Use `logger.warning()` for recoverable issues** that don't prevent normal operation
+
+### **Logging Best Practices**
+```python
+# ✅ Good - Debug level by default
+logger.debug(f"Processing user request: {user_id}")
+
+# ✅ Good - Error level in exceptions
+try:
+    result = some_operation()
+except Exception as e:
+    logger.error(f"Operation failed for user {user_id}: {e}")
+
+# ✅ Good - Info level for important events
+logger.info(f"User {user_id} logged in successfully")
+
+# ❌ Avoid - Info level for routine operations
+logger.info(f"Processing request: {request_data}")  # Should be debug
+```
+
+### **Exception Logging Pattern**
+```python
+try:
+    # Operation code
+    result = risky_operation()
+except SpecificException as e:
+    logger.error(f"Specific error occurred: {e}")
+    # Handle specific exception
+except Exception as e:
+    logger.error(f"Unexpected error in {function_name}: {e}")
+    # Handle general exception
+```
+
+### **Context in Log Messages**
+- Include relevant context (user ID, operation name, parameters)
+- Use structured logging when possible
+- Avoid logging sensitive information (passwords, tokens, etc.)
+
+### **Performance Considerations**
+- Use `logger.isEnabledFor(logging.DEBUG)` for expensive debug operations
+- Avoid string formatting in debug calls that might not be logged
