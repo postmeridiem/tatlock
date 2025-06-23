@@ -276,12 +276,6 @@ install_python310() {
                 exit 1
             fi
             
-            # Make python3.10 the default python3 if it's not already
-            if [ ! -L /usr/bin/python3 ] || [ "$(readlink /usr/bin/python3)" != "python3.10" ]; then
-                echo "Setting Python 3.10 as default..."
-                sudo update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.10 1
-            fi
-            
             # Update pip
             python3.10 -m pip install --upgrade pip
             ;;
@@ -1084,9 +1078,7 @@ EOF
                 echo "- Tatlock service installed and started"
                 echo "- Service will auto-start on boot"
                 echo "- Service configured to run on $SERVICE_HOSTNAME:$SERVICE_PORT"
-                echo "- Use 'sudo systemctl status tatlock' to check status"
-                echo "- Use 'sudo systemctl stop tatlock' to stop the service"
-                echo "- Use 'sudo systemctl start tatlock' to start the service"
+                echo "- Use './manage-service.sh' to manage the service (status, start, stop, restart)."
                 
                 # Clean up temporary file
                 rm tatlock.service
@@ -1143,9 +1135,7 @@ EOF
             echo "- Tatlock service installed and started"
             echo "- Service will auto-start on login"
             echo "- Service configured to run on $SERVICE_HOSTNAME:$SERVICE_PORT"
-            echo "- Use 'launchctl list | grep tatlock' to check status"
-            echo "- Use 'launchctl unload ~/Library/LaunchAgents/com.tatlock.plist' to stop"
-            echo "- Use 'launchctl load ~/Library/LaunchAgents/com.tatlock.plist' to start"
+            echo "- Use './manage-service.sh' to manage the service (status, start, stop, restart)."
             
             # Clean up temporary file
             rm com.tatlock.plist
