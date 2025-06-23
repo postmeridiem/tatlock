@@ -276,12 +276,6 @@ install_python310() {
                 exit 1
             fi
             
-            # Make python3.10 the default python3 if it's not already
-            if [ ! -L /usr/bin/python3 ] || [ "$(readlink /usr/bin/python3)" != "python3.10" ]; then
-                echo "Setting Python 3.10 as default..."
-                sudo update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.10 1
-            fi
-            
             # Update pip
             python3.10 -m pip install --upgrade pip
             ;;

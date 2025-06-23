@@ -24,6 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Corrected an issue in `manage-service.sh` where terminal color codes were not being interpreted correctly in the menu display.
+- Fixed a critical bug in `install_tatlock.sh` that was unsafely changing the system's default Python interpreter, causing `apt` errors (like `ModuleNotFoundError: No module named 'apt_pkg'`) on Debian/Ubuntu-based systems.
 
 ### Security
 -
