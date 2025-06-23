@@ -21,20 +21,9 @@ Tatlock is a modular, brain-inspired conversational AI platform with built-in au
    chmod +x install_tatlock.sh
    ./install_tatlock.sh
    ```
+   The installation script will handle system dependencies, Python packages, and the automatic setup of Ollama.
 
-2. **Configure Ollama**:
-   ```bash
-   # Install Ollama (if not already installed)
-   curl -fsSL https://ollama.ai/install.sh | sh
-   
-   # Start Ollama service
-   ollama serve
-   
-   # Pull the required model (in another terminal)
-   ollama pull gemma3-cortex:latest
-   ```
-
-3. **Update API Keys**:
+2. **Update API Keys**:
    ```bash
    # Edit .env and update the following variables:
    # OPENWEATHER_API_KEY - Get from https://openweathermap.org/api
@@ -132,40 +121,10 @@ Tatlock's architecture is inspired by the human brain, with each module represen
 
 ## 🔧 Service Management
 
-If you installed Tatlock as an auto-starting service during installation:
+If you installed Tatlock as an auto-starting service, you can manage it using the interactive service manager script. This script provides options to check the status, start, stop, restart, and view live logs for the service.
 
-### **Linux (systemd)**
-
-**Check service status:**
 ```bash
-sudo systemctl status tatlock
-```
-
-**Start the service:**
-```bash
-sudo systemctl start tatlock
-```
-
-**Stop the service:**
-```bash
-sudo systemctl stop tatlock
-```
-
-### **macOS (LaunchAgent)**
-
-**Check service status:**
-```bash
-launchctl list | grep tatlock
-```
-
-**Start the service:**
-```bash
-launchctl load ~/Library/LaunchAgents/com.tatlock.plist
-```
-
-**Stop the service:**
-```bash
-launchctl unload ~/Library/LaunchAgents/com.tatlock.plist
+./manage-service.sh
 ```
 
 ## 🤝 Contributing
