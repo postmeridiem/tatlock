@@ -20,7 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Deleted `start.sh` and `stop.sh` in favor of the more comprehensive `manage-service.sh`.
 
 ### Fixed
--
+- Corrected an issue in `manage-service.sh` where terminal color codes were not being interpreted correctly in the menu display.
 
 ### Security
 -
