@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Memory Insights Tool**: Provides detailed analytics about conversation patterns, topic evolution, and activity trends
+- **Memory Cleanup Tool**: Identifies duplicate memories, orphaned records, and analyzes database health
+- **Memory Export Tool**: Exports conversation data in JSON, CSV, and summary formats for backup and analysis
+
 ## [0.2.7] - 2024-08-01
 
 ### Improved

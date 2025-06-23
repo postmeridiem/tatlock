@@ -366,6 +366,9 @@ def populate_tools_table(cursor: sqlite3.Cursor) -> None:
             ('get_user_conversations', 'Get all conversations for the current user.', 'hippocampus.get_user_conversations_tool', 'execute_get_user_conversations', 1),
             ('get_conversation_details', 'Get detailed information about a specific conversation.', 'hippocampus.get_conversation_details_tool', 'execute_get_conversation_details', 1),
             ('search_conversations', 'Search conversations by title or content.', 'hippocampus.search_conversations_tool', 'execute_search_conversations', 1),
+            ('memory_insights', 'Provide insights and analytics about conversation patterns and memory usage.', 'hippocampus.memory_insights_tool', 'execute_memory_insights', 1),
+            ('memory_cleanup', 'Perform memory cleanup operations to maintain database health and remove duplicates.', 'hippocampus.memory_cleanup_tool', 'execute_memory_cleanup', 1),
+            ('memory_export', 'Export user memory data in various formats for backup or analysis.', 'hippocampus.memory_export_tool', 'execute_memory_export', 1),
             ('screenshot_from_url', 'Take a screenshot of a webpage.', 'occipital.take_screenshot_from_url_tool', 'execute_take_screenshot_from_url', 1),
             ('analyze_file', 'Analyze a file from the user\'s short-term storage.', 'occipital.take_screenshot_from_url_tool', 'analyze_screenshot_file', 1),
         ]
@@ -399,6 +402,15 @@ def populate_tools_table(cursor: sqlite3.Cursor) -> None:
             # search_conversations
             ('search_conversations', 'query', 'string', 'The search term.', 1),
             ('search_conversations', 'limit', 'integer', 'Maximum number of results. Defaults to 20.', 0),
+            # memory_insights
+            ('memory_insights', 'analysis_type', 'string', 'Type of analysis to perform. Options: "overview", "patterns", "topics", "activity".', 0),
+            # memory_cleanup
+            ('memory_cleanup', 'cleanup_type', 'string', 'Type of cleanup to perform. Options: "duplicates", "orphans", "analysis".', 0),
+            ('memory_cleanup', 'similarity_threshold', 'float', 'Threshold for considering memories similar (0.0 to 1.0). Defaults to 0.8.', 0),
+            # memory_export
+            ('memory_export', 'export_type', 'string', 'Export format. Options: "json", "csv", "summary".', 0),
+            ('memory_export', 'include_topics', 'boolean', 'Whether to include topic information in the export.', 0),
+            ('memory_export', 'date_range', 'string', 'Optional date range filter (e.g., "last_30_days", "2024-01-01:2024-12-31").', 0),
             # screenshot_from_url
             ('screenshot_from_url', 'url', 'string', 'The URL of the webpage to capture.', 1),
             ('screenshot_from_url', 'session_id', 'string', 'A unique session identifier for this screenshot.', 1),
@@ -443,6 +455,9 @@ def create_default_rise_and_shine(cursor: sqlite3.Cursor) -> None:
         "You can analyze conversation topics and patterns. Use get_conversations_by_topic when users want to see all conversations about a specific subject. Use get_topics_by_conversation to see what topics were discussed in a particular conversation.",
         "You can provide conversation summaries and statistics. Use get_conversation_summary when users want a detailed overview of a specific conversation. Use get_topic_statistics to show overall conversation patterns and topic frequency.",
         "You can help users find and search through their conversation history. Use get_user_conversations to show recent conversations, get_conversation_details for specific conversation info, and search_conversations when users want to find conversations by keywords.",
+        "You have access to advanced memory analytics and insights. Use memory_insights to provide detailed analysis of conversation patterns, topic evolution, and activity trends. This helps users understand their interaction patterns and conversation history.",
+        "You can help maintain memory database health and find duplicates. Use memory_cleanup to identify duplicate or similar memories, find orphaned records, and analyze overall database health. This ensures optimal memory system performance.",
+        "You can export and backup user memory data. Use memory_export to create backups of conversation data in JSON, CSV, or summary formats. This is useful for data analysis, backup purposes, or transferring data to other systems.",
         "You have access to weather forecast information. When users ask about weather, weather forecasts, or planning activities based on weather, use the get_weather_forecast tool to provide accurate, up-to-date weather information for any city. if no city is specified use the personal information tool to get the user's hometown",
         "You have access to web search capabilities. When users ask about current events, recent information, or topics that require up-to-date knowledge beyond your training data, use the web_search tool to find the most current information available.",
         "You have access to screenshot capabilities. When users ask you to capture or analyze a webpage, use the screenshot_from_url tool to save a full-page screenshot of the URL to their shortterm storage. Always use a descriptive session_id that relates to the user's request.",

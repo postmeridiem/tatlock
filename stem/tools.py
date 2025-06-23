@@ -19,6 +19,9 @@ from hippocampus.get_topic_statistics_tool import execute_get_topic_statistics
 from hippocampus.get_user_conversations_tool import execute_get_user_conversations
 from hippocampus.get_conversation_details_tool import execute_get_conversation_details
 from hippocampus.search_conversations_tool import execute_search_conversations
+from hippocampus.memory_insights_tool import execute_memory_insights
+from hippocampus.memory_cleanup_tool import execute_memory_cleanup
+from hippocampus.memory_export_tool import execute_memory_export
 from occipital.take_screenshot_from_url_tool import execute_take_screenshot_from_url, analyze_screenshot_file
 from hippocampus.reference_frame import get_enabled_tools_from_db
 
@@ -75,6 +78,9 @@ ALL_TOOL_FUNCTIONS = {
     "get_user_conversations": execute_get_user_conversations,
     "get_conversation_details": get_conversation_details,
     "search_conversations": search_conversations,
+    "memory_insights": execute_memory_insights,
+    "memory_cleanup": execute_memory_cleanup,
+    "memory_export": execute_memory_export,
     "screenshot_from_url": execute_screenshot_from_url,
     "analyze_file": execute_analyze_file,
 }
