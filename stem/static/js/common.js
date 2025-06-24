@@ -62,6 +62,10 @@ function initializeHashNavigation(defaultSectionId) {
     }
 }
 
+// Make functions globally available for non-module scripts
+window.initializeHashNavigation = initializeHashNavigation;
+window.showSection = showSection;
+
 /**
  * Displays a snackbar notification.
  * @param {string} message - The message to display.
