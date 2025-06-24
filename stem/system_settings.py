@@ -108,8 +108,16 @@ class SystemSettingsManager:
                     # Safely extract model names with error handling
                     model_names = []
                     for model in models:
-                        if isinstance(model, dict) and 'name' in model:
+                        # Handle both Model objects and dictionaries
+                        if hasattr(model, 'model'):
+                            # Model object from ollama library
+                            model_names.append(model.model)
+                        elif isinstance(model, dict) and 'name' in model:
+                            # Dictionary format (fallback)
                             model_names.append(model['name'])
+                        elif isinstance(model, dict) and 'model' in model:
+                            # Dictionary with 'model' key
+                            model_names.append(model['model'])
                         else:
                             logger.warning(f"Invalid model structure: {model}")
                     
@@ -494,11 +502,39 @@ class SystemSettingsManager:
                 local_models_response = ollama.list()
                 local_models = local_models_response.get('models', [])
                 for local_model in local_models:
-                    if isinstance(local_model, dict) and 'name' in local_model:
-                        model_name = local_model.get('name')
+                    # Handle both Model objects and dictionaries
+                    if hasattr(local_model, 'model'):
+                        # Model object from ollama library
+                        model_name = local_model.model
                         if model_name and not any(opt['option_value'] == model_name for opt in options):
                             # Add locally installed model that's not in our major models list
+                            size = getattr(local_model, 'size', 'Unknown')
+                            if isinstance(size, int):
+                                size = f"{size / (1024**3):.1f}GB"
+                            options.append({
+                                'option_value': model_name,
+                                'option_label': f"{model_name} (Local - {size})",
+                                'enabled': True
+                            })
+                    elif isinstance(local_model, dict) and 'name' in local_model:
+                        # Dictionary format (fallback)
+                        model_name = local_model.get('name')
+                        if model_name and not any(opt['option_value'] == model_name for opt in options):
                             size = local_model.get('size', 'Unknown')
+                            if isinstance(size, int):
+                                size = f"{size / (1024**3):.1f}GB"
+                            options.append({
+                                'option_value': model_name,
+                                'option_label': f"{model_name} (Local - {size})",
+                                'enabled': True
+                            })
+                    elif isinstance(local_model, dict) and 'model' in local_model:
+                        # Dictionary with 'model' key
+                        model_name = local_model.get('model')
+                        if model_name and not any(opt['option_value'] == model_name for opt in options):
+                            size = local_model.get('size', 'Unknown')
+                            if isinstance(size, int):
+                                size = f"{size / (1024**3):.1f}GB"
                             options.append({
                                 'option_value': model_name,
                                 'option_label': f"{model_name} (Local - {size})",

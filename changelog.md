@@ -23,6 +23,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Added graceful fallback when Ollama library is not available
   - Improved API response handling with safer data access and validation
   - Added better logging for debugging Ollama model management issues
+  - Fixed handling of Ollama Model objects (using 'model' attribute instead of 'name' key)
+  - Added support for multiple API response formats (Model objects and dictionaries)
 
 ### Improved
 - **Ollama Model Refresh**: Enhanced model refresh to show major models from Ollama library
