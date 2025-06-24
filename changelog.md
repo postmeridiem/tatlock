@@ -120,6 +120,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Maintains proper separation of concerns: sidebar chat vs conversation page features
   - Follows established pattern of shared functionality in dedicated files
 - Updated frontend JS (`page.admin.js`) and CSS (`style.css`) for settings UI and modal dialogs.
+- **JavaScript File Organization**: Renamed `login.js` to `page.login.js` for consistency with other page-specific scripts
+  - Updated all template references to use `page.login.js`
 
 ### Fixed
 - **JavaScript Error Fix**: Fixed `initializeHashNavigation is not defined` error in conversation page
