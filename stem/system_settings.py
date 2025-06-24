@@ -593,30 +593,26 @@ class SystemSettingsManager:
             
             # Major models that support function calling/tools
             # These are well-known models available in the Ollama library
+            # Only include models smaller than or equal to gemma3-cortex (8.1 GB)
             major_models = [
                 # Gemma models (Google) - only include verified models
                 {'name': 'gemma2:2b', 'display': 'Gemma2 2B (Google)', 'size': '1.4GB'},
                 {'name': 'gemma2:9b', 'display': 'Gemma2 9B (Google)', 'size': '5.6GB'},
-                {'name': 'gemma2:27b', 'display': 'Gemma2 27B (Google)', 'size': '16.9GB'},
                 
                 # Llama models (Meta) - verified to support function calling
                 {'name': 'llama3.2:3b', 'display': 'Llama3.2 3B (Meta)', 'size': '1.8GB'},
                 {'name': 'llama3.2:8b', 'display': 'Llama3.2 8B (Meta)', 'size': '4.7GB'},
-                {'name': 'llama3.2:70b', 'display': 'Llama3.2 70B (Meta)', 'size': '40.1GB'},
                 
                 # Mistral models - verified to support function calling
                 {'name': 'mistral:7b', 'display': 'Mistral 7B', 'size': '4.1GB'},
-                {'name': 'mixtral:8x7b', 'display': 'Mixtral 8x7B', 'size': '26.2GB'},
                 
                 # Code models - verified to support function calling
                 {'name': 'codellama:7b', 'display': 'Code Llama 7B', 'size': '3.8GB'},
                 {'name': 'codellama:13b', 'display': 'Code Llama 13B', 'size': '7.3GB'},
-                {'name': 'codellama:34b', 'display': 'Code Llama 34B', 'size': '18.6GB'},
                 
                 # Specialized models - verified to support function calling
                 {'name': 'llama3.2:3b-instruct', 'display': 'Llama3.2 3B Instruct', 'size': '1.8GB'},
                 {'name': 'llama3.2:8b-instruct', 'display': 'Llama3.2 8B Instruct', 'size': '4.7GB'},
-                {'name': 'llama3.2:70b-instruct', 'display': 'Llama3.2 70B Instruct', 'size': '40.1GB'},
                 
                 # Phi models (Microsoft) - verified to support function calling
                 {'name': 'phi3:mini', 'display': 'Phi-3 Mini (Microsoft)', 'size': '1.8GB'},
@@ -633,8 +629,6 @@ class SystemSettingsManager:
                 {'name': 'qwen2.5:3b', 'display': 'Qwen2.5 3B (Alibaba)', 'size': '1.7GB'},
                 {'name': 'qwen2.5:7b', 'display': 'Qwen2.5 7B (Alibaba)', 'size': '4.1GB'},
                 {'name': 'qwen2.5:14b', 'display': 'Qwen2.5 14B (Alibaba)', 'size': '8.1GB'},
-                {'name': 'qwen2.5:32b', 'display': 'Qwen2.5 32B (Alibaba)', 'size': '18.6GB'},
-                {'name': 'qwen2.5:72b', 'display': 'Qwen2.5 72B (Alibaba)', 'size': '41.9GB'},
                 
                 # Default model (keep for compatibility)
                 {'name': 'gemma3-cortex:latest', 'display': 'Gemma3 Cortex (Default)', 'size': 'N/A'}

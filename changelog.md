@@ -31,6 +31,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Only include models that actually exist and support tools in the dropdown
   - Added fallback to default model if no tool-supporting models are found
   - Improved model validation to prevent download errors
+- Optimized model list for better performance
+  - Removed all models larger than gemma3-cortex (8.1 GB) from curated list
+  - Kept only smaller and similarly sized models for faster downloads
+  - Reduced storage requirements and download times
 
 ### Improved
 - **Ollama Model Refresh**: Enhanced model refresh to show major models from Ollama library
