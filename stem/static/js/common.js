@@ -26,11 +26,11 @@ function togglePassword(inputId) {
 
 const sectionLoaders = {};
 
-export function registerSectionLoader(sectionId, loaderFn) {
+function registerSectionLoader(sectionId, loaderFn) {
     sectionLoaders[sectionId] = loaderFn;
 }
 
-export function showSection(sectionId) {
+function showSection(sectionId) {
     // Hide all sections
     document.querySelectorAll('.section').forEach(section => {
         section.style.display = 'none';
@@ -65,6 +65,8 @@ function initializeHashNavigation(defaultSectionId) {
 // Make functions globally available for non-module scripts
 window.initializeHashNavigation = initializeHashNavigation;
 window.showSection = showSection;
+window.registerSectionLoader = registerSectionLoader;
+window.showSnackbar = showSnackbar;
 
 /**
  * Displays a snackbar notification.
