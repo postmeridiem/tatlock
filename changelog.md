@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **Admin Dashboard Ollama Model Selector**: Fixed issues with Ollama model selection in admin dashboard
+  - Fixed backend `refresh_ollama_model_options()` to return all available Ollama models instead of filtering by tool keys
+  - Fixed frontend current value detection to properly fetch setting value from API instead of DOM text
+  - Added proper error handling for model refresh operations
+  - Added fallback to default model when no models are available or refresh fails
+  - Improved model display with size information and better formatting
+  - Added current value display in the settings table for better visibility
+  - Ensures Ollama model selector works correctly and shows all available models
+
 ## [0.3.5] - 2024-06-25
 ### Fixed
 - **Benchmark Element ID Error**: Fixed null reference error in benchmark functionality

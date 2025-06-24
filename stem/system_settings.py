@@ -395,33 +395,46 @@ class SystemSettingsManager:
 
     def refresh_ollama_model_options(self) -> bool:
         """
-        Fetch available Ollama models, filter to tool-enabled models, and update settings_options.
+        Fetch available Ollama models and update settings_options.
         Returns True if successful.
         """
         try:
             import ollama
             # Get all models from Ollama
             models = ollama.list().get('models', [])
-            # Get tool-enabled models from the tools table
-            conn = sqlite3.connect(self.db_path)
-            cursor = conn.cursor()
-            cursor.execute("SELECT tool_key FROM tools WHERE enabled = 1")
-            tool_keys = set(row[0] for row in cursor.fetchall())
-            # Only include models that are tool-enabled (by name match)
+            
+            # Convert all available models to options
             options = []
             for m in models:
                 model_name = m.get('name')
-                if model_name and model_name in tool_keys:
+                if model_name:
+                    # Format the label to show model name and size
+                    size = m.get('size', '')
+                    size_str = f" ({size})" if size else ""
                     options.append({
                         'option_value': model_name,
-                        'option_label': f"{model_name} ({m.get('size', '')})",
+                        'option_label': f"{model_name}{size_str}",
                         'enabled': True
                     })
-            conn.close()
+            
+            # If no models found, add a default option
+            if not options:
+                options.append({
+                    'option_value': 'gemma3-cortex:latest',
+                    'option_label': 'gemma3-cortex:latest (default)',
+                    'enabled': True
+                })
+            
             return self.set_setting_options('ollama_model', options)
         except Exception as e:
             logger.error(f"Error refreshing Ollama model options: {e}")
-            return False
+            # Add default option if refresh fails
+            default_options = [{
+                'option_value': 'gemma3-cortex:latest',
+                'option_label': 'gemma3-cortex:latest (default)',
+                'enabled': True
+            }]
+            return self.set_setting_options('ollama_model', default_options)
 
     def update_tool_status_based_on_api_keys(self) -> bool:
         """

@@ -802,11 +802,15 @@ async function loadSystemSettings() {
 
 function renderOllamaModelRow(setting) {
     // Render the dropdown and refresh button for ollama_model
+    const currentValue = setting.setting_value || 'Not set';
     return `
         <tr>
             <td><strong>${setting.setting_key}</strong></td>
             <td class="setting-value" data-setting-key="${setting.setting_key}">
-                <select id="ollamaModelDropdown" class="ollama-model-dropdown"></select>
+                <select id="ollamaModelDropdown" class="ollama-model-dropdown">
+                    <option value="">Loading...</option>
+                </select>
+                <div class="current-value-display">Current: ${currentValue}</div>
             </td>
             <td>${setting.description || ''}</td>
             <td>
@@ -822,10 +826,12 @@ async function setupOllamaModelDropdown() {
     const refreshBtn = document.getElementById('ollamaModelRefreshBtn');
     const saveBtn = document.getElementById('ollamaModelSaveBtn');
     if (!dropdown || !refreshBtn || !saveBtn) return;
+    
     // Fetch options
     const options = await fetch('/admin/settings/options/ollama_model', { credentials: 'include' })
         .then(r => r.json())
         .catch(() => []);
+    
     dropdown.innerHTML = '';
     options.forEach(opt => {
         const option = document.createElement('option');
@@ -833,22 +839,34 @@ async function setupOllamaModelDropdown() {
         option.textContent = opt.option_label;
         dropdown.appendChild(option);
     });
-    // Set current value
-    const currentValue = document.querySelector('[data-setting-key="ollama_model"]')?.textContent?.trim();
-    if (currentValue) {
+    
+    // Get current value from the setting data
+    const currentValue = await fetch('/admin/settings/ollama_model', { credentials: 'include' })
+        .then(r => r.json())
+        .then(setting => setting.setting_value)
+        .catch(() => null);
+    
+    if (currentValue && options.some(opt => opt.option_value === currentValue)) {
         dropdown.value = currentValue;
         ollamaModelPreviousValue = currentValue;
     } else if (options.length > 0) {
         dropdown.value = options[0].option_value;
         ollamaModelPreviousValue = options[0].option_value;
     }
+    
     // Refresh button
     refreshBtn.onclick = async () => {
         refreshBtn.disabled = true;
-        await fetch('/admin/settings/options/ollama_model/refresh', { method: 'POST', credentials: 'include' });
-        await setupOllamaModelDropdown();
-        refreshBtn.disabled = false;
+        try {
+            await fetch('/admin/settings/options/ollama_model/refresh', { method: 'POST', credentials: 'include' });
+            await setupOllamaModelDropdown();
+        } catch (error) {
+            snackbar.error('Failed to refresh Ollama models');
+        } finally {
+            refreshBtn.disabled = false;
+        }
     };
+    
     // Save button
     saveBtn.onclick = () => {
         const newValue = dropdown.value;
