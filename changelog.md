@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.5] - 2024-06-25
 ### Fixed
 - **Benchmark Element ID Error**: Fixed null reference error in benchmark functionality
   - Fixed element ID mismatch between `benchmark-content` and `benchmark-results`
