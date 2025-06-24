@@ -113,6 +113,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Enhanced memory system with advanced analytics and maintenance capabilities
 - Improved tool registry with new memory management tools
 - Updated system prompts to include new memory tools
+- **JavaScript File Organization**: Separated sidebar chat functionality into dedicated files
+  - Created `sidebar_chat.js` containing TatlockChat class and sidebar chat functionality
+  - Renamed `chat.js` to `conversation.js` with conversation page-specific features
+  - Updated all templates to use `sidebar_chat.js` for chat sidebar functionality
+  - Maintains proper separation of concerns: sidebar chat vs conversation page features
+  - Follows established pattern of shared functionality in dedicated files
 
 ### Fixed
 - **JavaScript Error Fix**: Fixed `initializeHashNavigation is not defined` error in conversation page
