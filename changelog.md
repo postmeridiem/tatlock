@@ -115,6 +115,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated system prompts to include new memory tools
 
 ### Fixed
+- **JavaScript Error Fix**: Fixed `initializeHashNavigation is not defined` error in conversation page
+  - Added common.js script inclusion to conversation template to ensure required functions are available
+  - Made initializeHashNavigation, showSection, and showSnackbar functions globally available in common.js
+  - Fixed ReferenceError that was occurring when debug.js tried to call initializeHashNavigation
+  - Ensures proper script loading order and function availability across all pages
 - Fixed issue where settings dropdown would not load due to missing `settings_options` table.
 - Fixed repeated errors in logs by ensuring database schema is created and migrations are applied.
 - Fixed UI bugs related to model selection and modal dialog state.
