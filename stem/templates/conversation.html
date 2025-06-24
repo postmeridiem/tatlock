@@ -2,9 +2,9 @@
 {% from 'components/navigation.html' import render_nav %}
 
 {% set show_chat_sidebar = true %}
-{% set welcome_message: 'Good day, sir. I am Tatlock, your AI assistant. Pray, what matters require my attention today?', %}
+{% set welcome_message = 'Good day, sir. I am Tatlock, your AI assistant. Pray, what matters require my attention today?' %}
 
-{% block title %}{{ app_name }} - Debug Console{% endblock %}
+{% block title %}{{ app_name }} - Conversation{% endblock %}
 
 {% block extra_css %}
 <link rel="stylesheet" href="/static/json-highlight.css">
@@ -317,8 +317,7 @@
 <script src="/static/js/chart.min.js"></script>
 <script src="/static/js/marked.min.js"></script>
 <script src="/static/js/json-highlight.js"></script>
-<script src="/static/js/common.js"></script>
 <script src="/static/js/auth.js"></script>
-<script src="/static/js/chat.js"></script>
+<script type="module" src="/static/js/chat.js"></script>
 <script src="/static/js/debug.js"></script>
 {% endblock %} 

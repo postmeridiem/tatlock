@@ -1,6 +1,8 @@
 // Shared chat functionality for Tatlock
 // This file provides chat functionality that can be used across different pages
 
+import { showSection, registerSectionLoader } from './common.js';
+
 class TatlockChat {
     constructor(options = {}) {
         // Configuration options
@@ -528,4 +530,36 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }, 100);
     }
-}); 
+});
+
+// Example for chat messages
+function loadChatMessages() {
+    const chatMessages = document.getElementById('chat-messages');
+    if (!chatMessages) return;
+    chatMessages.innerHTML = '<li class="loading">Loading messages...</li>';
+    // ... fetch and populate chat messages ...
+}
+
+// Register section loaders
+registerSectionLoader('chat-section', loadChatMessages);
+registerSectionLoader('history-section', loadChatHistory);
+registerSectionLoader('settings-section', loadChatSettings);
+
+// Navigation handler
+function handleHashNavigation() {
+    const hash = window.location.hash.substring(1);
+    const sectionIdMap = {
+        'chat': 'chat-section',
+        'history': 'history-section',
+        'settings': 'settings-section'
+    };
+    const sectionId = sectionIdMap[hash] || 'chat-section';
+    showSection(sectionId);
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    handleHashNavigation();
+    window.addEventListener('hashchange', handleHashNavigation);
+});
+
+// Repeat this pattern for any other dynamic content areas. 

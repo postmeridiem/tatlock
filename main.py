@@ -25,7 +25,7 @@ from fastapi import FastAPI, HTTPException, Depends, Request, Form, status, WebS
 from fastapi.responses import HTMLResponse, RedirectResponse, FileResponse, JSONResponse
 import uvicorn
 from cortex.agent import process_chat_interaction
-from stem.static import mount_static_files, get_chat_page, get_profile_page, get_login_page
+from stem.static import mount_static_files, get_conversation_page, get_profile_page, get_login_page
 from stem.security import get_current_user, require_admin_role, security_manager, login_user, logout_user, current_user
 from stem.models import (
     ChatRequest, ChatResponse, UserModel
@@ -182,13 +182,13 @@ app.include_router(parietal_router)
 async def read_root(request: Request):
     """
     Root endpoint that redirects to the appropriate page based on authentication status.
-    Redirects to /chat if authenticated, /login if not.
+    Redirects to /conversation if authenticated, /login if not.
     """
     try:
         # Try to get current user to check if authenticated
         current_user = get_current_user(request)
         # If we get here, user is authenticated
-        return RedirectResponse(url="/chat", status_code=302)
+        return RedirectResponse(url="/conversation", status_code=302)
     except HTTPException:
         # User is not authenticated, redirect to login with original path
         original_path = str(request.url.path)
@@ -230,10 +230,10 @@ async def chat_endpoint(request: ChatRequest, user: UserModel = Depends(get_curr
         # Re-raise as HTTPException to be caught by the handler
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.get("/chat", tags=["html"],  response_class=HTMLResponse)
-async def chat_page(request: Request, user: UserModel = Depends(get_current_user)):
+@app.get("/conversation", tags=["html"],  response_class=HTMLResponse)
+async def conversation_page(request: Request, user: UserModel = Depends(get_current_user)):
     """
-    Chat page.
+    Conversation page.
     Requires authentication via session-based authentication.
     """
     if user is None:
@@ -242,7 +242,7 @@ async def chat_page(request: Request, user: UserModel = Depends(get_current_user
             original_path += f"?{request.url.query}"
         login_url = f"/login?redirect={original_path}"
         return RedirectResponse(url=login_url, status_code=302)
-    return get_chat_page(request, user)
+    return get_conversation_page(request, user)
 
 @app.get("/profile", tags=["html"])
 async def profile_page(request: Request, user: UserModel = Depends(get_current_user)):

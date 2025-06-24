@@ -779,7 +779,7 @@ This pattern ensures that `main.py` remains clean and focused on application con
 
 ### Debug Console
 
-Access the debug console at `http://localhost:8000/chat` for:
+Access the debug console at `http://localhost:8000/conversation` for:
 - Real-time JSON logging
 - System performance monitoring
 - Tool execution tracking
@@ -957,6 +957,140 @@ def database_operation(self, param: str) -> List[Dict[str, Any]]:
 
 ### JavaScript Coding Standards
 - **library maintenance**: Keep javascript in javascript files, making sure to used shared libraries where code duplicates
+
+#### Jinja2 Template Integration Pattern
+
+**IMPORTANT**: Follow the proper Jinja2 templating pattern for dynamic content:
+
+**✅ Correct Pattern:**
+- **HTML Structure in Templates**: Keep all HTML structure, table headers, and static content in Jinja2 templates
+- **Always Present DOM**: HTML structure should always be present in the DOM, not conditionally created
+- **JavaScript for Dynamic Updates**: Use JavaScript only to populate dynamic content (table rows, form values, etc.)
+- **DOM Manipulation**: Create and append DOM elements for dynamic content instead of building HTML strings
+- **Visibility Control**: Use CSS display properties to show/hide sections, not conditional HTML creation
+
+**❌ Incorrect Pattern:**
+- Building complete HTML strings in JavaScript
+- Replacing entire container content with HTML strings
+- Mixing template logic with JavaScript HTML generation
+- Conditionally creating HTML structure based on visibility
+- Hiding sections by removing them from DOM instead of using CSS
+
+#### Template Structure Example
+
+```html
+<!-- In Jinja2 template (admin.html) - HTML structure always present -->
+<div id="users-section" class="section">
+    <div class="section-title">User Management</div>
+    <table class="user-table">
+        <thead>
+            <tr>
+                <th>Username</th>
+                <th>Email</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody id="users-table-body">
+            <!-- Dynamic content populated by JavaScript -->
+        </tbody>
+    </table>
+</div>
+
+<!-- CSS controls visibility, not JavaScript -->
+<style>
+.section { display: none; }
+.section.active { display: block; }
+</style>
+```
+
+#### JavaScript Implementation Example
+
+```javascript
+// ✅ Correct: Update only dynamic content, HTML structure always exists
+async function loadUsers() {
+    const usersTableBody = document.getElementById('users-table-body');
+    
+    try {
+        const response = await fetch('/admin/users');
+        const users = await response.json();
+        
+        // Clear existing rows
+        usersTableBody.innerHTML = '';
+        
+        // Add rows dynamically
+        users.forEach(user => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${user.username}</td>
+                <td>${user.email}</td>
+                <td>
+                    <button onclick="editUser('${user.username}')">Edit</button>
+                </td>
+            `;
+            usersTableBody.appendChild(row);
+        });
+    } catch (error) {
+        usersTableBody.innerHTML = `
+            <tr><td colspan="3">Error: ${error.message}</td></tr>
+        `;
+    }
+}
+
+// ✅ Correct: Control visibility with CSS, not DOM manipulation
+function showSection(sectionId) {
+    // Hide all sections
+    document.querySelectorAll('.section').forEach(section => {
+        section.style.display = 'none';
+    });
+    
+    // Show selected section
+    const selectedSection = document.getElementById(sectionId);
+    if (selectedSection) {
+        selectedSection.style.display = 'block';
+    }
+    
+    // Load data when section is shown
+    if (sectionId === 'users' && typeof loadUsers === 'function') {
+        loadUsers();
+    }
+}
+
+// ❌ Incorrect: Building complete HTML in JavaScript
+async function loadUsers() {
+    const container = document.getElementById('users-content');
+    let html = '<table><thead><tr><th>Username</th>...</tr></thead><tbody>';
+    // ... building complete HTML string
+    container.innerHTML = html;
+}
+```
+
+#### Benefits of This Pattern
+
+1. **Separation of Concerns**: HTML structure in templates, dynamic content in JavaScript
+2. **Always Available DOM**: HTML elements are always present, no null reference errors
+3. **Maintainability**: Easier to modify HTML structure without touching JavaScript
+4. **Performance**: More efficient DOM manipulation
+5. **Consistency**: Follows Jinja2 templating best practices
+6. **Debugging**: Clearer separation makes debugging easier
+7. **Reliability**: No timing issues with DOM element availability
+
+#### When to Use Each Approach
+
+**Use Jinja2 Templates For:**
+- Page structure and layout
+- Static content and headers
+- Form structures
+- Navigation elements
+- CSS classes and styling structure
+- **All HTML structure that should always be present**
+
+**Use JavaScript For:**
+- Populating dynamic table rows
+- Updating form values
+- Real-time data updates
+- User interactions and events
+- AJAX content loading
+- **Controlling visibility with CSS display properties**
 
 #### Class-Based Architecture
 ```javascript
@@ -1495,7 +1629,7 @@ Each user has their own isolated database containing:
 ### Critical: rise_and_shine Table Location
 **IMPORTANT**: The `rise_and_shine` table MUST be in the system database (system.db), NOT in user databases.
 
-**Purpose**: Contains Tatlock's global system prompts and instructions that all users share.
+**Purpose**: Contains Tatlock's global base system prompts and instructions that all users share.
 
 **Why system database**: 
 - All users should have the same base instructions
@@ -1503,7 +1637,17 @@ Each user has their own isolated database containing:
 - Simplifies prompt management and updates
 - Prevents user-specific prompt variations
 
-**Access**: The `get_base_instructions()` function reads from the system database.
+**Access**: The `get_base_instructions()` function reads from the system database and combines base prompts with enabled tool prompts.
+
+**Dynamic System Prompts Architecture**:
+- Base system prompts are stored in the `rise_and_shine` table
+- Tool-specific prompts are stored in the `prompts` column of the `tools` table
+- The `get_base_instructions()` function dynamically combines:
+  1. Base prompts from `rise_and_shine` table (where enabled = 1)
+  2. Tool prompts from `tools` table (where enabled = 1 and prompts IS NOT NULL)
+- This ensures the LLM only receives instructions for available tools
+- Disabled tools automatically exclude their prompts from system instructions
+- Maintains clean separation between base system behavior and tool-specific guidance
 
 **NEVER move this table to user databases** - it would break the system architecture and create inconsistencies.
 
@@ -1730,3 +1874,56 @@ except Exception as e:
 ### **Performance Considerations**
 - Use `logger.isEnabledFor(logging.DEBUG)` for expensive debug operations
 - Avoid string formatting in debug calls that might not be logged
+```
+
+### Preferred Dynamic Content Rendering Pattern (All Authenticated/Admin Pages)
+
+- **Always render the static HTML frame** (all containers, sections, and bounding elements) in the Jinja2 template. This includes all page structure, navigation, section wrappers, and content containers.
+- **Never remove or replace the frame, section, or container in JavaScript.**
+- **Only update the dynamic content area** (e.g., `<tbody>`, `<ul>`, `.card-list`, etc.) for loading, error, and data states.
+- **Always provide a loader pattern** (e.g., a loading row, spinner, or message) inside the dynamic content container, not by replacing the frame or section.
+- **Defensive coding:** Always check for the dynamic content element in JS before updating.
+- **This pattern is required for all password/authenticated pages and admin pages.**
+
+#### Example (Jinja2 Template - Table):
+```html
+<table>
+  <thead>...</thead>
+  <tbody id="users-table-body">
+    <tr><td colspan="7" class="loading">Loading users...</td></tr>
+  </tbody>
+</table>
+```
+
+#### Example (Jinja2 Template - List):
+```html
+<div class="card-list-container">
+  <ul id="user-list">
+    <li class="loading">Loading users...</li>
+  </ul>
+</div>
+```
+
+#### Example (JavaScript):
+```javascript
+// For tables
+const usersTableBody = document.getElementById('users-table-body');
+if (!usersTableBody) return;
+usersTableBody.innerHTML = '<tr><td colspan="7" class="loading">Loading users...</td></tr>';
+// ... fetch and populate rows ...
+
+// For lists
+const userList = document.getElementById('user-list');
+if (!userList) return;
+userList.innerHTML = '<li class="loading">Loading users...</li>';
+// ... fetch and populate list items ...
+```
+
+- Never update or replace the frame, section, or container HTML in JS.
+- Only update the dynamic content area (e.g., `<tbody>`, `<ul>`, etc.).
+- Always show loading and error states inside the dynamic content area.
+- This ensures the DOM is always consistent and prevents null reference errors.
+
+**This pattern applies to all dynamic content, not just tables.**
+
+Update the JavaScript Coding Standards and Jinja2 Template Integration Pattern sections to reflect this as the required approach for all authenticated/admin pages.

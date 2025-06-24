@@ -82,7 +82,7 @@ class WebsiteTester:
             {'path': '/login', 'name': 'login_page'},
             {'path': '/profile', 'name': 'profile_page'},
             {'path': '/admin', 'name': 'admin_page'},
-            {'path': '/chat', 'name': 'debug_console'},
+            {'path': '/conversation', 'name': 'conversation'},
         ]
     
     async def start_browser(self):
@@ -277,7 +277,7 @@ class WebsiteTester:
                     
                     # Test chat page navigation
                     screenshot_path = await self.capture_component_screenshot(
-                        '/chat', '.chat-sidepane', f'nav_chat_{viewport}', viewport
+                        '/conversation', '.chat-sidepane', f'nav_chat_{viewport}', viewport
                     )
                     results[f'chat_nav_{viewport}'] = screenshot_path
                     

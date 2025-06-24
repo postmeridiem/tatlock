@@ -825,6 +825,15 @@ if [ -f ".env" ]; then
                 echo "- HOSTNAME: $current_hostname → $hostname_input"
                 echo "- PORT: $current_port → $port_input"
                 echo "- ALLOWED_ORIGINS updated to match new configuration"
+                
+                # Update system settings database
+                if PYTHONPATH="$PROJECT_ROOT" $PYTHON_CMD -c "
+from stem.installation.database_setup import migrate_env_to_settings
+migrate_env_to_settings('hippocampus/system.db', '$hostname_input', '$port_input')
+print('System settings updated from .env file')
+"; then
+                    echo "- System settings database updated"
+                fi
             else
                 echo ""
                 echo "No changes made to server configuration."
@@ -870,18 +879,8 @@ OPENWEATHER_API_KEY=your_openweather_api_key_here
 GOOGLE_API_KEY=your_google_api_key_here
 GOOGLE_CSE_ID=your_google_cse_id_here
 
-# LLM Configuration
-OLLAMA_MODEL=gemma3-cortex:latest
-
 # Database Configuration
 DATABASE_ROOT=hippocampus/
-
-# Server Configuration
-HOSTNAME=$hostname_input
-PORT=$port_input
-
-# Security Configuration
-ALLOWED_ORIGINS=http://$hostname_input:$port_input
 
 # Security
 STARLETTE_SECRET=$STARLETTE_SECRET
@@ -890,7 +889,20 @@ EOF
     echo "- .env file created in root directory"
     echo "- STARLETTE_SECRET generated automatically"
     echo "- Server configured to run on $hostname_input:$port_input"
-    echo "- Please update OPENWEATHER_API_KEY, GOOGLE_API_KEY, and GOOGLE_CSE_ID with your actual API keys"
+    echo "- API keys can be configured through the admin interface after login"
+    
+    # Update system settings database with the new configuration
+    echo ""
+    echo -e "${BLUE}Updating system settings database...${NC}"
+    if PYTHONPATH="$PROJECT_ROOT" $PYTHON_CMD -c "
+from stem.installation.database_setup import migrate_env_to_settings
+migrate_env_to_settings('hippocampus/system.db', '$hostname_input', '$port_input')
+print('System settings database updated with new configuration')
+"; then
+        echo "- System settings database updated with new configuration"
+    else
+        echo "- Warning: Could not update system settings database"
+    fi
 else
     echo "- Using existing .env file"
 fi
@@ -1281,7 +1293,7 @@ echo -e "  ${GREEN}[✓]${NC} Default roles, groups, and system prompts are conf
 echo -e "${CYAN}──────────────────────────────────────────────────────────────────────────────────${NC}"
 echo ""
 
-echo -e "${BOLD}${YELLOW}IMPORTANT:${NC} Please update the API keys in your .env file before running the application:"
+echo -e "${BOLD}${YELLOW}IMPORTANT:${NC} Please configure your API keys through the admin interface after logging in:"
 echo -e "${CYAN}──────────────────────────────────────────────────────────────────────────────────${NC}"
 echo -e "  ${YELLOW}•${NC} OPENWEATHER_API_KEY: Get from https://openweathermap.org/api"
 echo -e "  ${YELLOW}•${NC} GOOGLE_API_KEY: Get from https://console.cloud.google.com/"

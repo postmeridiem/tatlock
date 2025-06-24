@@ -7,8 +7,8 @@
     
     <nav class="nav">
         {% if is_authenticated %}
-            <a href="/chat" class="nav-link">
-                Debug
+            <a href="/conversation" class="nav-link">
+                Conversation
             </a>
             {% if user and 'admin' in user.roles %}
                 <a href="/admin/dashboard" class="nav-link">

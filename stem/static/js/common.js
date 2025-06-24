@@ -18,34 +18,31 @@ function togglePassword(inputId) {
     }
 }
 
-// Show/hide sections in pages with multiple sections (admin dashboard, chat, etc.)
-function showSection(sectionId) {
+// Shared section switching utility for all authenticated/admin pages
+// Usage:
+//   registerSectionLoader('users', loadUsers);
+//   showSection('users');
+//   (Call showSection on navigation, hash change, etc.)
+
+const sectionLoaders = {};
+
+export function registerSectionLoader(sectionId, loaderFn) {
+    sectionLoaders[sectionId] = loaderFn;
+}
+
+export function showSection(sectionId) {
     // Hide all sections
     document.querySelectorAll('.section').forEach(section => {
         section.style.display = 'none';
     });
-    
-    // Show the selected section
-    const selectedSection = document.getElementById(sectionId);
-    if (selectedSection) {
-        selectedSection.style.display = 'block';
-    }
-    
-    // Update active class on nav items
-    document.querySelectorAll('.nav-item').forEach(item => {
-        if (item.getAttribute('href') === `#${sectionId}`) {
-            item.classList.add('active');
-        } else {
-            item.classList.remove('active');
+    // Show the requested section
+    const section = document.getElementById(sectionId);
+    if (section) {
+        section.style.display = '';
+        // Call the loader if registered
+        if (sectionLoaders[sectionId]) {
+            sectionLoaders[sectionId]();
         }
-    });
-
-    // Update the URL hash. The browser's default action is now sufficient,
-    // but this ensures it works if the default is ever prevented.
-    if(history.pushState) {
-        history.pushState(null, null, '#' + sectionId);
-    } else {
-        location.hash = '#' + sectionId;
     }
 }
 

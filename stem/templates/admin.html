@@ -2,7 +2,7 @@
 {% from 'components/navigation.html' import render_nav %}
 
 {% set show_chat_sidebar = true %}
-{% set welcome_message = "I'm here to help you manage Tatlock. Ask me about user management, system administration, or any administrative tasks." %}
+{% set welcome_message = "Good day, sir. I am Tatlock, your AI assistant. Pray, what matters require my attention today?" %}
 
 {% block title %}{{ app_name }} - Admin Dashboard{% endblock %}
 
@@ -15,7 +15,8 @@
     {'id': 'stats', 'text': 'Dashboard', 'active': True},
     {'id': 'users', 'text': 'User Management'},
     {'id': 'roles-section', 'text': 'Roles'},
-    {'id': 'groups-section', 'text': 'Groups'}
+    {'id': 'groups-section', 'text': 'Groups'},
+    {'id': 'settings-section', 'text': 'System Settings'}
 ] %}
 {{ render_nav('Admin', nav_items) }}
 
@@ -50,6 +51,28 @@
         <div class="section-title">Groups</div>
         <div id="groups-content">
             <div class="loading">Loading groups...</div>
+        </div>
+    </div>
+
+    <!-- System Settings Section -->
+    <div id="settings-section" class="section" style="display: none;">
+        <div class="section-title">System Settings</div>
+        <div class="settings-container">
+            <div class="settings-categories">
+                <div class="loading">Loading settings...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Ollama Model Removal Modal -->
+    <div id="ollamaRemoveModal" class="modal">
+        <div class="modal-content">
+            <h2>Remove Previous Model?</h2>
+            <p id="ollamaRemoveModalText">Do you want to remove the previous Ollama model from disk to save space?</p>
+            <div class="modal-buttons">
+                <button type="button" class="cancel-btn" onclick="closeOllamaRemoveModal()">Keep</button>
+                <button type="button" class="save-btn" onclick="confirmOllamaRemoveModal()">Remove</button>
+            </div>
         </div>
     </div>
 
@@ -165,8 +188,6 @@
 {% endblock %}
 
 {% block scripts %}
-<script src="/static/js/common.js"></script>
 <script src="/static/js/auth.js"></script>
-<script src="/static/js/chat.js"></script>
-<script src="/static/js/admin.js"></script>
+<script type="module" src="/static/js/admin.js"></script>
 {% endblock %} 

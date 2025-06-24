@@ -234,9 +234,9 @@ Database setup and initialization utilities:
 - `POST /login` - Authenticate user
 - `GET /logout` - Logout user
 
-### **Chat Endpoints**
-- `GET /chat` - Debug console page
-- `POST /chat` - Process chat messages
+### **Conversation Endpoints**
+- `GET /conversation` - Conversation page
+- `POST /cortex` - Process conversation messages
 
 ## 🧪 **Testing**
 

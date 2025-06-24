@@ -40,7 +40,7 @@ Tatlock is a modular, brain-inspired conversational AI platform with built-in au
    - **Login Page**: `http://localhost:8000/login`
    - **Admin Dashboard**: `http://localhost:8000/admin/dashboard`
    - **User Profile**: `http://localhost:8000/profile`
-   - **Debug Console**: `http://localhost:8000/chat`
+   - **Conversation**: `http://localhost:8000/conversation`
    - **API Documentation**: `http://localhost:8000/docs`
 
    **Default Admin Credentials**: `admin` / `admin123` (change after first login)

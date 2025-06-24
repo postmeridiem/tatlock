@@ -38,6 +38,7 @@
                 <a href="#users" class="nav-item" onclick="showSection('users')">User Management</a>
                 <a href="#roles" class="nav-item" onclick="showSection('roles-section')">Roles</a>
                 <a href="#groups" class="nav-item" onclick="showSection('groups-section')">Groups</a>
+                <a href="#tools" class="nav-item" onclick="showSection('tools-section')">Tools</a>
             </div>
         </div>
         
@@ -51,27 +52,87 @@
             </div>
             
             <!-- Users Section -->
-            <div id="users" class="section" style="display: none;">
+            <div id="users" class="section">
                 <div class="section-title">User Management</div>
                 <button class="add-btn" onclick="showUserModal()">Add New User</button>
                 <div id="users-content">
-                    <div class="loading">Loading users...</div>
+                    <table class="user-table">
+                        <thead>
+                            <tr>
+                                <th>Username</th>
+                                <th>First Name</th>
+                                <th>Last Name</th>
+                                <th>Email</th>
+                                <th>Roles</th>
+                                <th>Groups</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="users-table-body">
+                            <tr><td colspan="7" class="loading">Loading users...</td></tr>
+                        </tbody>
+                    </table>
                 </div>
             </div>
             
             <!-- Roles Section -->
-            <div id="roles-section" class="section" style="display: none;">
+            <div id="roles-section" class="section">
                 <div class="section-title">Roles</div>
                 <div id="roles-content">
-                    <div class="loading">Loading roles...</div>
+                    <div class="add-btn-container"><button class="add-btn" onclick="showRoleModal()">Add New Role</button></div>
+                    <table class="user-table">
+                        <thead>
+                            <tr>
+                                <th>Role Name</th>
+                                <th>Description</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="roles-table-body">
+                            <tr><td colspan="3" class="loading">Loading roles...</td></tr>
+                        </tbody>
+                    </table>
                 </div>
             </div>
             
             <!-- Groups Section -->
-            <div id="groups-section" class="section" style="display: none;">
+            <div id="groups-section" class="section">
                 <div class="section-title">Groups</div>
                 <div id="groups-content">
-                    <div class="loading">Loading groups...</div>
+                    <div class="add-btn-container"><button class="add-btn" onclick="showGroupModal()">Add New Group</button></div>
+                    <table class="user-table">
+                        <thead>
+                            <tr>
+                                <th>Group Name</th>
+                                <th>Description</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="groups-table-body">
+                            <tr><td colspan="3" class="loading">Loading groups...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <!-- Tools Section -->
+            <div id="tools-section" class="section">
+                <div class="section-title">Tools Management</div>
+                <div id="tools-content">
+                    <table class="user-table">
+                        <thead>
+                            <tr>
+                                <th>Tool</th>
+                                <th>Description</th>
+                                <th>Module</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tools-table-body">
+                            <tr><td colspan="5" class="loading">Loading tools...</td></tr>
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>
@@ -170,6 +231,48 @@
                     <button type="submit" class="save-btn">Save</button>
                 </div>
             </form>
+        </div>
+    </div>
+    
+    <!-- Tool Details Modal -->
+    <div id="toolModal" class="modal">
+        <div class="modal-content">
+            <h2 id="toolModalTitle">Tool Details</h2>
+            <div id="toolModalContent">
+                <div class="tool-info">
+                    <div class="form-group">
+                        <label>Tool Key</label>
+                        <div id="toolKey" class="info-value"></div>
+                    </div>
+                    <div class="form-group">
+                        <label>Description</label>
+                        <div id="toolDescription" class="info-value"></div>
+                    </div>
+                    <div class="form-group">
+                        <label>Module</label>
+                        <div id="toolModule" class="info-value"></div>
+                    </div>
+                    <div class="form-group">
+                        <label>Function Name</label>
+                        <div id="toolFunctionName" class="info-value"></div>
+                    </div>
+                    <div class="form-group">
+                        <label>Status</label>
+                        <div id="toolStatus" class="info-value"></div>
+                    </div>
+                    <div class="form-group">
+                        <label>System Prompts</label>
+                        <div id="toolPrompts" class="info-value"></div>
+                    </div>
+                    <div class="form-group">
+                        <label>Parameters</label>
+                        <div id="toolParameters" class="info-value"></div>
+                    </div>
+                </div>
+                <div class="modal-buttons">
+                    <button type="button" class="cancel-btn" onclick="closeToolModal()">Close</button>
+                </div>
+            </div>
         </div>
     </div>
     

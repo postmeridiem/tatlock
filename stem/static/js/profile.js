@@ -4,6 +4,30 @@
 let currentSection = 'profile';
 let isEditing = false;
 
+import { showSection, registerSectionLoader } from './common.js';
+
+// Register section loaders
+registerSectionLoader('activity-section', loadActivityList);
+registerSectionLoader('info-section', loadProfileInfo);
+registerSectionLoader('settings-section', loadProfileSettings);
+
+// Navigation handler
+function handleHashNavigation() {
+    const hash = window.location.hash.substring(1);
+    const sectionIdMap = {
+        'activity': 'activity-section',
+        'info': 'info-section',
+        'settings': 'settings-section'
+    };
+    const sectionId = sectionIdMap[hash] || 'activity-section';
+    showSection(sectionId);
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    handleHashNavigation();
+    window.addEventListener('hashchange', handleHashNavigation);
+});
+
 function showProfileSection(sectionId) {
     // Hide all sections
     document.querySelectorAll('.section').forEach(section => {
@@ -263,23 +287,6 @@ function initializeProfile() {
         placeholder: 'Ask Tatlock...'
     });
 }
-
-// Main initialization
-document.addEventListener('DOMContentLoaded', () => {
-    // Initialize chat with profile-specific settings
-    new TatlockChat({
-        chatInput: document.getElementById('sidepane-input'),
-        chatSendBtn: document.getElementById('sidepane-send-btn'),
-        chatMessages: document.getElementById('sidepane-messages'),
-        chatMicBtn: document.getElementById('sidepane-mic-btn'),
-        sidebarTitle: 'Profile Assistant',
-        welcomeMessage: 'How can I assist you with your profile settings today?',
-        placeholder: 'Ask Tatlock...'
-    });
-
-    initializeProfile();
-    initializeHashNavigation('profile');
-});
 
 function setupPasswordEventListeners() {
     // Password form submission
@@ -543,4 +550,13 @@ async function purgeAllMemories() {
 
 // Chat functionality - now handled by shared chat.js
 // The chat functionality has been moved to stem/static/js/chat.js
-// and is initialized above with logging disabled 
+// and is initialized above with logging disabled
+
+// Example for activity list
+function loadActivityList() {
+    const activityList = document.getElementById('activity-list');
+    if (!activityList) return;
+    activityList.innerHTML = '<li class="loading">Loading activity...</li>';
+    // ... fetch and populate activity items ...
+}
+// Repeat this pattern for any other dynamic content areas. 

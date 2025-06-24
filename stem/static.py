@@ -27,10 +27,10 @@ def get_login_page(request: Request) -> HTMLResponse:
     context = get_common_context(request)
     return render_page("login.html", context)
 
-def get_chat_page(request: Request, user: UserModel) -> HTMLResponse:
-    """Get the chat interface HTML page using Jinja2 templating."""
+def get_conversation_page(request: Request, user: UserModel) -> HTMLResponse:
+    """Get the conversation interface HTML page using Jinja2 templating."""
     context = get_common_context(request, user)
-    return render_page("chat.html", context)
+    return render_page("conversation.html", context)
 
 def get_profile_page(request: Request, user: UserModel) -> HTMLResponse:
     """Get the user profile HTML page using Jinja2 templating."""

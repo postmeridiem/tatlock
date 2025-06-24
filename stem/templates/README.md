@@ -1,197 +1,284 @@
-# Jinja2 Templating System
+# Jinja2 Templates Documentation
 
-This directory contains the Jinja2 templates for Tatlock's HTML pages. The templating system provides server-side rendering with shared components and layouts.
+This directory contains all Jinja2 templates for Tatlock's web interface. These templates follow specific patterns for maintainability, performance, and consistency.
 
-## Structure
+## Template Structure
 
-```
-templates/
-├── base.html                 # Base layout template
-├── login.html               # Login page template
-├── chat.html                # Debug console template
-├── profile.html             # User profile template
-├── admin.html               # Admin dashboard template
-├── components/              # Reusable components
-│   ├── header.html          # Page header component
-│   ├── footer.html          # Page footer component
-│   ├── chat_sidebar.html    # Chat sidebar component
-│   ├── navigation.html      # Sidebar navigation component
-│   ├── modal.html           # Modal dialog component
-│   ├── form.html            # Form component
-│   └── snackbar.html        # Notification component
-└── README.md               # This file
-```
+### Base Template
+- **`base.html`**: The foundation template that all other templates extend
+- Provides common layout, header, navigation, and footer
+- Defines blocks for content injection: `content`, `title`, `extra_css`, `page_styles`
 
-## Backend Integration
+### Page Templates
+- **`login.html`**: Authentication page
+- **`chat.html`**: Debug console and chat interface
+- **`profile.html`**: User profile management
+- **`admin.html`**: Admin dashboard
 
-The templating system is managed by `stem/htmlcontroller.py` which provides:
+### Components
+- **`components/`**: Reusable UI components
+  - **`header.html`**: Page header component
+  - **`navigation.html`**: Sidebar navigation
+  - **`modal.html`**: Modal dialog component
+  - **`form.html`**: Form component
+  - **`snackbar.html`**: Notification component
+  - **`chat_sidebar.html`**: Chat sidebar component
 
-- **TemplateManager**: Jinja2 environment and template rendering
-- **render_template()**: Render template as string
-- **render_page()**: Render template as HTMLResponse
-- **get_common_context()**: Generate common template variables
+## Jinja2 Template Integration Pattern
 
-## Base Layout
+### Core Principle
+**Keep HTML structure in templates, use JavaScript only for dynamic content updates.**
 
-The `base.html` template provides the foundation for all pages:
+### Template Structure Pattern
 
-- **Meta tags**: Viewport, theme, favicon, etc.
-- **Stylesheets**: Material Icons, main CSS, page-specific CSS
-- **Header**: Navigation bar (conditionally shown)
-- **Main content**: Page-specific content area
-- **Chat sidebar**: AI assistant (conditionally shown)
-- **Footer**: Page footer (conditionally shown)
-- **Scripts**: Common JS, page-specific JS
-
-### Template Variables
-
-The base layout uses these context variables:
-
-- `app_name`: Application name (default: "Tatlock")
-- `app_version`: Application version (default: "3.0.0")
-- `user`: Current user data (if authenticated)
-- `is_authenticated`: Whether user is logged in
-- `is_admin`: Whether user has admin role
-- `hide_header`: Skip header (for login page)
-- `hide_footer`: Skip footer (for login page)
-- `show_chat_sidebar`: Include chat sidebar
-- `welcome_message`: Chat sidebar welcome message
-
-## Page Templates
-
-### Login Page (`login.html`)
-- Extends base layout
-- Hides header and footer
-- Contains login form with validation
-- Redirects to chat page on success
-
-### Chat Page (`chat.html`)
-- Debug console interface
-- Includes chat sidebar with debug-specific welcome message
-- Mobile-responsive design
-- Real-time JSON logging
-
-### Profile Page (`profile.html`)
-- User profile management
-- Includes chat sidebar with formal welcome message
-- Profile editing and password change forms
-
-### Admin Page (`admin.html`)
-- Admin dashboard
-- Includes chat sidebar with admin-specific welcome message
-- User, role, and group management
-- System statistics
-
-## Shared Components
-
-### Header Component (`components/header.html`)
-- Application logo and title
-- Navigation links (Profile, Admin, Debug)
-- User dropdown with logout
-- Responsive design
-
-### Footer Component (`components/footer.html`)
-- Copyright information
-- User info (if authenticated)
-- Links to API docs and debug console
-
-### Chat Sidebar Component (`components/chat_sidebar.html`)
-- AI assistant interface
-- Message history
-- Voice input support
-- Configurable welcome message
-
-### Navigation Component (`components/navigation.html`)
-- Sidebar navigation menu
-- Dynamic navigation items
-- Active state highlighting
-
-### Modal Component (`components/modal.html`)
-- Reusable modal dialogs
-- Dynamic form fields
-- Password fields with toggle
-- Cancel/Save buttons
-
-### Form Component (`components/form.html`)
-- Reusable form layouts
-- Dynamic field types
-- Validation support
-- Help text
-
-### Snackbar Component (`components/snackbar.html`)
-- Notification container
-- Used by JavaScript for user feedback
-
-## Usage
-
-### Rendering Templates
-
-```python
-from stem.htmlcontroller import render_template, render_page, get_common_context
-
-# Get common context
-context = get_common_context(request, user)
-
-# Render template as string
-html = render_template('login.html', context)
-
-# Render template as HTMLResponse
-response = render_page('login.html', context)
+```html
+<!-- ✅ Correct: HTML structure in template -->
+<div id="data-section" class="section">
+    <div class="section-title">Data Management</div>
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Value</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody id="data-table-body">
+            <!-- Dynamic content populated by JavaScript -->
+        </tbody>
+    </table>
+</div>
 ```
 
-### Template Context
+### JavaScript Implementation Pattern
+
+```javascript
+// ✅ Correct: Update only dynamic content
+async function loadData() {
+    const tableBody = document.getElementById('data-table-body');
+    
+    try {
+        const response = await fetch('/api/data');
+        const data = await response.json();
+        
+        // Clear existing rows
+        tableBody.innerHTML = '';
+        
+        // Add rows dynamically
+        data.forEach(item => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${item.name}</td>
+                <td>${item.value}</td>
+                <td>
+                    <button onclick="editItem('${item.id}')">Edit</button>
+                </td>
+            `;
+            tableBody.appendChild(row);
+        });
+    } catch (error) {
+        tableBody.innerHTML = `
+            <tr><td colspan="3">Error: ${error.message}</td></tr>
+        `;
+    }
+}
+```
+
+### What Goes Where
+
+#### In Jinja2 Templates (Static Structure)
+- Page layout and structure
+- Table headers and column definitions
+- Form structures and field labels
+- Navigation elements
+- CSS classes and styling structure
+- Modal containers and static content
+- Error message placeholders
+
+#### In JavaScript (Dynamic Content)
+- Table row data population
+- Form value updates
+- Real-time data updates
+- User interaction responses
+- AJAX content loading
+- Dynamic element creation
+
+## Template Variables
+
+### Common Context Variables
+All templates receive these variables from the backend:
 
 ```python
 context = {
-    'user': user_data,
     'app_name': 'Tatlock',
     'app_version': '3.0.0',
-    'is_authenticated': True,
-    'is_admin': False,
-    'show_chat_sidebar': True,
+    'user': user_data,  # Current user information
+    'is_authenticated': True/False,
+    'is_admin': True/False,
+    'hide_header': False,  # Skip header (login page)
+    'hide_footer': False,  # Skip footer
+    'show_chat_sidebar': True/False,
     'welcome_message': 'Custom welcome message'
 }
 ```
 
-### Including Components
+### Setting Template Variables
+Use `{% set variable = value %}` for page-specific variables:
 
 ```html
-<!-- Include component with context -->
-{% include 'components/header.html' %}
-
-<!-- Include component with custom context -->
-{% with custom_var='value' %}
-    {% include 'components/modal.html' %}
-{% endwith %}
+{% extends "base.html" %}
+{% set show_chat_sidebar = true %}
+{% set welcome_message = 'Good day, sir. I am Tatlock, your AI assistant.' %}
 ```
 
-## Benefits
+## Template Inheritance
 
-1. **Server-side Rendering**: True server-side includes, not client-side string replacement
-2. **Shared Components**: Reusable UI components across pages
-3. **Consistent Layout**: Base template ensures consistent structure
-4. **Dynamic Content**: Context variables for personalized content
-5. **Maintainable**: Centralized template management
-6. **Type Safety**: Template variables are properly typed
-7. **Performance**: Templates are compiled and cached
+### Extending Base Template
+```html
+{% extends "base.html" %}
 
-## Migration from Static HTML
+{% block title %}Page Title{% endblock %}
 
-The old static HTML files in `stem/static/` have been replaced with Jinja2 templates:
+{% block content %}
+    <!-- Page-specific content -->
+{% endblock %}
 
-- `login.html` → `templates/login.html`
-- `chat.html` → `templates/chat.html`
-- `profile.html` → `templates/profile.html`
-- `admin.html` → `templates/admin.html`
-- `chat-sidebar.html` → `templates/components/chat_sidebar.html`
+{% block extra_css %}
+    <!-- Additional CSS for this page -->
+{% endblock %}
+```
 
-The `stem/static.py` module has been updated to use the new templating system via `stem/htmlcontroller.py`.
+### Including Components
+```html
+{% from 'components/navigation.html' import render_nav %}
+{% from 'components/modal.html' import render_modal %}
 
-## Future Enhancements
+<!-- Use components -->
+{{ render_nav(nav_items) }}
+{{ render_modal('userModal', 'User Details') }}
+```
 
-- **Template Inheritance**: More granular template inheritance
-- **Custom Filters**: Jinja2 filters for common operations
-- **Template Caching**: Compile-time template optimization
-- **Component Library**: More reusable UI components
-- **Theme Support**: Dynamic theme switching
-- **Internationalization**: Multi-language support 
+## Best Practices
+
+### 1. Template Organization
+- Keep templates focused and single-purpose
+- Use components for reusable UI elements
+- Maintain consistent naming conventions
+
+### 2. Variable Usage
+- Always check for variable existence: `{{ user.name if user else 'Guest' }}`
+- Use safe navigation: `{{ user.get('name', 'Unknown') }}`
+- Provide fallbacks for optional data
+
+### 3. JavaScript Integration
+- Use data attributes for JavaScript hooks: `data-user-id="{{ user.id }}"`
+- Keep event handlers in JavaScript files, not templates
+- Use consistent ID naming: `{section}-{element}-{type}`
+
+### 4. Error Handling
+- Provide meaningful error messages in templates
+- Use try-catch blocks in JavaScript for dynamic content
+- Show loading states for async operations
+
+### 5. Performance
+- Minimize template logic and calculations
+- Use efficient DOM manipulation in JavaScript
+- Cache frequently accessed elements
+
+## Common Patterns
+
+### Modal Pattern
+```html
+<!-- Template: Modal container -->
+<div id="userModal" class="modal">
+    <div class="modal-content">
+        <h2 id="modalTitle">User Details</h2>
+        <form id="userForm">
+            <!-- Form fields -->
+        </form>
+    </div>
+</div>
+```
+
+```javascript
+// JavaScript: Modal control
+function showUserModal(userId = null) {
+    const modal = document.getElementById('userModal');
+    modal.style.display = 'block';
+    
+    if (userId) {
+        loadUserData(userId);
+    }
+}
+```
+
+### Table Pattern
+```html
+<!-- Template: Table structure -->
+<table class="data-table">
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody id="data-table-body">
+        <!-- Dynamic rows -->
+    </tbody>
+</table>
+```
+
+```javascript
+// JavaScript: Row population
+function populateTable(data) {
+    const tbody = document.getElementById('data-table-body');
+    tbody.innerHTML = '';
+    
+    data.forEach(item => {
+        const row = document.createElement('tr');
+        row.innerHTML = `<td>${item.name}</td><td>...</td>`;
+        tbody.appendChild(row);
+    });
+}
+```
+
+## Debugging Templates
+
+### Common Issues
+1. **Syntax Errors**: Check Jinja2 syntax with proper `{% %}` and `{{ }}`
+2. **Missing Variables**: Ensure all template variables are provided in context
+3. **JavaScript Errors**: Check browser console for JavaScript issues
+4. **CSS Issues**: Verify CSS classes and styling
+
+### Debugging Tools
+- Browser developer tools for JavaScript debugging
+- Template syntax highlighting in your editor
+- Jinja2 template testing with sample data
+
+## Security Considerations
+
+### Template Security
+- Always escape user input: `{{ user_input|escape }}`
+- Use safe filters for HTML content: `{{ content|safe }}`
+- Validate all template variables from backend
+
+### JavaScript Security
+- Sanitize data before inserting into DOM
+- Use parameterized queries for database operations
+- Validate all user inputs on both client and server
+
+## Maintenance
+
+### Template Updates
+1. Test templates with various data scenarios
+2. Update documentation when adding new patterns
+3. Maintain consistency across all templates
+4. Review and refactor complex template logic
+
+### Performance Monitoring
+- Monitor template rendering times
+- Optimize database queries that feed templates
+- Cache static template content where appropriate
+- Minimize JavaScript bundle size
+
+This documentation should be updated whenever new patterns are introduced or existing patterns are modified. 

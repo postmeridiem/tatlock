@@ -2248,3 +2248,232 @@ table tr:last-child td, .user-table tr:last-child td {
     background-color: var(--bg-secondary);
 }
 
+/* System Settings Styles */
+.settings-container {
+    padding: 20px 0;
+}
+
+.settings-category {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    margin-bottom: 20px;
+    overflow: hidden;
+    box-shadow: var(--shadow-light);
+}
+
+.category-title {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+    padding: 15px 20px;
+    margin: 0;
+    font-size: 1.2em;
+    font-weight: 600;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.category-description {
+    background: var(--bg-tertiary);
+    color: var(--text-secondary);
+    padding: 0 20px 15px 20px;
+    margin: 0;
+    font-size: 0.9em;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.settings-table-container {
+    overflow-x: auto;
+}
+
+.settings-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--bg-secondary);
+}
+
+.settings-table th {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+    padding: 12px 15px;
+    text-align: left;
+    font-weight: 600;
+    border-bottom: 2px solid var(--border-color);
+}
+
+.settings-table td {
+    padding: 12px 15px;
+    border-bottom: 1px solid var(--border-color);
+    color: var(--text-primary);
+}
+
+.settings-table tr:hover {
+    background: var(--bg-tertiary);
+}
+
+.settings-table .setting-value {
+    font-family: 'Courier New', monospace;
+    background: var(--bg-tertiary);
+    padding: 4px 8px;
+    border-radius: 4px;
+    border: 1px solid var(--border-color);
+    color: var(--text-secondary);
+}
+
+.settings-table .setting-value:empty::before {
+    content: 'Not set';
+    color: var(--text-muted);
+    font-style: italic;
+}
+
+/* Responsive design for settings */
+@media (max-width: 768px) {
+    .settings-table {
+        font-size: 0.9em;
+    }
+    
+    .settings-table th,
+    .settings-table td {
+        padding: 8px 10px;
+    }
+    
+    .category-title {
+        padding: 12px 15px;
+        font-size: 1.1em;
+    }
+    
+    .category-description {
+        padding: 0 15px 12px 15px;
+    }
+}
+
+@media (max-width: 480px) {
+    .settings-table {
+        font-size: 0.8em;
+    }
+    
+    .settings-table th,
+    .settings-table td {
+        padding: 6px 4px;
+    }
+    
+    .settings-table th:nth-child(3),
+    .settings-table td:nth-child(3) {
+        display: none;
+    }
+}
+
+/* Tools Management Styles */
+.status-badge {
+    display: inline-block;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 0.8em;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.status-enabled {
+    background-color: var(--success-color);
+    color: white;
+}
+
+.status-disabled {
+    background-color: var(--text-muted);
+    color: var(--bg-secondary);
+}
+
+.enable-btn {
+    background-color: var(--success-color);
+    color: white;
+}
+
+.enable-btn:hover {
+    background-color: #45a049;
+}
+
+.disable-btn {
+    background-color: var(--error-color);
+    color: white;
+}
+
+.disable-btn:hover {
+    background-color: #da190b;
+}
+
+.view-btn {
+    background-color: var(--accent-color);
+    color: white;
+}
+
+.view-btn:hover {
+    background-color: var(--accent-hover);
+}
+
+/* Tool Info Modal Styles */
+.tool-info {
+    margin-bottom: 20px;
+}
+
+.info-value {
+    background-color: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    padding: 8px 12px;
+    margin-top: 4px;
+    font-family: 'Courier New', monospace;
+    font-size: 0.9em;
+    white-space: pre-wrap;
+    word-break: break-word;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.info-value:empty::before {
+    content: "No data available";
+    color: var(--text-muted);
+    font-style: italic;
+}
+
+/* Tool Parameters Display */
+.tool-parameters {
+    background-color: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    padding: 12px;
+    margin-top: 8px;
+}
+
+.parameter-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 4px 0;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.parameter-item:last-child {
+    border-bottom: none;
+}
+
+.parameter-name {
+    font-weight: 500;
+    color: var(--accent-color);
+}
+
+.parameter-type {
+    color: var(--text-muted);
+    font-size: 0.8em;
+}
+
+.parameter-required {
+    color: var(--error-color);
+    font-weight: bold;
+}
+
+.parameter-description {
+    color: var(--text-secondary);
+    font-size: 0.9em;
+    margin-top: 2px;
+}
+

@@ -149,4 +149,56 @@ class UserModel(BaseModel):
     created_at: str
     updated_at: str | None = None
     roles: List[str] = Field(default_factory=list, description="User roles")
-    groups: List[str] = Field(default_factory=list, description="User groups") 
+    groups: List[str] = Field(default_factory=list, description="User groups")
+
+# System Settings Models
+class SystemSettingResponse(BaseModel):
+    """
+    Response model for system setting information.
+    """
+    setting_key: str
+    setting_value: str
+    setting_type: str
+    description: str | None
+    is_sensitive: bool
+    created_at: str
+    updated_at: str
+    category_name: str | None
+    category_display_name: str | None
+    category_description: str | None
+    sort_order: int | None
+
+class UpdateSystemSettingRequest(BaseModel):
+    """
+    Request model for updating a system setting.
+    """
+    setting_value: str = Field(..., description="New setting value")
+    remove_previous: bool = Field(False, description="Remove previous model from disk (ollama_model only)")
+
+class SystemSettingCategoryResponse(BaseModel):
+    """
+    Response model for system setting category information.
+    """
+    id: int
+    category_name: str
+    display_name: str
+    description: str | None
+    sort_order: int
+    created_at: str
+
+class CreateSystemSettingCategoryRequest(BaseModel):
+    """
+    Request model for creating a new system setting category.
+    """
+    category_name: str = Field(..., description="Unique category name")
+    display_name: str = Field(..., description="Human-readable display name")
+    description: str | None = Field(None, description="Category description")
+    sort_order: int = Field(0, description="Sort order for display")
+
+class UpdateSystemSettingCategoryRequest(BaseModel):
+    """
+    Request model for updating a system setting category.
+    """
+    display_name: str | None = Field(None, description="Human-readable display name")
+    description: str | None = Field(None, description="Category description")
+    sort_order: int | None = Field(None, description="Sort order for display") 

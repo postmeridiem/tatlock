@@ -146,7 +146,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     console.log('Login successful, redirecting...');
                     // Login successful, redirect to the original page or default
                     const urlParams = new URLSearchParams(window.location.search);
-                    const redirectUrl = urlParams.get('redirect') || '/chat';
+                    const redirectUrl = urlParams.get('redirect') || '/conversation';
                     console.log('Redirecting to:', redirectUrl);
                     window.location.href = redirectUrl;
                 } else {

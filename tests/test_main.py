@@ -11,12 +11,12 @@ from main import app
 class TestRootEndpoint:
     """Test root endpoint functionality."""
     
-    def test_root_redirects_to_chat_when_authenticated(self, authenticated_admin_client):
-        """Test root endpoint redirects to chat when authenticated."""
+    def test_root_redirects_to_conversation_when_authenticated(self, authenticated_admin_client):
+        """Test root endpoint redirects to conversation when authenticated."""
         response = authenticated_admin_client.get("/", follow_redirects=False)
         
         assert response.status_code == 302
-        assert response.headers["location"] == "/chat"
+        assert response.headers["location"] == "/conversation"
     
     def test_root_redirects_to_login_when_not_authenticated(self, client):
         """Test root endpoint redirects to login when not authenticated."""
@@ -83,7 +83,7 @@ class TestLoginEndpoints:
     def test_logout_clears_session(self, authenticated_admin_client):
         """Test that logout actually clears the session."""
         # First verify we're authenticated
-        response = authenticated_admin_client.get("/chat")
+        response = authenticated_admin_client.get("/conversation")
         assert response.status_code == 200
         
         # Now logout
@@ -91,7 +91,7 @@ class TestLoginEndpoints:
         assert logout_response.status_code == 302
         
         # Try to access a protected endpoint - should redirect to login (302) due to custom exception handler
-        response = authenticated_admin_client.get("/chat", follow_redirects=False)
+        response = authenticated_admin_client.get("/conversation", follow_redirects=False)
         assert response.status_code == 302
         assert "/login" in response.headers["location"]
     
@@ -213,48 +213,48 @@ class TestChatEndpoint:
             assert "Agent error" in response.text
 
 
-class TestChatPage:
-    """Test chat page endpoint."""
+class TestConversationPage:
+    """Test conversation page endpoint."""
     
-    def test_chat_page_requires_auth(self, client):
-        """Test chat page requires authentication."""
-        response = client.get("/chat", follow_redirects=False)
+    def test_conversation_page_requires_auth(self, client):
+        """Test conversation page requires authentication."""
+        response = client.get("/conversation", follow_redirects=False)
         
         assert response.status_code == 302
         assert "/login" in response.headers["location"]
     
-    def test_chat_page_with_auth(self, authenticated_admin_client):
-        """Test chat page with authentication."""
-        response = authenticated_admin_client.get("/chat")
+    def test_conversation_page_with_auth(self, authenticated_admin_client):
+        """Test conversation page with authentication."""
+        response = authenticated_admin_client.get("/conversation")
         
         assert response.status_code == 200
-        assert "chat" in response.text.lower()
+        assert "conversation" in response.text.lower()
     
-    def test_chat_page_includes_markdown_support(self, authenticated_admin_client):
-        """Test chat page includes markdown library for formatting."""
-        response = authenticated_admin_client.get("/chat")
+    def test_conversation_page_includes_markdown_support(self, authenticated_admin_client):
+        """Test conversation page includes markdown library for formatting."""
+        response = authenticated_admin_client.get("/conversation")
         
         assert response.status_code == 200
         assert "marked.min.js" in response.text
         assert "marked" in response.text
     
-    def test_chat_page_includes_logo(self, authenticated_admin_client):
-        """Test chat page includes the Tatlock logo."""
-        response = authenticated_admin_client.get("/chat")
+    def test_conversation_page_includes_logo(self, authenticated_admin_client):
+        """Test conversation page includes the Tatlock logo."""
+        response = authenticated_admin_client.get("/conversation")
         
         assert response.status_code == 200
         assert "logo-tatlock-transparent.png" in response.text
         assert "logo-image" in response.text
     
-    def test_chat_page_includes_shared_chat_js(self, authenticated_admin_client):
-        """Test chat page includes the shared chat.js file."""
-        response = authenticated_admin_client.get("/chat")
+    def test_conversation_page_includes_shared_chat_js(self, authenticated_admin_client):
+        """Test conversation page includes the shared chat.js file."""
+        response = authenticated_admin_client.get("/conversation")
         
         assert response.status_code == 200
         assert "chat.js" in response.text
     
-    def test_chat_page_includes_mobile_responsive_css(self, authenticated_admin_client):
-        response = authenticated_admin_client.get("/chat")
+    def test_conversation_page_includes_mobile_responsive_css(self, authenticated_admin_client):
+        response = authenticated_admin_client.get("/conversation")
         assert response.status_code == 200
         # Check that the CSS file is included
         assert 'style.css' in response.text
@@ -371,7 +371,7 @@ class TestMiddleware:
     def test_session_middleware_present(self, client):
         """Test session middleware is configured."""
         # Try to access a protected endpoint
-        response = client.get("/chat", follow_redirects=False)
+        response = client.get("/conversation", follow_redirects=False)
         
         # Should redirect to login (indicating session middleware is working)
         assert response.status_code == 302

@@ -126,6 +126,13 @@
 
 <!-- Snackbar Container -->
 {% include 'components/snackbar.html' %}
+
+<!-- Example: Activity list -->
+<div class="activity-list-container">
+  <ul id="activity-list">
+    <li class="loading">Loading activity...</li>
+  </ul>
+</div>
 {% endblock %}
 
 {% block page_styles %}
@@ -243,8 +250,6 @@
 {% endblock %}
 
 {% block scripts %}
-<script src="/static/js/common.js"></script>
 <script src="/static/js/auth.js"></script>
-<script src="/static/js/chat.js"></script>
-<script src="/static/js/profile.js"></script>
+<script type="module" src="/static/js/profile.js"></script>
 {% endblock %} 

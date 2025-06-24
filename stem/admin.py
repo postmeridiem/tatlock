@@ -13,10 +13,13 @@ from fastapi import APIRouter, HTTPException, Depends, Request
 from fastapi.responses import HTMLResponse
 from stem.security import get_current_user, require_admin_role, security_manager, current_user
 from stem.static import get_admin_page
+from stem.system_settings import system_settings_manager
 from stem.models import (
     CreateUserRequest, UpdateUserRequest, UserResponse, AdminStatsResponse,
     CreateRoleRequest, UpdateRoleRequest, RoleResponse,
-    CreateGroupRequest, UpdateGroupRequest, GroupResponse, UserModel
+    CreateGroupRequest, UpdateGroupRequest, GroupResponse, UserModel,
+    SystemSettingResponse, UpdateSystemSettingRequest,
+    SystemSettingCategoryResponse, CreateSystemSettingCategoryRequest, UpdateSystemSettingCategoryRequest
 )
 
 # Set up logging for this module
@@ -647,4 +650,309 @@ async def delete_group(group_id: int, _: None = Depends(require_admin_role)):
         raise
     except Exception as e:
         logger.error(f"Error deleting group: {e}")
-        raise HTTPException(status_code=500, detail=f"Error deleting group: {str(e)}") 
+        raise HTTPException(status_code=500, detail=f"Error deleting group: {str(e)}")
+
+# System Settings Endpoints
+@admin_router.get("/settings", response_model=list[SystemSettingResponse])
+async def list_system_settings(_: None = Depends(require_admin_role)):
+    """
+    List all system settings.
+    Requires admin role.
+    """
+    try:
+        settings = system_settings_manager.get_all_settings()
+        return [SystemSettingResponse(**setting) for setting in settings]
+    except Exception as e:
+        logger.error(f"Error listing system settings: {e}")
+        raise HTTPException(status_code=500, detail=f"Error listing system settings: {str(e)}")
+
+@admin_router.get("/settings/{setting_key}", response_model=SystemSettingResponse)
+async def get_system_setting(setting_key: str, _: None = Depends(require_admin_role)):
+    """
+    Get a specific system setting.
+    Requires admin role.
+    """
+    try:
+        settings = system_settings_manager.get_all_settings()
+        setting = next((s for s in settings if s['setting_key'] == setting_key), None)
+        
+        if not setting:
+            raise HTTPException(status_code=404, detail="Setting not found")
+        
+        return SystemSettingResponse(**setting)
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting system setting: {e}")
+        raise HTTPException(status_code=500, detail=f"Error getting system setting: {str(e)}")
+
+@admin_router.put("/settings/{setting_key}", response_model=SystemSettingResponse)
+async def update_system_setting(setting_key: str, request: UpdateSystemSettingRequest, _: None = Depends(require_admin_role)):
+    """
+    Update a system setting.
+    Requires admin role.
+    """
+    try:
+        remove_previous = getattr(request, 'remove_previous', False)
+        success = system_settings_manager.set_setting(setting_key, request.setting_value, remove_previous=remove_previous)
+        
+        if not success:
+            raise HTTPException(status_code=500, detail="Failed to update setting")
+        
+        # Update tool status if API keys were changed
+        if setting_key in ['openweather_api_key', 'google_api_key', 'google_cse_id']:
+            system_settings_manager.update_tool_status_based_on_api_keys()
+        
+        # Get updated setting
+        settings = system_settings_manager.get_all_settings()
+        setting = next((s for s in settings if s['setting_key'] == setting_key), None)
+        
+        if not setting:
+            raise HTTPException(status_code=500, detail="Setting updated but could not be retrieved")
+        
+        return SystemSettingResponse(**setting)
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error updating system setting: {e}")
+        raise HTTPException(status_code=500, detail=f"Error updating system setting: {str(e)}")
+
+@admin_router.get("/settings/categories", response_model=list[SystemSettingCategoryResponse])
+async def list_system_setting_categories(_: None = Depends(require_admin_role)):
+    """
+    List all system setting categories.
+    Requires admin role.
+    """
+    try:
+        categories = system_settings_manager.get_categories()
+        return [SystemSettingCategoryResponse(**category) for category in categories]
+    except Exception as e:
+        logger.error(f"Error listing system setting categories: {e}")
+        raise HTTPException(status_code=500, detail=f"Error listing system setting categories: {str(e)}")
+
+@admin_router.post("/settings/categories", response_model=SystemSettingCategoryResponse)
+async def create_system_setting_category(request: CreateSystemSettingCategoryRequest, _: None = Depends(require_admin_role)):
+    """
+    Create a new system setting category.
+    Requires admin role.
+    """
+    try:
+        success = system_settings_manager.create_category(
+            category_name=request.category_name,
+            display_name=request.display_name,
+            description=request.description or "",
+            sort_order=request.sort_order
+        )
+        
+        if not success:
+            raise HTTPException(status_code=400, detail="Failed to create category. Category name may already exist.")
+        
+        # Get the created category
+        categories = system_settings_manager.get_categories()
+        category = next((c for c in categories if c['category_name'] == request.category_name), None)
+        
+        if not category:
+            raise HTTPException(status_code=500, detail="Category created but could not be retrieved")
+        
+        return SystemSettingCategoryResponse(**category)
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error creating system setting category: {e}")
+        raise HTTPException(status_code=500, detail=f"Error creating system setting category: {str(e)}")
+
+@admin_router.delete("/settings/categories/{category_name}")
+async def delete_system_setting_category(category_name: str, _: None = Depends(require_admin_role)):
+    """
+    Delete a system setting category.
+    Requires admin role.
+    """
+    try:
+        success = system_settings_manager.delete_category(category_name)
+        
+        if not success:
+            raise HTTPException(status_code=500, detail="Failed to delete category")
+        
+        return {"message": f"Category '{category_name}' deleted successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error deleting system setting category: {e}")
+        raise HTTPException(status_code=500, detail=f"Error deleting system setting category: {str(e)}")
+
+@admin_router.get("/settings/options/{setting_key}")
+async def get_setting_options(setting_key: str, _: None = Depends(require_admin_role)):
+    """
+    Get allowed options for a setting (e.g., ollama_model).
+    Requires admin role.
+    """
+    try:
+        options = system_settings_manager.get_setting_options(setting_key)
+        return options
+    except Exception as e:
+        logger.error(f"Error getting options for {setting_key}: {e}")
+        raise HTTPException(status_code=500, detail=f"Error getting options: {str(e)}")
+
+@admin_router.post("/settings/options/{setting_key}")
+async def set_setting_options(setting_key: str, options: list[dict], _: None = Depends(require_admin_role)):
+    """
+    Set allowed options for a setting (admin only).
+    """
+    try:
+        success = system_settings_manager.set_setting_options(setting_key, options)
+        if not success:
+            raise HTTPException(status_code=500, detail="Failed to set options")
+        return {"message": "Options updated"}
+    except Exception as e:
+        logger.error(f"Error setting options for {setting_key}: {e}")
+        raise HTTPException(status_code=500, detail=f"Error setting options: {str(e)}")
+
+@admin_router.post("/settings/options/ollama_model/refresh")
+async def refresh_ollama_model_options(_: None = Depends(require_admin_role)):
+    """
+    Refresh the list of available Ollama models from the Ollama API.
+    Requires admin role.
+    """
+    try:
+        success = system_settings_manager.refresh_ollama_model_options()
+        if not success:
+            raise HTTPException(status_code=500, detail="Failed to refresh Ollama model options")
+        return {"message": "Ollama model options refreshed"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error refreshing Ollama model options: {str(e)}")
+
+# Tools Management Endpoints
+
+@admin_router.get("/tools")
+async def list_tools(_: None = Depends(require_admin_role)):
+    """
+    List all tools in the system with their status and basic information.
+    Requires admin role.
+    """
+    try:
+        import sqlite3
+        
+        conn = sqlite3.connect("hippocampus/system.db")
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            SELECT tool_key, description, module, function_name, enabled, prompts
+            FROM tools
+            ORDER BY tool_key
+        """)
+        
+        tools = []
+        for row in cursor.fetchall():
+            tool_key, description, module, function_name, enabled, prompts = row
+            tools.append({
+                "tool_key": tool_key,
+                "description": description,
+                "module": module,
+                "function_name": function_name,
+                "enabled": bool(enabled),
+                "has_prompts": bool(prompts and prompts.strip())
+            })
+        
+        conn.close()
+        return tools
+        
+    except Exception as e:
+        logger.error(f"Error listing tools: {e}")
+        raise HTTPException(status_code=500, detail=f"Error listing tools: {str(e)}")
+
+@admin_router.get("/tools/{tool_key}")
+async def get_tool_details(tool_key: str, _: None = Depends(require_admin_role)):
+    """
+    Get detailed information about a specific tool.
+    Requires admin role.
+    """
+    try:
+        import sqlite3
+        
+        conn = sqlite3.connect("hippocampus/system.db")
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            SELECT tool_key, description, module, function_name, enabled, prompts
+            FROM tools
+            WHERE tool_key = ?
+        """, (tool_key,))
+        
+        row = cursor.fetchone()
+        if not row:
+            raise HTTPException(status_code=404, detail="Tool not found")
+        
+        tool_key, description, module, function_name, enabled, prompts = row
+        
+        # Get tool parameters
+        cursor.execute("""
+            SELECT parameter_name, type, description, required
+            FROM tool_parameters
+            WHERE tool_key = ?
+            ORDER BY parameter_name
+        """, (tool_key,))
+        
+        parameters = []
+        for param_row in cursor.fetchall():
+            param_name, param_type, param_description, required = param_row
+            parameters.append({
+                "name": param_name,
+                "type": param_type,
+                "description": param_description,
+                "required": bool(required)
+            })
+        
+        conn.close()
+        
+        return {
+            "tool_key": tool_key,
+            "description": description,
+            "module": module,
+            "function_name": function_name,
+            "enabled": bool(enabled),
+            "prompts": prompts,
+            "parameters": parameters
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting tool details for {tool_key}: {e}")
+        raise HTTPException(status_code=500, detail=f"Error getting tool details: {str(e)}")
+
+@admin_router.put("/tools/{tool_key}/status")
+async def update_tool_status(tool_key: str, enabled: bool, _: None = Depends(require_admin_role)):
+    """
+    Enable or disable a tool.
+    Requires admin role.
+    """
+    try:
+        import sqlite3
+        
+        conn = sqlite3.connect("hippocampus/system.db")
+        cursor = conn.cursor()
+        
+        # Check if tool exists
+        cursor.execute("SELECT tool_key FROM tools WHERE tool_key = ?", (tool_key,))
+        if not cursor.fetchone():
+            raise HTTPException(status_code=404, detail="Tool not found")
+        
+        # Update tool status
+        cursor.execute("""
+            UPDATE tools 
+            SET enabled = ? 
+            WHERE tool_key = ?
+        """, (1 if enabled else 0, tool_key))
+        
+        conn.commit()
+        conn.close()
+        
+        logger.info(f"Tool {tool_key} {'enabled' if enabled else 'disabled'} by admin")
+        
+        return {"message": f"Tool {tool_key} {'enabled' if enabled else 'disabled'} successfully"}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error updating tool status for {tool_key}: {e}")
+        raise HTTPException(status_code=500, detail=f"Error updating tool status: {str(e)}") 

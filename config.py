@@ -16,31 +16,70 @@ logger = logging.getLogger(__name__)
 
 load_dotenv()
 
+# Import system settings manager
+try:
+    from stem.system_settings import system_settings_manager
+    USE_DATABASE_SETTINGS = True
+except ImportError:
+    # Fallback to environment variables if system settings not available
+    USE_DATABASE_SETTINGS = False
+    logger.warning("System settings manager not available, using environment variables")
+
+def get_setting_from_db_or_env(setting_key: str, env_key: str, default_value: str = "") -> str:
+    """
+    Get a setting value from database if available, otherwise from environment variable.
+    
+    Args:
+        setting_key (str): Database setting key
+        env_key (str): Environment variable key
+        default_value (str): Default value if neither source has the setting
+        
+    Returns:
+        str: The setting value
+    """
+    if USE_DATABASE_SETTINGS:
+        try:
+            db_value = system_settings_manager.get_setting(setting_key)
+            if db_value is not None:
+                return db_value
+        except Exception as e:
+            logger.warning(f"Failed to get {setting_key} from database: {e}")
+    
+    # Fallback to environment variable
+    return os.getenv(env_key, default_value)
+
 # --- LLM and API Keys ---
-OPENWEATHER_API_KEY = os.getenv("OPENWEATHER_API_KEY")
-OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "gemma3-cortex:latest")  # Updated default model
+OLLAMA_MODEL = get_setting_from_db_or_env("ollama_model", "OLLAMA_MODEL", "gemma3-cortex:latest")
+OLLAMA_HOST = get_setting_from_db_or_env("ollama_host", "OLLAMA_HOST", "http://localhost:11434")
+OLLAMA_TIMEOUT = int(get_setting_from_db_or_env("ollama_timeout", "OLLAMA_TIMEOUT", "30"))
 
 # --- Google Search API Credentials ---
-GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
-GOOGLE_CSE_ID = os.getenv("GOOGLE_CSE_ID")  # CSE stands for Custom Search Engine
+GOOGLE_API_KEY = get_setting_from_db_or_env("google_api_key", "GOOGLE_API_KEY")
+GOOGLE_CSE_ID = get_setting_from_db_or_env("google_cse_id", "GOOGLE_CSE_ID")
+
+# --- Weather API Key ---
+OPENWEATHER_API_KEY = get_setting_from_db_or_env("openweather_api_key", "OPENWEATHER_API_KEY")
 
 # --- Database Paths ---
 SYSTEM_DB_PATH = os.getenv("SYSTEM_DB", "hippocampus/system.db")     # Authentication database
 
 # --- Server Configuration ---
-HOSTNAME = os.getenv("HOSTNAME", "localhost")
-PORT = int(os.getenv("PORT", "8000"))
+HOSTNAME = get_setting_from_db_or_env("hostname", "HOSTNAME", "localhost")
+PORT = int(get_setting_from_db_or_env("port", "PORT", "8000"))
+ALLOWED_ORIGINS = get_setting_from_db_or_env("allowed_origins", "ALLOWED_ORIGINS", "http://localhost:8000").split(",")
 
 # --- Security Configuration ---
-ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "http://localhost:8000").split(",")
+SESSION_TIMEOUT = int(get_setting_from_db_or_env("session_timeout", "SESSION_TIMEOUT", "3600"))
+MAX_LOGIN_ATTEMPTS = int(get_setting_from_db_or_env("max_login_attempts", "MAX_LOGIN_ATTEMPTS", "5"))
+PASSWORD_MIN_LENGTH = int(get_setting_from_db_or_env("password_min_length", "PASSWORD_MIN_LENGTH", "8"))
 
 # --- Error Checking ---
 if not OPENWEATHER_API_KEY:
-    logger.warning("WARNING: OPENWEATHER_API_KEY environment variable not set. Weather functionality will be disabled.")
+    logger.warning("WARNING: OPENWEATHER_API_KEY not set. Weather functionality will be disabled.")
 if not GOOGLE_API_KEY:
-    logger.warning("WARNING: GOOGLE_API_KEY environment variable not set. Web search functionality will be disabled.")
+    logger.warning("WARNING: GOOGLE_API_KEY not set. Web search functionality will be disabled.")
 if not GOOGLE_CSE_ID:
-    logger.warning("WARNING: GOOGLE_CSE_ID environment variable not set. Web search functionality will be disabled.")
+    logger.warning("WARNING: GOOGLE_CSE_ID not set. Web search functionality will be disabled.")
 
 # For example, if you want to use a different database for testing
 if "pytest" in sys.modules:
