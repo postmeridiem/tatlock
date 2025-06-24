@@ -2209,3 +2209,46 @@ userList.innerHTML = '<li class="loading">Loading users...</li>';
 Update the JavaScript Coding Standards and Jinja2 Template Integration Pattern sections to reflect this as the required approach for all authenticated/admin pages.
 
 - **Page-specific JavaScript files**: All scripts that are only used for a single page must be named using the pattern `page.[pagename].js` (e.g., `page.admin.js`, `page.profile.js`, `page.login.js`, `page.conversation.js`). This convention ensures clarity, maintainability, and consistency across the codebase.
+
+### UI/UX and Frontend Coding Standards
+
+#### Add/Create Button Placement
+- **Standard Placement:** For table sections, always place the add/create button above the section header/title. This ensures a clear, consistent, and user-friendly UI.
+- **Pattern:**
+  ```html
+  <div class="add-btn-row">
+      <button class="add-btn">Add New</button>
+  </div>
+  <div class="section-title">Section Name</div>
+  <table>...</table>
+  ```
+- **CSS:**
+  ```css
+  .add-btn-row {
+      display: flex;
+      justify-content: flex-end;
+      margin-bottom: 0.5em;
+      padding: 0 24px;
+  }
+  .section-title {
+      font-size: 1.5em;
+      font-weight: 600;
+      position: relative;
+      margin-bottom: 18px;
+      padding: 0 24px;
+  }
+  .section-title::after {
+      content: '';
+      display: block;
+      position: absolute;
+      left: 24px;
+      right: 24px;
+      bottom: -8px;
+      height: 3px;
+      background: var(--accent-color);
+      border-radius: 2px;
+      z-index: 0;
+  }
+  ```
+- **Apply to:** All tables with create functionality (users, roles, groups, etc.)
+- **Rationale:** Ensures a consistent, modern, and user-friendly UI across all admin sections.
