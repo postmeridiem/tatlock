@@ -170,6 +170,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Corrected script loading for admin and profile pages to include component.chatbar.js since they use the chat sidebar
 
 ### Fixed
+- **Profile Page JavaScript Error Fix**: Removed incomplete settings section registration that was causing `loadProfileSettings is not defined` error
+  - Removed `registerSectionLoader('settings-section', loadProfileSettings)` registration from page.profile.js
+  - Removed `'settings-section'` from valid sections array in navigation handler
+  - Fixed JavaScript error that occurred when profile page tried to load non-existent settings section
+  - Profile page now only registers sections that actually exist: activity-section and info-section
+  - Maintains clean separation between profile functionality and system settings (which belong in admin page)
 - **JavaScript Error Fix**: Fixed `initializeHashNavigation is not defined` error in conversation page
   - Added common.js script inclusion to conversation template to ensure required functions are available
   - Made initializeHashNavigation, showSection, and showSnackbar functions globally available in common.js

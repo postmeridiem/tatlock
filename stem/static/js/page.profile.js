@@ -10,12 +10,11 @@ let isEditing = false;
 // Register section loaders
 registerSectionLoader('activity-section', loadActivityList);
 registerSectionLoader('info-section', loadProfileInfo);
-registerSectionLoader('settings-section', loadProfileSettings);
 
 // Navigation handler
 function handleHashNavigation() {
     const hash = window.location.hash.substring(1);
-    const validSections = ['activity-section', 'info-section', 'settings-section'];
+    const validSections = ['activity-section', 'info-section'];
     const sectionId = validSections.includes(hash) ? hash : 'activity-section';
     showSection(sectionId);
 }
