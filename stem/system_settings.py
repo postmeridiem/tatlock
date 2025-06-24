@@ -102,11 +102,23 @@ class SystemSettingsManager:
             if setting_key == 'ollama_model' and OLLAMA_AVAILABLE:
                 try:
                     # Download the new model if not present
-                    models = ollama.list().get('models', [])
-                    model_names = [m['name'] for m in models]
+                    models_response = ollama.list()
+                    models = models_response.get('models', [])
+                    
+                    # Safely extract model names with error handling
+                    model_names = []
+                    for model in models:
+                        if isinstance(model, dict) and 'name' in model:
+                            model_names.append(model['name'])
+                        else:
+                            logger.warning(f"Invalid model structure: {model}")
+                    
                     if setting_value not in model_names:
                         logger.info(f"Downloading Ollama model: {setting_value}")
                         ollama.pull(setting_value)
+                    else:
+                        logger.info(f"Ollama model {setting_value} is already available")
+                        
                     # Remove previous model if requested and not the initial model
                     initial_model = 'gemma3-cortex:latest'
                     if remove_previous and previous_value and previous_value != initial_model and previous_value != setting_value:
@@ -479,17 +491,21 @@ class SystemSettingsManager:
             # Also check for locally installed models and add them if not already in the list
             try:
                 import ollama
-                local_models = ollama.list().get('models', [])
+                local_models_response = ollama.list()
+                local_models = local_models_response.get('models', [])
                 for local_model in local_models:
-                    model_name = local_model.get('name')
-                    if model_name and not any(opt['option_value'] == model_name for opt in options):
-                        # Add locally installed model that's not in our major models list
-                        size = local_model.get('size', 'Unknown')
-                        options.append({
-                            'option_value': model_name,
-                            'option_label': f"{model_name} (Local - {size})",
-                            'enabled': True
-                        })
+                    if isinstance(local_model, dict) and 'name' in local_model:
+                        model_name = local_model.get('name')
+                        if model_name and not any(opt['option_value'] == model_name for opt in options):
+                            # Add locally installed model that's not in our major models list
+                            size = local_model.get('size', 'Unknown')
+                            options.append({
+                                'option_value': model_name,
+                                'option_label': f"{model_name} (Local - {size})",
+                                'enabled': True
+                            })
+                    else:
+                        logger.warning(f"Invalid local model structure: {local_model}")
             except Exception as e:
                 logger.warning(f"Could not fetch local models: {e}")
             

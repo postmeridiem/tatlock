@@ -21,6 +21,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Added proper error handling for Ollama operations in set_setting method
   - Settings are now saved to database even if Ollama model management fails
   - Added graceful fallback when Ollama library is not available
+  - Improved API response handling with safer data access and validation
+  - Added better logging for debugging Ollama model management issues
 
 ### Improved
 - **Ollama Model Refresh**: Enhanced model refresh to show major models from Ollama library
