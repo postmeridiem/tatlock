@@ -1927,3 +1927,5 @@ userList.innerHTML = '<li class="loading">Loading users...</li>';
 **This pattern applies to all dynamic content, not just tables.**
 
 Update the JavaScript Coding Standards and Jinja2 Template Integration Pattern sections to reflect this as the required approach for all authenticated/admin pages.
+
+- **Page-specific JavaScript files**: All scripts that are only used for a single page must be named using the pattern `page.[pagename].js` (e.g., `page.admin.js`, `page.profile.js`, `page.login.js`, `page.conversation.js`). This convention ensures clarity, maintainability, and consistency across the codebase.

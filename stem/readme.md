@@ -154,6 +154,7 @@ Jinja2-based server-side templating system:
 - **`page.profile.js`**: Profile management functionality
 - **`chat.js`**: Chat interface with voice input support
 - **`debug.js`**: Debug console functionality
+- **Page-specific scripts**: All scripts that are only used for a single page must follow the naming pattern `page.[pagename].js` (e.g., `page.admin.js`, `page.profile.js`, `page.login.js`, `page.conversation.js`). This ensures clarity and consistency across the codebase.
 
 ### **Static Assets** (`static/`)
 - **`fonts/`**: Material Icons font files for offline use
