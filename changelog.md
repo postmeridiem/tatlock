@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.1] - 2024-06-24
+### Fixed
+- Added support for Pop!_OS Linux in the installer. Pop!_OS is now detected and treated as a Debian-based system for package installation.
+
 ## [0.3.0] - 2024-06-24
 
 ### Added

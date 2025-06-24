@@ -90,7 +90,7 @@ detect_system() {
         if [ -f /etc/os-release ]; then
             . /etc/os-release
             case $ID in
-                "ubuntu"|"debian"|"linuxmint"|"zorin")
+                "ubuntu"|"debian"|"linuxmint"|"zorin"|"pop")
                     SYSTEM="debian"
                     PACKAGE_MANAGER="apt"
                     ;;
