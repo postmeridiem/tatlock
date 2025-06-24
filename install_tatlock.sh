@@ -59,7 +59,7 @@ echo -e "${NC}"
 
 echo -e "${BOLD}This script will perform the following steps:${NC}"
 echo -e "${CYAN}──────────────────────────────────────────────────────────────────────────────────${NC}"
-echo -e "  ${GREEN}1.${NC} Install required system packages (Python 3.10+, pip, sqlite3)${NC}"
+echo -e "  ${GREEN}1.${NC} Install required system packages (Python 3.10, pip, sqlite3)${NC}"
 echo -e "  ${GREEN}2.${NC} Create and activate Python virtual environment (.venv)${NC}"
 echo -e "  ${GREEN}3.${NC} Install and configure Ollama with Gemma3-enhanced model${NC}"
 echo -e "  ${GREEN}4.${NC} Install Python dependencies from requirements.txt${NC}"
@@ -71,7 +71,7 @@ echo -e "  ${GREEN}9.${NC} Optionally create a new admin account if one does not
 echo -e "  ${GREEN}10.${NC} Optionally install Tatlock as an auto-starting service${NC}"
 echo -e "${CYAN}──────────────────────────────────────────────────────────────────────────────────${NC}"
 echo ""
-echo -e "${YELLOW}Note:${NC} This script requires Python 3.10 or higher for modern type hint support."
+echo -e "${YELLOW}Note:${NC} This script requires Python 3.10 exactly for optimal compatibility and to avoid dependency issues."
 echo ""
 
 # --- Detect system and package manager ---
@@ -175,11 +175,14 @@ check_python_version() {
         if [ $? -eq 0 ]; then
             local major=$(echo "$version" | cut -d. -f1)
             local minor=$(echo "$version" | cut -d. -f2)
-            if [ "$major" -eq 3 ] && [ "$minor" -ge 10 ]; then
-                echo -e "${GREEN}[✓]${NC} Found Python $version (meets requirement: 3.10+)" >&2
+            if [ "$major" -eq 3 ] && [ "$minor" -eq 10 ]; then
+                echo -e "${GREEN}[✓]${NC} Found Python $version (exactly 3.10 - perfect!)" >&2
                 return 0
+            elif [ "$major" -eq 3 ] && [ "$minor" -gt 10 ]; then
+                echo -e "${RED}[✗]${NC} Found Python $version (requires exactly 3.10, not higher)" >&2
+                return 1
             else
-                echo -e "${RED}[✗]${NC} Found Python $version (requires 3.10+)" >&2
+                echo -e "${RED}[✗]${NC} Found Python $version (requires exactly 3.10)" >&2
                 return 1
             fi
         fi
@@ -193,9 +196,15 @@ check_python_version() {
             if [ $? -eq 0 ]; then
                 local major=$(echo "$version" | cut -d. -f1)
                 local minor=$(echo "$version" | cut -d. -f2)
-                if [ "$major" -eq 3 ] && [ "$minor" -ge 10 ]; then
-                    echo -e "${GREEN}[✓]${NC} Found Python $version at $path (meets requirement: 3.10+)" >&2
+                if [ "$major" -eq 3 ] && [ "$minor" -eq 10 ]; then
+                    echo -e "${GREEN}[✓]${NC} Found Python $version at $path (exactly 3.10 - perfect!)" >&2
                     return 0
+                elif [ "$major" -eq 3 ] && [ "$minor" -gt 10 ]; then
+                    echo -e "${RED}[✗]${NC} Found Python $version at $path (requires exactly 3.10, not higher)" >&2
+                    return 1
+                else
+                    echo -e "${RED}[✗]${NC} Found Python $version at $path (requires exactly 3.10)" >&2
+                    return 1
                 fi
             fi
         fi
@@ -204,14 +213,14 @@ check_python_version() {
     return 1
 }
 
-# Function to install Python 3.10+ based on system
+# Function to install Python 3.10 based on system
 install_python310() {
     case $PACKAGE_MANAGER in
         "apt")
-            echo "Installing Python 3.10+ on Debian/Ubuntu..."
+            echo "Installing Python 3.10 on Debian/Ubuntu..."
             
-            # Add deadsnakes PPA for newer Python versions
-            echo "Adding deadsnakes PPA for Python 3.10+..."
+            # Add deadsnakes PPA for Python 3.10
+            echo "Adding deadsnakes PPA for Python 3.10..."
             if ! sudo add-apt-repository ppa:deadsnakes/ppa -y; then
                 echo "Warning: Failed to add deadsnakes PPA. This might be due to network issues or unsupported system."
                 echo "Trying to install Python 3.10 from source..."
@@ -293,7 +302,7 @@ install_python310() {
             ;;
             
         "yum")
-            echo "Installing Python 3.10+ on RHEL/CentOS/Fedora..."
+            echo "Installing Python 3.10 on RHEL/CentOS/Fedora..."
             
             # For RHEL/CentOS, we need to enable EPEL and IUS
             if [ -f /etc/redhat-release ]; then
@@ -326,7 +335,7 @@ install_python310() {
             ;;
             
         "brew")
-            echo "Installing Python 3.10+ on macOS..."
+            echo "Installing Python 3.10 on macOS..."
             brew install python@3.10
             
             # Add to PATH
@@ -335,28 +344,32 @@ install_python310() {
             ;;
             
         "pacman")
-            echo "Installing Python 3.10+ on Arch Linux..."
+            echo "Installing Python 3.10 on Arch Linux..."
             sudo pacman -S --noconfirm python310 python310-pip
             ;;
     esac
 }
 
 install_system_dependencies() {
-    # First, check if we have Python 3.10+ available
+    # First, check if we have Python 3.10 available
     echo -e "${BOLD}Checking Python version...${NC}"
     
-    # Quick check - if python3 --version shows 3.10+, we can skip installation
+    # Quick check - if python3 --version shows exactly 3.10, we can skip installation
     if command -v python3 &> /dev/null; then
         PYTHON_VERSION=$(python3 -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')" 2>/dev/null)
         if [ $? -eq 0 ]; then
             MAJOR=$(echo "$PYTHON_VERSION" | cut -d. -f1)
             MINOR=$(echo "$PYTHON_VERSION" | cut -d. -f2)
-            if [ "$MAJOR" -eq 3 ] && [ "$MINOR" -ge 10 ]; then
-                echo -e "${GREEN}[✓]${NC} Found Python $PYTHON_VERSION - meets requirements" >&2
-                echo -e "${CYAN}Skipping Python installation since Python 3.10+ is already available.${NC}"
+            if [ "$MAJOR" -eq 3 ] && [ "$MINOR" -eq 10 ]; then
+                echo -e "${GREEN}[✓]${NC} Found Python $PYTHON_VERSION - exactly 3.10 (perfect!)" >&2
+                echo -e "${CYAN}Skipping Python installation since Python 3.10 is already available.${NC}"
                 PYTHON_AVAILABLE=true
+            elif [ "$MAJOR" -eq 3 ] && [ "$MINOR" -gt 10 ]; then
+                echo -e "${RED}[✗]${NC} Found Python $PYTHON_VERSION - requires exactly 3.10, not higher" >&2
+                echo -e "${YELLOW}Please install Python 3.10 specifically. Higher versions may cause compatibility issues.${NC}"
+                PYTHON_AVAILABLE=false
             else
-                echo -e "${RED}[✗]${NC} Found Python $PYTHON_VERSION - requires 3.10+" >&2
+                echo -e "${RED}[✗]${NC} Found Python $PYTHON_VERSION - requires exactly 3.10" >&2
                 PYTHON_AVAILABLE=false
             fi
         else
@@ -370,15 +383,15 @@ install_system_dependencies() {
     
     # Only install Python if not available
     if [ "$PYTHON_AVAILABLE" != "true" ]; then
-        echo -e "${YELLOW}Installing Python 3.10+...${NC}"
+        echo -e "${YELLOW}Installing Python 3.10...${NC}"
         install_python310
         
         # Verify installation
         if check_python_version "python3" || check_python_version "python3.10" || check_python_version "python"; then
-            echo -e "${GREEN}[✓]${NC} Python 3.10+ successfully installed" >&2
+            echo -e "${GREEN}[✓]${NC} Python 3.10 successfully installed" >&2
             PYTHON_AVAILABLE=true
         else
-            echo -e "${RED}[✗]${NC} Failed to install Python 3.10+. Please install manually." >&2
+            echo -e "${RED}[✗]${NC} Failed to install Python 3.10. Please install manually." >&2
             exit 1
         fi
     fi
@@ -545,17 +558,17 @@ find_python_executable() {
 # Find the correct Python executable
 PYTHON_CMD=$(find_python_executable)
 if [ $? -ne 0 ] || [ -z "$PYTHON_CMD" ]; then
-    echo "Error: No suitable Python 3.10+ executable found."
-    echo "Please ensure Python 3.10+ is installed and available in PATH."
+    echo "Error: No suitable Python 3.10 executable found."
+    echo "Please ensure Python 3.10 is installed and available in PATH."
     echo ""
-    echo "To install Python 3.10+ on Ubuntu/Debian:"
+    echo "To install Python 3.10 on Ubuntu/Debian:"
     echo "  sudo apt update"
     echo "  sudo apt install python3.10 python3.10-venv python3.10-pip"
     echo ""
-    echo "To install Python 3.10+ on CentOS/RHEL/Fedora:"
+    echo "To install Python 3.10 on CentOS/RHEL/Fedora:"
     echo "  sudo dnf install python3.10 python3.10-pip python3.10-devel"
     echo ""
-    echo "To install Python 3.10+ on macOS:"
+    echo "To install Python 3.10 on macOS:"
     echo "  brew install python@3.10"
     exit 1
 fi

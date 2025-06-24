@@ -1,4 +1,6 @@
 # Core dependencies
+# IMPORTANT: This project requires Python 3.10 exactly for optimal compatibility
+# Higher Python versions may cause dependency conflicts (e.g., greenlet wheel building issues)
 fastapi==0.115.13
 uvicorn[standard]==0.34.3
 python-dotenv==1.0.1
