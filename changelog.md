@@ -16,6 +16,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Improved model display with size information and better formatting
   - Added current value display in the settings table for better visibility
   - Ensures Ollama model selector works correctly and shows all available models
+- Fixed 500 Internal Server Error when updating Ollama model settings in admin dashboard
+  - Moved ollama import to module level to prevent import issues
+  - Added proper error handling for Ollama operations in set_setting method
+  - Settings are now saved to database even if Ollama model management fails
+  - Added graceful fallback when Ollama library is not available
 
 ### Improved
 - **Ollama Model Refresh**: Enhanced model refresh to show major models from Ollama library

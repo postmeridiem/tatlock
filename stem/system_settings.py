@@ -14,6 +14,14 @@ from typing import Dict, List, Optional, Any
 # Set up logging for this module
 logger = logging.getLogger(__name__)
 
+# Import ollama at module level to avoid import issues
+try:
+    import ollama
+    OLLAMA_AVAILABLE = True
+except ImportError:
+    logger.warning("Ollama library not available - model management will be disabled")
+    OLLAMA_AVAILABLE = False
+
 class SystemSettingsManager:
     """
     Manages system settings stored in the system database.
@@ -91,22 +99,28 @@ class SystemSettingsManager:
             conn.close()
             logger.info(f"Updated setting {setting_key}")
             # Ollama model management
-            if setting_key == 'ollama_model':
-                import ollama
-                # Download the new model if not present
-                models = ollama.list().get('models', [])
-                model_names = [m['name'] for m in models]
-                if setting_value not in model_names:
-                    logger.info(f"Downloading Ollama model: {setting_value}")
-                    ollama.pull(setting_value)
-                # Remove previous model if requested and not the initial model
-                initial_model = 'gemma3-cortex:latest'
-                if remove_previous and previous_value and previous_value != initial_model and previous_value != setting_value:
-                    logger.info(f"Removing previous Ollama model: {previous_value}")
-                    try:
-                        ollama.delete(previous_value)
-                    except Exception as e:
-                        logger.warning(f"Failed to remove model {previous_value}: {e}")
+            if setting_key == 'ollama_model' and OLLAMA_AVAILABLE:
+                try:
+                    # Download the new model if not present
+                    models = ollama.list().get('models', [])
+                    model_names = [m['name'] for m in models]
+                    if setting_value not in model_names:
+                        logger.info(f"Downloading Ollama model: {setting_value}")
+                        ollama.pull(setting_value)
+                    # Remove previous model if requested and not the initial model
+                    initial_model = 'gemma3-cortex:latest'
+                    if remove_previous and previous_value and previous_value != initial_model and previous_value != setting_value:
+                        logger.info(f"Removing previous Ollama model: {previous_value}")
+                        try:
+                            ollama.delete(previous_value)
+                        except Exception as e:
+                            logger.warning(f"Failed to remove model {previous_value}: {e}")
+                except Exception as e:
+                    logger.error(f"Error managing Ollama model {setting_value}: {e}")
+                    # Don't fail the setting update if Ollama operations fail
+                    # The setting is still saved to the database
+            elif setting_key == 'ollama_model' and not OLLAMA_AVAILABLE:
+                logger.warning("Ollama library not available - skipping model management")
             return True
         except Exception as e:
             logger.error(f"Error setting {setting_key}: {e}")
