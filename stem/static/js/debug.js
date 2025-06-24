@@ -430,7 +430,7 @@ document.addEventListener('DOMContentLoaded', () => {
             enableLogging: true,
             logFunction: addToInteractionLog,
             sidebarTitle: 'Debug Assistant',
-            welcomeMessage: "I'm here to help you debug Tatlock. Ask me about system status, logs, or any issues you're encountering."
+            welcomeMessage: 'Good day, sir. I am Tatlock, your AI assistant. Pray, what matters require my attention today?',
         });
     }
 

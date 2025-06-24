@@ -150,7 +150,11 @@ app.add_middleware(
 )
 
 # Add security headers middleware
-app.add_middleware(TrustedHostMiddleware, allowed_hosts=["localhost", "127.0.0.1", "testserver"])
+app.add_middleware(
+    TrustedHostMiddleware, 
+    allowed_hosts=["localhost", "127.0.0.1", "testserver"]
+)
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=ALLOWED_ORIGINS,
@@ -174,104 +178,24 @@ app.include_router(hippocampus_router)
 # Include parietal router for hardware monitoring and benchmarking
 app.include_router(parietal_router)
 
-# Serve favicon.ico from the new location
-@app.get("/favicon.ico", include_in_schema=False)
-def favicon():
-    return FileResponse("stem/static/favicon/favicon.ico")
-
-@app.get("/.well-known/appspecific/com.chrome.devtools.json", include_in_schema=False)
-async def chrome_devtools_config():
+@app.get("/", tags=["root"])
+async def read_root(request: Request):
     """
-    Endpoint to handle Chrome DevTools-specific requests and prevent 404s in logs.
+    Root endpoint that redirects to the appropriate page based on authentication status.
+    Redirects to /chat if authenticated, /login if not.
     """
-    return JSONResponse(content={})
-
-@app.post("/login/auth")
-async def login(request: Request):
-    """
-    Session-based login endpoint. Accepts JSON or form data.
-    Sets session on success.
-    """
-    data = await request.json() if request.headers.get("content-type", "").startswith("application/json") else await request.form()
-    username = str(data.get("username", ""))
-    password = str(data.get("password", ""))
-    logger.debug(f"/login/auth called with username='{username}' and password length={len(password)}")
-    if not username or not password:
-        logger.warning("/login/auth missing username or password")
-        return HTMLResponse(content="Missing username or password", status_code=status.HTTP_400_BAD_REQUEST)
-    result = login_user(request, username, password)
-    logger.debug(f"/login/auth authentication result for '{username}': {result}")
-    if result["success"]:
-        return {"success": True}
-    else:
-        return HTMLResponse(content=result["message"], status_code=status.HTTP_401_UNAUTHORIZED)
-
-@app.post("/logout")
-async def logout(request: Request):
-    """
-    Session-based logout endpoint. Clears the session and redirects to root.
-    """
-    result = logout_user(request)
-    # Redirect to root (which will redirect to login since user is now logged out)
-    return RedirectResponse(url="/", status_code=302)
-
-@app.get("/login", tags=["html"], response_class=HTMLResponse)
-async def login_page(request: Request):
-    """
-    Login page.
-    No authentication required.
-    """
-    return get_login_page(request)
-
-@app.get("/login/test", tags=["debug"])
-async def test_auth(_: None = Depends(get_current_user)):
-    """
-    Simple test endpoint to verify authentication is working.
-    """
-    user = current_user
-    if user is None:
-        raise HTTPException(status_code=401, detail="Not authenticated")
-    return {"message": "Authentication working", "user": user.model_dump()}
-
-@app.get("/logout", tags=["html"], response_class=HTMLResponse)
-async def logout_page(request: Request):
-    """
-    Logout page. Logs the user out and redirects to root.
-    """
-    # Actually log the user out
-    logout_user(request)
-    
-    # Redirect to root (which will redirect to login since user is now logged out)
-    return RedirectResponse(url="/", status_code=302)
-
-# --- Exception Handlers ---
-@app.exception_handler(HTTPException)
-async def http_exception_handler(request: Request, exc: HTTPException):
-    """
-    Custom exception handler to redirect to login for 401 Unauthorized errors
-    on browser navigation (GET requests). Returns JSON for API requests.
-    """
-    if exc.status_code == 401:
-        # Check if this is a browser navigation (GET request) or API call
-        if request.method == "GET":
-            # Browser navigation - redirect to login with original path
-            original_path = str(request.url.path)
-            if request.url.query:
-                original_path += f"?{request.url.query}"
-            login_url = f"/login?redirect={original_path}"
-            return RedirectResponse(url=login_url, status_code=302)
-        else:
-            # API call - return JSON
-            return JSONResponse(
-                status_code=exc.status_code,
-                content={"detail": exc.detail}
-            )
-    
-    # Default behavior for other HTTP errors
-    return JSONResponse(
-        status_code=exc.status_code,
-        content={"detail": exc.detail}
-    )
+    try:
+        # Try to get current user to check if authenticated
+        current_user = get_current_user(request)
+        # If we get here, user is authenticated
+        return RedirectResponse(url="/chat", status_code=302)
+    except HTTPException:
+        # User is not authenticated, redirect to login with original path
+        original_path = str(request.url.path)
+        if request.url.query:
+            original_path += f"?{request.url.query}"
+        login_url = f"/login?redirect={original_path}"
+        return RedirectResponse(url=login_url, status_code=302)
 
 # --- API Endpoint Definition ---
 @app.post("/cortex", tags=["api"], response_model=ChatResponse)
@@ -306,25 +230,6 @@ async def chat_endpoint(request: ChatRequest, user: UserModel = Depends(get_curr
         # Re-raise as HTTPException to be caught by the handler
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.get("/", tags=["root"])
-async def read_root(request: Request):
-    """
-    Root endpoint that redirects to the appropriate page based on authentication status.
-    Redirects to /chat if authenticated, /login if not.
-    """
-    try:
-        # Try to get current user to check if authenticated
-        current_user = get_current_user(request)
-        # If we get here, user is authenticated
-        return RedirectResponse(url="/chat", status_code=302)
-    except HTTPException:
-        # User is not authenticated, redirect to login with original path
-        original_path = str(request.url.path)
-        if request.url.query:
-            original_path += f"?{request.url.query}"
-        login_url = f"/login?redirect={original_path}"
-        return RedirectResponse(url=login_url, status_code=302)
-
 @app.get("/chat", tags=["html"],  response_class=HTMLResponse)
 async def chat_page(request: Request, user: UserModel = Depends(get_current_user)):
     """
@@ -339,7 +244,7 @@ async def chat_page(request: Request, user: UserModel = Depends(get_current_user
         return RedirectResponse(url=login_url, status_code=302)
     return get_chat_page(request, user)
 
-@app.get("/profile")
+@app.get("/profile", tags=["html"])
 async def profile_page(request: Request, user: UserModel = Depends(get_current_user)):
     """
     User profile page.
@@ -348,6 +253,67 @@ async def profile_page(request: Request, user: UserModel = Depends(get_current_u
     if user is None:
         raise HTTPException(status_code=401, detail="Not authenticated")
     return get_profile_page(request, user)
+
+@app.get("/login", tags=["html"], response_class=HTMLResponse)
+async def login_page(request: Request):
+    """
+    Login page.
+    No authentication required.
+    """
+    return get_login_page(request)
+
+@app.get("/logout", tags=["html"], response_class=HTMLResponse)
+async def logout_page(request: Request):
+    """
+    Logout page. Logs the user out and redirects to root.
+    """
+    # Actually log the user out
+    logout_user(request)
+    
+    # Redirect to root (which will redirect to login since user is now logged out)
+    return RedirectResponse(url="/", status_code=302)
+
+@app.get("/login/test", tags=["debug"])
+async def test_auth(_: None = Depends(get_current_user)):
+    """
+    Simple test endpoint to verify authentication is working.
+    """
+    user = current_user
+    if user is None:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    return {"message": "Authentication working", "user": user.model_dump()}
+
+@app.post("/login/auth", tags=["api"])
+async def login(request: Request):
+    """
+    Session-based login endpoint. Accepts JSON or form data.
+    Sets session on success.
+    """
+    data = await request.json() if request.headers.get("content-type", "").startswith("application/json") else await request.form()
+    username = str(data.get("username", ""))
+    password = str(data.get("password", ""))
+    logger.debug(f"/login/auth called with username='{username}' and password length={len(password)}")
+    if not username or not password:
+        logger.warning("/login/auth missing username or password")
+        return HTMLResponse(content="Missing username or password", status_code=status.HTTP_400_BAD_REQUEST)
+    result = login_user(request, username, password)
+    logger.debug(f"/login/auth authentication result for '{username}': {result}")
+    if result["success"]:
+        return {"success": True}
+    else:
+        return HTMLResponse(content=result["message"], status_code=status.HTTP_401_UNAUTHORIZED)
+
+# Serve favicon.ico from the new location
+@app.get("/favicon.ico", include_in_schema=False)
+def favicon():
+    return FileResponse("stem/static/favicon/favicon.ico")
+
+@app.get("/.well-known/appspecific/com.chrome.devtools.json", include_in_schema=False)
+async def chrome_devtools_config():
+    """
+    Endpoint to handle Chrome DevTools-specific requests and prevent 404s in logs.
+    """
+    return JSONResponse(content={})
 
 @app.websocket("/ws/voice")
 async def websocket_voice_endpoint(websocket: WebSocket):
@@ -380,6 +346,35 @@ async def websocket_voice_endpoint(websocket: WebSocket):
         import logging
         logging.getLogger(__name__).error(f"WebSocket error: {e}")
         await websocket.close(code=1011)
+
+# --- Exception Handlers ---
+@app.exception_handler(HTTPException)
+async def http_exception_handler(request: Request, exc: HTTPException):
+    """
+    Custom exception handler to redirect to login for 401 Unauthorized errors
+    on browser navigation (GET requests). Returns JSON for API requests.
+    """
+    if exc.status_code == 401:
+        # Check if this is a browser navigation (GET request) or API call
+        if request.method == "GET":
+            # Browser navigation - redirect to login with original path
+            original_path = str(request.url.path)
+            if request.url.query:
+                original_path += f"?{request.url.query}"
+            login_url = f"/login?redirect={original_path}"
+            return RedirectResponse(url=login_url, status_code=302)
+        else:
+            # API call - return JSON
+            return JSONResponse(
+                status_code=exc.status_code,
+                content={"detail": exc.detail}
+            )
+    
+    # Default behavior for other HTTP errors
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"detail": exc.detail}
+    )
 
 # This allows running the app directly with `python main.py`
 if __name__ == "__main__":
