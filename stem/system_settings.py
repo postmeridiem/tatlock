@@ -594,11 +594,8 @@ class SystemSettingsManager:
             # Major models that support function calling/tools
             # These are well-known models available in the Ollama library
             # Only include models smaller than or equal to gemma3-cortex (8.1 GB)
+            # AND verified to support function calling/tools
             major_models = [
-                # Gemma models (Google) - only include verified models
-                {'name': 'gemma2:2b', 'display': 'Gemma2 2B (Google)', 'size': '1.4GB'},
-                {'name': 'gemma2:9b', 'display': 'Gemma2 9B (Google)', 'size': '5.6GB'},
-                
                 # Llama models (Meta) - verified to support function calling
                 {'name': 'llama3.2:3b', 'display': 'Llama3.2 3B (Meta)', 'size': '1.8GB'},
                 {'name': 'llama3.2:8b', 'display': 'Llama3.2 8B (Meta)', 'size': '4.7GB'},

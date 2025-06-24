@@ -204,6 +204,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Updated the Edit button in the user table to call `showUserModal(username)` instead of the undefined `editUser(username)`
   - Resolves `Uncaught ReferenceError: editUser is not defined` in the admin dashboard
   - Edit button now correctly opens the user editing modal
+- Backend filtering to return all available Ollama models instead of just local ones
+- Frontend model detection to properly handle Ollama API response structure
+- Model handling to support Ollama API's actual response structure (Model objects with 'model' attribute)
+- Curated model list optimization by removing models larger than gemma3-cortex (8.1 GB)
+- Ongoing issues with non-tool-supporting models like gemma2:9b being selected
+- Model validation and automatic switching to supported models when tool calls fail
+- Removed non-tool-supporting models from curated list and local installation
+  - Removed gemma2:2b, gemma:latest, gemma3:12b, gemma3:latest from local Ollama installation
+  - Updated curated model list to exclude Gemma2 models that don't support function calling
+  - Ensures dropdown only shows models verified to support tools
 
 ### Technical
 - Added new tables: `system_settings`, `system_setting_categories`, `system_setting_categories_map`, and `settings_options` to `system.db`.
