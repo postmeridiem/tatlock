@@ -395,37 +395,96 @@ class SystemSettingsManager:
 
     def refresh_ollama_model_options(self) -> bool:
         """
-        Fetch available Ollama models and update settings_options.
+        Fetch major Ollama models from the library repository and update settings_options.
+        Focuses on well-known models that support function calling.
         Returns True if successful.
         """
         try:
-            import ollama
-            # Get all models from Ollama
-            models = ollama.list().get('models', [])
+            import requests
+            import json
             
-            # Convert all available models to options
+            # Major models that support function calling/tools
+            # These are well-known models available in the Ollama library
+            major_models = [
+                # Gemma models (Google)
+                {'name': 'gemma2:2b', 'display': 'Gemma2 2B (Google)', 'size': '1.4GB'},
+                {'name': 'gemma2:7b', 'display': 'Gemma2 7B (Google)', 'size': '4.4GB'},
+                {'name': 'gemma2:9b', 'display': 'Gemma2 9B (Google)', 'size': '5.6GB'},
+                {'name': 'gemma2:27b', 'display': 'Gemma2 27B (Google)', 'size': '16.9GB'},
+                
+                # Llama models (Meta)
+                {'name': 'llama3.2:3b', 'display': 'Llama3.2 3B (Meta)', 'size': '1.8GB'},
+                {'name': 'llama3.2:8b', 'display': 'Llama3.2 8B (Meta)', 'size': '4.7GB'},
+                {'name': 'llama3.2:70b', 'display': 'Llama3.2 70B (Meta)', 'size': '40.1GB'},
+                
+                # Mistral models
+                {'name': 'mistral:7b', 'display': 'Mistral 7B', 'size': '4.1GB'},
+                {'name': 'mixtral:8x7b', 'display': 'Mixtral 8x7B', 'size': '26.2GB'},
+                
+                # Code models
+                {'name': 'codellama:7b', 'display': 'Code Llama 7B', 'size': '3.8GB'},
+                {'name': 'codellama:13b', 'display': 'Code Llama 13B', 'size': '7.3GB'},
+                {'name': 'codellama:34b', 'display': 'Code Llama 34B', 'size': '18.6GB'},
+                
+                # Specialized models
+                {'name': 'llama3.2:3b-instruct', 'display': 'Llama3.2 3B Instruct', 'size': '1.8GB'},
+                {'name': 'llama3.2:8b-instruct', 'display': 'Llama3.2 8B Instruct', 'size': '4.7GB'},
+                {'name': 'llama3.2:70b-instruct', 'display': 'Llama3.2 70B Instruct', 'size': '40.1GB'},
+                
+                # Phi models (Microsoft)
+                {'name': 'phi3:mini', 'display': 'Phi-3 Mini (Microsoft)', 'size': '1.8GB'},
+                {'name': 'phi3:small', 'display': 'Phi-3 Small (Microsoft)', 'size': '2.1GB'},
+                {'name': 'phi3:medium', 'display': 'Phi-3 Medium (Microsoft)', 'size': '4.2GB'},
+                
+                # Neural Chat models
+                {'name': 'neural-chat:7b', 'display': 'Neural Chat 7B', 'size': '4.1GB'},
+                {'name': 'neural-chat:8b', 'display': 'Neural Chat 8B', 'size': '4.7GB'},
+                
+                # Qwen models (Alibaba)
+                {'name': 'qwen2.5:0.5b', 'display': 'Qwen2.5 0.5B (Alibaba)', 'size': '0.3GB'},
+                {'name': 'qwen2.5:1.5b', 'display': 'Qwen2.5 1.5B (Alibaba)', 'size': '0.9GB'},
+                {'name': 'qwen2.5:3b', 'display': 'Qwen2.5 3B (Alibaba)', 'size': '1.7GB'},
+                {'name': 'qwen2.5:7b', 'display': 'Qwen2.5 7B (Alibaba)', 'size': '4.1GB'},
+                {'name': 'qwen2.5:14b', 'display': 'Qwen2.5 14B (Alibaba)', 'size': '8.1GB'},
+                {'name': 'qwen2.5:32b', 'display': 'Qwen2.5 32B (Alibaba)', 'size': '18.6GB'},
+                {'name': 'qwen2.5:72b', 'display': 'Qwen2.5 72B (Alibaba)', 'size': '41.9GB'},
+                
+                # Default model (keep for compatibility)
+                {'name': 'gemma3-cortex:latest', 'display': 'Gemma3 Cortex (Default)', 'size': 'N/A'}
+            ]
+            
+            # Convert to options format
             options = []
-            for m in models:
-                model_name = m.get('name')
-                if model_name:
-                    # Format the label to show model name and size
-                    size = m.get('size', '')
-                    size_str = f" ({size})" if size else ""
-                    options.append({
-                        'option_value': model_name,
-                        'option_label': f"{model_name}{size_str}",
-                        'enabled': True
-                    })
-            
-            # If no models found, add a default option
-            if not options:
+            for model in major_models:
                 options.append({
-                    'option_value': 'gemma3-cortex:latest',
-                    'option_label': 'gemma3-cortex:latest (default)',
+                    'option_value': model['name'],
+                    'option_label': f"{model['display']} ({model['size']})",
                     'enabled': True
                 })
             
+            # Also check for locally installed models and add them if not already in the list
+            try:
+                import ollama
+                local_models = ollama.list().get('models', [])
+                for local_model in local_models:
+                    model_name = local_model.get('name')
+                    if model_name and not any(opt['option_value'] == model_name for opt in options):
+                        # Add locally installed model that's not in our major models list
+                        size = local_model.get('size', 'Unknown')
+                        options.append({
+                            'option_value': model_name,
+                            'option_label': f"{model_name} (Local - {size})",
+                            'enabled': True
+                        })
+            except Exception as e:
+                logger.warning(f"Could not fetch local models: {e}")
+            
+            # Sort options: major models first, then local models
+            major_model_names = {model['name'] for model in major_models}
+            options.sort(key=lambda x: (x['option_value'] not in major_model_names, x['option_label']))
+            
             return self.set_setting_options('ollama_model', options)
+            
         except Exception as e:
             logger.error(f"Error refreshing Ollama model options: {e}")
             # Add default option if refresh fails

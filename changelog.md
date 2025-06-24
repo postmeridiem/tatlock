@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **Admin Dashboard Ollama Model Selector**: Fixed issues with Ollama model selection in admin dashboard
+  - Fixed backend `refresh_ollama_model_options()` to return all available Ollama models instead of filtering by tool keys
+  - Fixed frontend current value detection to properly fetch setting value from API instead of DOM text
+  - Added proper error handling for model refresh operations
+  - Added fallback to default model when no models are available or refresh fails
+  - Improved model display with size information and better formatting
+  - Added current value display in the settings table for better visibility
+  - Ensures Ollama model selector works correctly and shows all available models
+
+### Improved
+- **Ollama Model Refresh**: Enhanced model refresh to show major models from Ollama library
+  - Added curated list of major models (Gemma2, Llama3.2, Mistral, Code Llama, Phi-3, Qwen2.5, etc.)
+  - Focuses on well-known models that support function calling/tools
+  - Shows model sizes and clear display names for better user experience
+  - Includes locally installed models that aren't in the major models list
+  - Sorts major models first, then local models for better organization
+  - Avoids overwhelming users with hundreds of language-specific variants
+
 ## [0.3.6] - 2024-06-25
 ### Fixed
 - **Admin Dashboard Ollama Model Selector**: Fixed issues with Ollama model selection in admin dashboard
