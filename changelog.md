@@ -125,6 +125,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Made all functions (registerSectionLoader, showSection, initializeHashNavigation, showSnackbar) globally available via window object
   - Fixed syntax error that was occurring when common.js was loaded in non-module context
   - Ensures compatibility with regular script loading across all pages
+- **ES6 Import Errors Fix**: Fixed 'does not provide an export named' errors in JavaScript files
+  - Removed import statements from chat.js, profile.js, and admin.js that were trying to import from common.js
+  - Updated all files to use globally available functions from window object instead of ES6 imports
+  - Fixed module import errors that were occurring when files tried to import from non-module common.js
+  - Ensures all JavaScript files work correctly with the non-module common.js approach
 - Fixed issue where settings dropdown would not load due to missing `settings_options` table.
 - Fixed repeated errors in logs by ensuring database schema is created and migrations are applied.
 - Fixed UI bugs related to model selection and modal dialog state.
