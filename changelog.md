@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **Benchmark Element ID Error**: Fixed null reference error in benchmark functionality
+  - Fixed element ID mismatch between `benchmark-content` and `benchmark-results`
+  - Added null checks to prevent "Cannot set properties of null" errors
+  - Updated `runBenchmark()` and `displayBenchmarkResults()` to use correct element ID
+  - Added error logging for debugging when benchmark container is not found
+  - Ensures benchmark buttons work correctly without JavaScript errors
+
 ## [0.3.4] - 2024-06-25
 ### Fixed
 - **Conversation Page Navigation**: Fixed hash-based navigation not working on conversation page

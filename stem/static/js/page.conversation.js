@@ -296,7 +296,12 @@ function handleHashNavigation() {
 
 // --- Benchmark Functionality ---
 async function runBenchmark(type) {
-    const benchmarkContent = document.getElementById('benchmark-content');
+    const benchmarkContent = document.getElementById('benchmark-results');
+    if (!benchmarkContent) {
+        console.error('Benchmark results container not found');
+        return;
+    }
+    
     const buttons = document.querySelectorAll('.benchmark-controls button');
     // Disable buttons and show loading
     buttons.forEach(btn => btn.disabled = true);
@@ -339,7 +344,12 @@ async function runBenchmark(type) {
 }
 
 function displayBenchmarkResults(data, type) {
-    const benchmarkContent = document.getElementById('benchmark-content');
+    const benchmarkContent = document.getElementById('benchmark-results');
+    if (!benchmarkContent) {
+        console.error('Benchmark results container not found');
+        return;
+    }
+    
     if (data.error) {
         benchmarkContent.innerHTML = `
             <div class="error">
