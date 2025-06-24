@@ -87,9 +87,19 @@ def process_chat_interaction(user_message: str, history: list[dict], username: s
 
     base_instructions = get_base_instructions(username)
 
+    # Get user location from personal variables
+    location = "unknown location"
+    try:
+        location_result = execute_find_personal_variables(searchkey="location")
+        if location_result.get("status") == "success" and location_result.get("data"):
+            # Use the first value found
+            location = location_result["data"][0]["value"]
+    except Exception as e:
+        logger.warning(f"Could not retrieve user location: {e}")
+
     messages_for_ollama = []
     messages_for_ollama.append({'role': 'system',
-                                'content': f'The current date is {date.today().isoformat()}. The user is in Rotterdam.'})
+                                'content': f'The current date is {date.today().isoformat()}. The user is in {location}.'})
     for instruction in base_instructions:
         messages_for_ollama.append({'role': 'system', 'content': instruction})
 
