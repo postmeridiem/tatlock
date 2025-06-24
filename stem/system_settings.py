@@ -758,5 +758,31 @@ class SystemSettingsManager:
             logger.error(f"Error updating tool status: {e}")
             return False
 
+    def validate_and_fix_current_model(self) -> bool:
+        """
+        Validate that the current model supports tools and switch to a working model if needed.
+        
+        Returns:
+            bool: True if model is valid or was successfully fixed, False otherwise
+        """
+        try:
+            current_model = self.get_setting('ollama_model')
+            if not current_model:
+                logger.warning("No model set, using default")
+                return self.set_setting('ollama_model', 'gemma3-cortex:latest')
+            
+            # Test if current model supports tools
+            if self.test_model_tool_support(current_model):
+                logger.info(f"Current model {current_model} supports tools - no change needed")
+                return True
+            else:
+                logger.warning(f"Current model {current_model} does not support tools, switching to default")
+                return self.set_setting('ollama_model', 'gemma3-cortex:latest')
+                
+        except Exception as e:
+            logger.error(f"Error validating current model: {e}")
+            # Fallback to default model
+            return self.set_setting('ollama_model', 'gemma3-cortex:latest')
+
 # Global instance
 system_settings_manager = SystemSettingsManager() 
