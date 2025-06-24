@@ -130,6 +130,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Updated all files to use globally available functions from window object instead of ES6 imports
   - Fixed module import errors that were occurring when files tried to import from non-module common.js
   - Ensures all JavaScript files work correctly with the non-module common.js approach
+- **Script Loading Order Fix**: Fixed 'registerSectionLoader is not defined' error in admin and profile pages
+  - Added common.js script inclusion to admin.html and profile.html templates
+  - Ensures registerSectionLoader and other functions are available before admin.js and profile.js load
+  - Fixed dependency loading order that was causing functions to be undefined
+  - Maintains proper script loading order across all templates
 - Fixed issue where settings dropdown would not load due to missing `settings_options` table.
 - Fixed repeated errors in logs by ensuring database schema is created and migrations are applied.
 - Fixed UI bugs related to model selection and modal dialog state.
