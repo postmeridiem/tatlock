@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.3] - 2024-06-25
 ### Fixed
 - **Install Script .env Creation**: Modified installer to automatically create .env file when none exists
   - Removed unnecessary prompt when no .env file is present
