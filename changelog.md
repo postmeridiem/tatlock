@@ -235,6 +235,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Removed duplicate installation steps
   - Streamlined getting started guide
   - Better organization of information
+- **Admin Dashboard User Edit Button Fix**: Fixed ReferenceError for Edit button in user table
+  - Updated the Edit button in the user table to call `showUserModal(username)` instead of the undefined `editUser(username)`
+  - Resolves `Uncaught ReferenceError: editUser is not defined` in the admin dashboard
+  - Edit button now correctly opens the user editing modal
 
 ### Technical
 - Added new tables: `system_settings`, `system_setting_categories`, `system_setting_categories_map`, and `settings_options` to `system.db`.

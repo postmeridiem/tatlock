@@ -104,7 +104,7 @@ async function loadUsers() {
                 <td>${user.email}</td>
                 <td>${user.roles.join(', ')}</td>
                 <td>${user.groups.join(', ')}</td>
-                <td><button onclick="editUser('${user.username}')">Edit</button></td>
+                <td><button onclick="showUserModal('${user.username}')">Edit</button></td>
             `;
             usersTableBody.appendChild(row);
         });
