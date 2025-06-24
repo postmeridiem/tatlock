@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **Install Script .env Creation**: Modified installer to automatically create .env file when none exists
+  - Removed unnecessary prompt when no .env file is present
+  - Script now automatically creates .env file with default values when none exists
+  - Only prompts for overwrite confirmation when .env file already exists
+  - Added HOSTNAME, PORT, and ALLOWED_ORIGINS to the generated .env file
+  - Improves user experience by reducing unnecessary prompts during fresh installations
+
 ## [0.3.2] - 2024-06-25
 ### Fixed
 - **Python Version Requirement**: Modified installer to require exactly Python 3.10 instead of 3.10+

@@ -859,10 +859,10 @@ print('System settings updated from .env file')
         # Continue with .env creation
     fi
 else
-    echo "Creating new .env file..."
+    echo "No .env file found. Creating new .env file automatically..."
 fi
 
-# Only create .env if it doesn't exist or user chose to overwrite
+# Create .env if it doesn't exist or user chose to overwrite
 if [ ! -f ".env" ] || [[ "$overwrite_env" =~ ^[Yy]$ ]]; then
     # Generate a random UUID for STARLETTE_SECRET using the correct Python version
     STARLETTE_SECRET=$($PYTHON_CMD -c "import uuid; print(str(uuid.uuid4()))")
@@ -871,21 +871,28 @@ if [ ! -f ".env" ] || [[ "$overwrite_env" =~ ^[Yy]$ ]]; then
         exit 1
     fi
 
-    # Get server configuration from user
-    echo ""
-    echo -e "${CYAN}Server Configuration:${NC}"
-    echo -e "${CYAN}──────────────────────────────────────────────────────────────────────────────────${NC}"
-    read -p "Enter hostname [localhost]: " hostname_input
-    hostname_input=${hostname_input:-localhost}
-    read -p "Enter port [8000]: " port_input
-    port_input=${port_input:-8000}
-    echo -e "${CYAN}──────────────────────────────────────────────────────────────────────────────────${NC}"
-    echo ""
+    # Get server configuration from user (only if creating new file or overwriting)
+    if [ ! -f ".env" ] || [[ "$overwrite_env" =~ ^[Yy]$ ]]; then
+        echo ""
+        echo -e "${CYAN}Server Configuration:${NC}"
+        echo -e "${CYAN}──────────────────────────────────────────────────────────────────────────────────${NC}"
+        read -p "Enter hostname [localhost]: " hostname_input
+        hostname_input=${hostname_input:-localhost}
+        read -p "Enter port [8000]: " port_input
+        port_input=${port_input:-8000}
+        echo -e "${CYAN}──────────────────────────────────────────────────────────────────────────────────${NC}"
+        echo ""
+    fi
 
     # Create .env file with all required variables
     cat > .env << EOF
 # Tatlock Environment Configuration
 # Generated automatically during installation
+
+# Server Configuration
+HOSTNAME=$hostname_input
+PORT=$port_input
+ALLOWED_ORIGINS=http://$hostname_input:$port_input
 
 # API Keys (Required - Please update these with your actual API keys)
 OPENWEATHER_API_KEY=your_openweather_api_key_here
