@@ -2213,10 +2213,10 @@ Update the JavaScript Coding Standards and Jinja2 Template Integration Pattern s
 ### UI/UX and Frontend Coding Standards
 
 #### Add/Create Button Placement
-- **Standard Placement:** For table sections, always place the add/create button above the section header/title. This ensures a clear, consistent, and user-friendly UI.
+- **Standard Placement:** For table sections, always place the add/create button above the section header/title and right-aligned using flexbox. This ensures a clear, consistent, and user-friendly UI.
 - **Pattern:**
   ```html
-  <div class="add-btn-row">
+  <div class="add-btn-row" style="display: flex; justify-content: flex-end; padding: 0 24px; margin-bottom: 0.5em;">
       <button class="add-btn">Add New</button>
   </div>
   <div class="section-title">Section Name</div>

@@ -32,8 +32,10 @@
     
     <!-- Users Section -->
     <div id="users" class="section" style="display: none;">
-        <!-- Standard: Add/Create button goes above the section header for table sections -->
-        <div class="add-btn-row"><button class="add-btn" onclick="showUserModal()">Add New User</button></div>
+        <!-- Standard: Add/Create button goes above the section header for table sections, right-aligned -->
+        <div class="add-btn-row" style="display: flex; justify-content: flex-end; padding: 0 24px; margin-bottom: 0.5em;">
+            <button class="add-btn" onclick="showUserModal()">Add New User</button>
+        </div>
         <div class="section-title">User Management</div>
         <div id="users-content">
             <table class="user-table">
