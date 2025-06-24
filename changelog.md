@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.2] - 2024-06-25
+### Fixed
+- **Python Version Requirement**: Modified installer to require exactly Python 3.10 instead of 3.10+
+  - Updated `check_python_version()` function to reject Python versions higher than 3.10
+  - Modified installer instructions and error messages to specify exact Python 3.10 requirement
+  - Added Python version constraint to `pyproject.toml` with `requires-python = "==3.10.*"`
+  - Added warning comments to `requirements.txt` about Python 3.10 requirement
+  - Prevents dependency conflicts (e.g., greenlet wheel building issues) that occur with Python 3.11+
+  - Ensures optimal compatibility and prevents installation issues on systems with newer Python versions
+
 ## [0.3.1] - 2024-06-24
 ### Fixed
 - Added support for Pop!_OS Linux in the installer. Pop!_OS is now detected and treated as a Debian-based system for package installation.
