@@ -8,14 +8,15 @@ let currentSection = 'profile';
 let isEditing = false;
 
 // Register section loaders
-registerSectionLoader('activity-section', loadActivityList);
-registerSectionLoader('info-section', loadProfileInfo);
+registerSectionLoader('profile', loadProfileInfo);
+registerSectionLoader('change-password', setupPasswordEventListeners);
+registerSectionLoader('memory-management', initializeMemoryManagement);
 
 // Navigation handler
 function handleHashNavigation() {
     const hash = window.location.hash.substring(1);
-    const validSections = ['activity-section', 'info-section'];
-    const sectionId = validSections.includes(hash) ? hash : 'activity-section';
+    const validSections = ['profile', 'change-password', 'memory-management'];
+    const sectionId = validSections.includes(hash) ? hash : 'profile';
     showSection(sectionId);
 }
 
