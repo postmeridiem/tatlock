@@ -168,6 +168,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Renamed `marked.min.js` to `plugin.marked.min.js` to complete plugin naming standardization
 - Updated all template references, documentation, and test assertions to use new plugin.marked.min.js filename
 - Corrected script loading for admin and profile pages to include component.chatbar.js since they use the chat sidebar
+- **Documentation and Template Cleanup**: Cleaned up and updated all main HTML templates and stem module documentation
+  - Removed obsolete and out-of-date comments and documentation entries
+  - Added and clarified documentation for new features, standards, and UI/UX patterns (system settings, tools management, right-aligned add buttons, section header standards, chat sidebar separation, memory management, modal structure, etc.)
+  - Updated naming conventions and removed references to deleted or merged files
 
 ### Fixed
 - **Profile Page JavaScript Error Fix**: Removed incomplete settings section registration that was causing `loadProfileSettings is not defined` error

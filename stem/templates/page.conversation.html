@@ -12,6 +12,7 @@
 
 {% block page_styles %}
 <style>
+    /* Main content and chat sidebar layout */
     .main-content {
         display: flex;
         padding: 0;
@@ -225,92 +226,40 @@
 
 {% block content %}
 {% set nav_items = [
-    {'id': 'server-log', 'text': 'Server Log', 'active': True},
-    {'id': 'benchmark', 'text': 'Benchmark'},
-    {'id': 'system-info', 'text': 'System Info'}
+    {'id': 'conversation', 'text': 'Conversation', 'active': True},
+    {'id': 'system-info', 'text': 'System Info'},
+    {'id': 'benchmarks', 'text': 'Benchmarks'}
 ] %}
-{{ render_nav('Debug', nav_items) }}
+{{ render_nav('Conversation', nav_items) }}
 
-<div class="content-area">
-    <!-- Server Log -->
-    <div id="server-log" class="section">
-        <div class="section-title">Discussion Analysis Output</div>
-        <div class="debug-controls">
-            <button id="clear-log-btn" class="button">Clear Log</button>
-            <button id="export-log-btn" class="button">Export Log</button>
-            <label class="auto-scroll-toggle">
-                <input type="checkbox" id="auto-scroll" checked>
-                Auto-scroll
-            </label>
+<div class="main-content">
+    <!-- Conversation Section: main chat interface -->
+    <div id="conversation" class="section">
+        <div class="section-title">Conversation</div>
+        <div id="conversation-content">
+            <!-- Chat messages and input will be rendered here -->
         </div>
-        <div id="json-container"></div>
     </div>
-    
-    <!-- System Info -->
+
+    <!-- System Info Section: system details and status -->
     <div id="system-info" class="section" style="display: none;">
-        <div class="section-title">System Information</div>
+        <div class="section-title">System Info</div>
         <div id="system-info-content">
-            <div id="system-info-tiles" class="metrics-tiles">
-                <div class="tile metric-tile">
-                    <div class="tile-title">CPU Usage</div>
-                    <div class="tile-value" id="cpu-usage-percent">--%</div>
-                    <div class="tile-desc">Cores: <span id="cpu-core-count">--</span></div>
-                </div>
-                <div class="tile metric-tile">
-                    <div class="tile-title">RAM Usage</div>
-                    <div class="tile-value" id="ram-usage-percent">--%</div>
-                    <div class="tile-desc"><span id="ram-used">--</span>GB / <span id="ram-total">--</span>GB</div>
-                </div>
-                <div class="tile metric-tile">
-                    <div class="tile-title">Disk Usage</div>
-                    <div class="tile-value" id="disk-usage-percent">--%</div>
-                    <div class="tile-desc"><span id="disk-used">--</span>GB / <span id="disk-total">--</span>GB</div>
-                </div>
-                <div class="tile metric-tile">
-                    <div class="tile-title">Uptime</div>
-                    <div class="tile-value" id="system-uptime">--</div>
-                    <div class="tile-desc">Processes: <span id="process-count">--</span></div>
-                </div>
-                <div class="tile metric-tile">
-                    <div class="tile-title">Network</div>
-                    <div class="tile-value" id="network-sent">--GB sent</div>
-                    <div class="tile-desc" id="network-recv">--GB recv</div>
-                </div>
-            </div>
-            <div class="metrics-graphs">
-                <div class="graph-container">
-                    <canvas id="cpu-usage-chart"></canvas>
-                    <div class="chart-label">CPU Usage Over Time</div>
-                </div>
-                <div class="graph-container">
-                    <canvas id="ram-usage-chart"></canvas>
-                    <div class="chart-label">RAM Usage Over Time</div>
-                </div>
-            </div>
-            <div class="system-info-card">
-                <h3>Raw System Information</h3>
-                <pre id="system-info-raw" class="json-content"></pre>
-            </div>
-            <div id="system-info-error" class="error-message" style="display: none;"></div>
+            <!-- System information will be loaded here -->
         </div>
     </div>
-    
-    <!-- Benchmark -->
-    <div id="benchmark" class="section" style="display: none;">
-        <div class="section-title">Performance Benchmark</div>
-        <div class="benchmark-controls">
-            <button id="run-comprehensive-benchmark" class="button">Run Comprehensive Benchmark</button>
-            <button id="run-llm-benchmark" class="button">LLM Benchmark Only</button>
-            <button id="run-tools-benchmark" class="button">Tools Benchmark Only</button>
-        </div>
-        <div id="benchmark-content">
-            <div class="benchmark-placeholder">
-                <p>Click a benchmark button above to start performance testing.</p>
-                <p>This will test LLM response times and tool execution performance.</p>
-            </div>
+
+    <!-- Benchmarks Section: performance and LLM benchmarks -->
+    <div id="benchmarks" class="section" style="display: none;">
+        <div class="section-title">Benchmarks</div>
+        <div id="benchmarks-content">
+            <!-- Benchmark controls and results will be rendered here -->
         </div>
     </div>
 </div>
+
+<!-- Snackbar Container -->
+{% include 'components/snackbar.html' %}
 {% endblock %}
 
 {% block scripts %}

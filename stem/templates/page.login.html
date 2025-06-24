@@ -7,6 +7,7 @@
 
 {% block page_styles %}
 <style>
+    /* Login page layout and card styles */
     .login-container {
         display: flex;
         justify-content: center;
@@ -132,6 +133,7 @@
             <div class="login-subtitle">Sign in to your account</div>
         </div>
         
+        <!-- Login form with password toggle and error handling -->
         <form class="login-form" id="login-form">
             <div class="form-group">
                 <label for="username">Username</label>
@@ -154,6 +156,7 @@
             </button>
         </form>
         
+        <!-- Error message and loading state -->
         <div class="error-message" id="errorMessage"></div>
     </div>
 </div>

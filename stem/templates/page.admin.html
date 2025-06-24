@@ -22,7 +22,7 @@
 {{ render_nav('Admin', nav_items) }}
 
 <div class="content-area">
-    <!-- Stats Section -->
+    <!-- System statistics overview -->
     <div id="stats" class="section">
         <div class="section-title">System Statistics</div>
         <div class="stats-grid" id="stats-grid">
@@ -30,9 +30,8 @@
         </div>
     </div>
     
-    <!-- Users Section -->
+    <!-- User Management: Add New button is right-aligned above section header -->
     <div id="users" class="section" style="display: none;">
-        <!-- Standard: Add/Create button goes above the section header for table sections, right-aligned -->
         <div class="add-btn-row" style="display: flex; justify-content: flex-end; padding: 0 24px; margin-bottom: 0.5em;">
             <button class="add-btn" onclick="showUserModal()">Add New User</button>
         </div>
@@ -57,7 +56,7 @@
         </div>
     </div>
     
-    <!-- Roles Section -->
+    <!-- Roles Management: Add New button is right-aligned above section header -->
     <div id="roles-section" class="section" style="display: none;">
         <div class="add-btn-row" style="display: flex; justify-content: flex-end; padding: 0 24px; margin-bottom: 0.5em;">
             <button class="add-btn" onclick="showRoleModal()">Add New Role</button>
@@ -79,7 +78,7 @@
         </div>
     </div>
     
-    <!-- Groups Section -->
+    <!-- Groups Management: Add New button is right-aligned above section header -->
     <div id="groups-section" class="section" style="display: none;">
         <div class="add-btn-row" style="display: flex; justify-content: flex-end; padding: 0 24px; margin-bottom: 0.5em;">
             <button class="add-btn" onclick="showGroupModal()">Add New Group</button>
@@ -101,7 +100,7 @@
         </div>
     </div>
 
-    <!-- Tools Section -->
+    <!-- Tools Management: Centralized tools registry and status -->
     <div id="tools-section" class="section" style="display: none;">
         <div class="section-title">Tools Management</div>
         <div id="tools-content">
@@ -122,7 +121,7 @@
         </div>
     </div>
 
-    <!-- System Settings Section -->
+    <!-- System Settings: All global configuration, categorized -->
     <div id="settings-section" class="section" style="display: none;">
         <div class="section-title">System Settings</div>
         <div class="settings-container">

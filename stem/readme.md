@@ -25,7 +25,7 @@ The Stem module provides authentication, admin dashboard, tool registration, sta
   - Security and user isolation
 
 ## API & Endpoints
-- Admin: `/admin/dashboard`, `/admin/users`, `/admin/roles`, `/admin/groups`
+- Admin: `/admin/dashboard`, `/admin/users`, `/admin/roles`, `/admin/groups`, `/admin/tools`, `/admin/settings`
 - Profile: `/profile`
 - Static: `/static/`, `/templates/`
 
@@ -49,16 +49,6 @@ Comprehensive user management and security system with session-based authenticat
 - **Login/Logout**: Session-based authentication with proper redirects
 - **User Context**: Provides user information to other modules for personalization
 
-> **Note:** As of this release, `security.py` has been thoroughly cleaned up. Only the following imports are required for most use cases:
->
-> ```python
-> from stem.security import (
->     security_manager, get_current_user, require_admin_role, login_user, logout_user, current_user
-> )
-> ```
->
-> All unused imports and variables have been removed for clarity and maintainability. The module now follows best practices for import hygiene and code clarity.
-
 ### 🛠️ **Admin Dashboard** (`admin.py`)
 Complete administrative interface with FastAPI router:
 
@@ -67,6 +57,9 @@ Complete administrative interface with FastAPI router:
 - **User CRUD Operations**: Create, read, update, and delete users
 - **Role Management**: Complete role lifecycle management
 - **Group Management**: Complete group lifecycle management
+- **Tools Management**: Centralized registry for all system tools, enable/disable, view details
+- **System Settings**: Categorized global configuration, live updates, model management
+- **UI/UX Standards**: Right-aligned "Add New" buttons above section headers for all admin tables, consistent section header underline, responsive design
 - **Pydantic Models**: Request/response models for all admin operations
 - **Error Handling**: Comprehensive error handling and validation
 - **Real-time Updates**: Dynamic interface updates without page refresh
@@ -77,49 +70,79 @@ User self-service profile management:
 - **Profile Information**: Display user details, roles, and groups
 - **Profile Editing**: Update personal information (first name, last name, email)
 - **Password Management**: Change password with current password verification
+- **Memory Management**: Search, view, and purge conversation history
 - **FastAPI Router**: Dedicated router for profile endpoints
 - **Security Validation**: Ensures users can only modify their own profiles
 
-### 🧰 **Tool System** (`tools.py`)
+### 🧠 **Tool System** (`tools.py`)
 Defines and implements all available tools for the Tatlock agent:
 
-#### **External API Tools**
-- **`web_search`**: Google Custom Search API integration for web queries
-- **`get_weather_forecast`**: OpenWeather API integration for weather data
+- **External API Tools**: Web search, weather, etc.
+- **Memory Tools**: Conversation and memory analytics, export, cleanup, insights
+- **Visual Tools**: Screenshot, file analysis
 
-#### **Memory Tools** (imported from hippocampus/tools/)
-- **`find_personal_variables`**: Personal information lookup system
-- **`recall_memories`**: Memory search by keyword (user-scoped)
-- **`recall_memories_with_time`**: Memory search with temporal filtering (user-scoped)
-- **`get_user_conversations`**: List all conversations for the current user
-- **`get_conversation_details`**: Get detailed conversation information for current user
-- **`search_conversations`**: Search conversations by title or content for current user
-- **`get_conversations_by_topic`**: Find conversations containing specific topics for current user
-- **`get_topics_by_conversation`**: Get all topics in a specific conversation for current user
-- **`get_conversation_summary`**: Get comprehensive conversation summaries for current user
-- **`get_topic_statistics`**: Get statistics about topics across conversations for current user
-
-#### **Visual Tools** (imported from occipital/)
-- **`screenshot_from_url`**: Take screenshots of web pages
-- **`analyze_file`**: Analyze and interpret image files
-
-### 📁 **Static File Serving** (`static.py`)
+### 📄 **Static File Serving & Templates** (`static.py`)
 Handles web interface and static file management:
 
-- **`mount_static_files()`**: Mounts static files directory to FastAPI
-- **`get_admin_page()`**: Returns the admin dashboard HTML
-- **`get_profile_page()`**: Returns the user profile HTML
-- **`get_chat_page()`**: Returns the debug console HTML
-- **`get_login_page()`**: Returns the login page HTML
+- **Template Naming**: All main page templates use the `page.*.html` pattern (e.g., `page.admin.html`, `page.profile.html`, `page.conversation.html`, `page.login.html`)
+- **Component System**: Reusable components in `templates/components/` (header, navigation, chat sidebar, modal, form, snackbar)
+- **Modern UI**: Material Design principles, dark/light mode, responsive design
+- **Static Assets**: Fonts, favicons, images, modular JS files
 
-### 📊 **Data Models** (`models.py`)
-Pydantic models for API requests and responses:
+### 💻 **JavaScript Modules** (`static/js/`)
+- **Naming Conventions**:
+  - Page-specific scripts: `page.[pagename].js` (e.g., `page.admin.js`, `page.profile.js`, `page.login.js`, `page.conversation.js`)
+  - Component scripts: `component.[componentname].js` (e.g., `component.chatbar.js`)
+  - Plugin scripts: `plugin.[library].js` (e.g., `plugin.marked.min.js`)
+- **Key Modules**:
+  - `common.js`: Shared functionality (snackbar, theme, anchor links, etc.)
+  - `page.admin.js`: Admin dashboard logic (users, roles, groups, tools, settings)
+  - `page.profile.js`: Profile management (info, password, memory)
+  - `page.conversation.js`: Main conversation interface, system info, benchmarks
+  - `page.login.js`: Login page logic
+  - `component.chatbar.js`: Chat sidebar functionality (used on all main pages)
+- **Removed/Merged**: Old files like `chat.js`, `debug.js`, and `sidebar_chat.js` have been removed or merged into the new structure.
 
-- **Chat Models**: ChatRequest, ChatResponse, ChatMessage
-- **User Models**: CreateUserRequest, UpdateUserRequest, UserResponse
-- **Admin Models**: AdminStatsResponse, CreateRoleRequest, RoleResponse
-- **Group Models**: CreateGroupRequest, UpdateGroupRequest, GroupResponse
-- **Profile Models**: PasswordChangeRequest
+### 🖼️ **Static Assets** (`static/`)
+- **Fonts**: Material Icons font files
+- **Favicons**: Complete favicon and app icon set
+- **Images**: Logo and branding assets
+- **JS**: Modular JavaScript files
+
+## 🧰 **Utility Modules**
+
+### **JSON Utilities** (`jsonutils.py`)
+- JSON serialization/deserialization utilities
+- Error handling for JSON operations
+- Safe JSON parsing with fallback handling
+
+### **Text Utilities** (`textutils.py`)
+- Text cleaning and formatting functions
+- String manipulation utilities
+- Text normalization and sanitization
+
+### **Logging** (`logging.py`)
+- Structured logging setup with FastAPI integration
+- Log formatting and output management
+- Configurable log levels and handlers
+- `get_logger()`: Standardized logger creation for all modules
+
+### **Time Awareness** (`timeawareness.py`)
+- Natural language date parsing and range extraction
+- Supports various date formats and relative time expressions
+- Returns ISO date strings for database queries
+
+### **HTML Controller** (`htmlcontroller.py`)
+- Jinja2 template management and rendering
+- Automatic template/component discovery and loading
+
+## 🚀 **Installation Support** (`installation/`)
+- Database setup and initialization utilities
+- Automated tools backup and restore
+
+---
+
+**For all coding standards, architectural patterns, and development workflows, see [developer.md](../developer.md).**
 
 ## 🎨 **Web Interface Components**
 
