@@ -61,10 +61,10 @@ from stem.htmlcontroller import render_template, render_page, get_common_context
 context = get_common_context(request, user)
 
 # Render template as string
-html = render_template('login.html', context)
+html = render_template('page.login.html', context)
 
 # Render template as HTMLResponse
-response = render_page('login.html', context)
+response = render_page('page.login.html', context)
 ```
 
 #### Template Structure
@@ -72,10 +72,10 @@ response = render_page('login.html', context)
 ```
 stem/templates/
 ├── base.html                 # Base layout template
-├── login.html               # Login page template
-├── chat.html                # Debug console template
-├── profile.html             # User profile template
-├── admin.html               # Admin dashboard template
+├── page.login.html               # Login page template
+├── page.conversation.html        # Main conversation interface template
+├── page.profile.html             # User profile template
+├── page.admin.html               # Admin dashboard template
 ├── components/              # Reusable components
 │   ├── header.html          # Page header component
 │   ├── footer.html          # Page footer component
@@ -1069,6 +1069,175 @@ When renaming or reorganizing JavaScript files:
 - Legacy files should be renamed when practical
 - Document why legacy naming exists
 
+#### Comprehensive File Naming Patterns
+
+Tatlock follows consistent naming patterns across all file types to ensure clarity, maintainability, and organization throughout the codebase.
+
+##### HTML Template Files
+
+**Page Templates**
+- **Pattern**: `page.{pagename}.html`
+- **Purpose**: Main page templates for different application sections
+- **Examples**:
+  - `page.login.html` - Authentication page template
+  - `page.conversation.html` - Main conversation interface template
+  - `page.profile.html` - User profile management template
+  - `page.admin.html` - Admin dashboard template
+- **Location**: `stem/templates/` and `stem/static/`
+- **Scope**: Complete page layouts with navigation, content areas, and script loading
+
+**Component Templates**
+- **Pattern**: `{componentname}.html`
+- **Purpose**: Reusable UI component templates
+- **Examples**:
+  - `chat-sidebar.html` - Chat sidebar component
+  - `header.html` - Page header component
+  - `navigation.html` - Navigation menu component
+- **Location**: `stem/templates/components/`
+- **Scope**: Modular UI components included in page templates
+
+**Base Templates**
+- **Pattern**: `{purpose}.html`
+- **Purpose**: Foundation templates for inheritance
+- **Examples**:
+  - `base.html` - Base layout template with common structure
+- **Location**: `stem/templates/`
+- **Scope**: Common HTML structure, navigation, and script loading patterns
+
+##### JavaScript Files
+
+**Page-Specific Scripts**
+- **Pattern**: `page.{pagename}.js`
+- **Purpose**: Functionality specific to individual pages
+- **Examples**:
+  - `page.login.js` - Login page functionality
+  - `page.conversation.js` - Conversation/debug console functionality
+  - `page.profile.js` - User profile management
+  - `page.admin.js` - Admin dashboard functionality
+- **Loading**: Loaded only on their respective pages
+- **Scope**: Page-specific DOM manipulation, event handlers, and business logic
+
+**Component Scripts**
+- **Pattern**: `component.{componentname}.js`
+- **Purpose**: Reusable UI component functionality
+- **Examples**:
+  - `component.chatbar.js` - Chat sidebar component functionality
+- **Loading**: Loaded on pages that use the specific component
+- **Scope**: Component-specific behavior, state management, and interactions
+
+**Shared Scripts**
+- **Pattern**: `{functionality}.js` (for core shared functionality)
+- **Purpose**: Common functionality used across multiple pages
+- **Examples**:
+  - `common.js` - Shared utilities, authentication, UI components, and navigation
+- **Loading**: Loaded on all pages that require shared functionality
+- **Scope**: Global utilities, authentication handling, theme management, snackbar system
+
+**Plugin Scripts**
+- **Pattern**: `plugin.{library}.js`
+- **Purpose**: Third-party libraries and external dependencies
+- **Examples**:
+  - `plugin.chart.min.js` - Chart.js library
+  - `plugin.chart.umd.min.js.map` - Chart.js source map
+  - `plugin.json-highlight.js` - JSON syntax highlighting library
+  - `plugin.marked.min.js` - Markdown parsing library
+- **Loading**: Loaded on pages that require the specific library
+- **Scope**: External library functionality, no custom code
+
+##### CSS Files
+
+**Main Stylesheets**
+- **Pattern**: `{purpose}.css`
+- **Purpose**: Main application styling
+- **Examples**:
+  - `style.css` - Main application stylesheet
+  - `material-icons.css` - Material Icons font styles
+  - `json-highlight.css` - JSON syntax highlighting styles
+- **Location**: `stem/static/`
+- **Scope**: Application-wide styling, component styles, and utility classes
+
+##### Asset Files
+
+**Images**
+- **Pattern**: `{purpose}.{format}`
+- **Purpose**: Application images and graphics
+- **Examples**:
+  - `logo-tatlock.png` - Application logo
+  - `logo-tatlock-transparent.png` - Transparent logo variant
+- **Location**: `stem/static/images/`
+- **Scope**: Logos, icons, and other visual assets
+
+**Favicon Files**
+- **Pattern**: `{size}-{format}` or `{purpose}.{format}`
+- **Purpose**: Browser favicon and app icons
+- **Examples**:
+  - `favicon.ico` - Standard favicon
+  - `favicon-16x16.png` - 16x16 favicon
+  - `android-chrome-192x192.png` - Android Chrome icon
+- **Location**: `stem/static/favicon/`
+- **Scope**: Browser and mobile app icons
+
+**Fonts**
+- **Pattern**: `{fontname}.{format}`
+- **Purpose**: Custom fonts and icon fonts
+- **Examples**:
+  - `material-icons.ttf` - Material Icons TrueType font
+  - `material-icons.woff` - Material Icons Web Open Font
+- **Location**: `stem/static/fonts/`
+- **Scope**: Custom typography and icon fonts
+
+##### Configuration Files
+
+**Application Config**
+- **Pattern**: `{purpose}.{format}`
+- **Purpose**: Application configuration and metadata
+- **Examples**:
+  - `manifest.json` - Web app manifest
+  - `pyproject.toml` - Python project configuration
+  - `requirements.txt` - Python dependencies
+- **Location**: Project root or specific directories
+- **Scope**: Application configuration, dependencies, and metadata
+
+##### Benefits of Consistent Naming
+
+**Organization**
+- **Clear Purpose**: File names immediately indicate their purpose and scope
+- **Easy Navigation**: Developers can quickly locate files by type and function
+- **Logical Grouping**: Related files follow similar naming patterns
+- **Scalability**: Easy to add new files following established patterns
+
+**Maintainability**
+- **Consistent Structure**: Uniform naming across the entire codebase
+- **Reduced Confusion**: Clear distinction between different types of files
+- **Easier Refactoring**: Predictable naming makes reorganization straightforward
+- **Documentation**: File names serve as self-documenting code
+
+**Development Workflow**
+- **Quick Identification**: Developers can immediately understand file purpose
+- **Dependency Management**: Clear loading order and relationships
+- **Code Reviews**: Easier to review changes when file purposes are clear
+- **Onboarding**: New developers can quickly understand project structure
+
+##### Migration and Maintenance
+
+**When Adding New Files**
+1. **Follow Established Patterns**: Use the appropriate prefix for the file type
+2. **Be Descriptive**: Choose names that clearly indicate purpose
+3. **Maintain Consistency**: Don't create exceptions to established patterns
+4. **Update Documentation**: Keep naming pattern documentation current
+
+**When Renaming Files**
+1. **Update All References**: Update all template files, imports, and documentation
+2. **Maintain Backward Compatibility**: Ensure existing functionality continues to work
+3. **Test Thoroughly**: Verify all pages and functionality work after changes
+4. **Update Changelog**: Document significant naming changes
+
+**Exception Handling**
+- **Legacy Files**: Some files may not follow current patterns
+- **Third-Party Libraries**: External libraries may have their own naming conventions
+- **Documentation**: Always document why exceptions exist
+- **Migration**: Plan to rename legacy files when practical
+
 #### Jinja2 Template Integration Pattern
 
 **IMPORTANT**: Follow the proper Jinja2 templating pattern for dynamic content:
@@ -1090,7 +1259,7 @@ When renaming or reorganizing JavaScript files:
 #### Template Structure Example
 
 ```html
-<!-- In Jinja2 template (admin.html) - HTML structure always present -->
+<!-- In Jinja2 template (page.admin.html) - HTML structure always present -->
 <div id="users-section" class="section">
     <div class="section-title">User Management</div>
     <table class="user-table">

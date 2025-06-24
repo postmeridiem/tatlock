@@ -126,11 +126,10 @@ Pydantic models for API requests and responses:
 ### **HTML Templates** (`templates/`)
 Jinja2-based server-side templating system:
 
-- **`base.html`**: Base layout template with navigation and common elements
-- **`login.html`**: Session-based login page
-- **`chat.html`**: Debug console with JSON logging
-- **`profile.html`**: User profile management interface
-- **`admin.html`**: Complete admin dashboard with user, role, and group management
+- **`page.login.html`**: Session-based login page
+- **`page.conversation.html`**: Main conversation interface
+- **`page.profile.html`**: User profile management interface
+- **`page.admin.html`**: Complete admin dashboard with user, role, and group management
 
 ### **Reusable Components** (`templates/components/`)
 - **`header.html`**: Site header with navigation and user menu

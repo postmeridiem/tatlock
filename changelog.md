@@ -91,6 +91,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Cleaned up root README.md to focus on high-level overview and installation
 
 ### Changed
+- **HTML Template Naming Convention**: Renamed main page templates to follow consistent `page.` prefix pattern
+  - `admin.html` → `page.admin.html`
+  - `conversation.html` → `page.conversation.html` (already renamed from chat.html)
+  - `login.html` → `page.login.html`
+  - `profile.html` → `page.profile.html`
+  - Updated all Python code references in static.py to use new template names
+  - Updated all documentation references in developer.md, templates/README.md, and stem/readme.md
+  - Maintains consistency with JavaScript file naming patterns (page.*.js)
+  - Improves code organization and makes page templates easily identifiable
 - **JavaScript File Organization**: Merged debug.js functionality into page.conversation.js for unified conversation page management
   - Moved all benchmark functionality (runBenchmark, displayBenchmarkResults, renderComprehensiveBenchmark, renderLLMBenchmark, renderToolsBenchmark) from debug.js to page.conversation.js
   - Consolidated event listeners for debug controls and benchmark buttons into single setupDebugEventListeners function

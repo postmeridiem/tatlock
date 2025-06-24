@@ -10,10 +10,10 @@ This directory contains all Jinja2 templates for Tatlock's web interface. These 
 - Defines blocks for content injection: `content`, `title`, `extra_css`, `page_styles`
 
 ### Page Templates
-- **`login.html`**: Authentication page
-- **`chat.html`**: Debug console and chat interface
-- **`profile.html`**: User profile management
-- **`admin.html`**: Admin dashboard
+- **`page.login.html`**: Authentication page
+- **`page.conversation.html`**: Main conversation interface
+- **`page.profile.html`**: User profile management
+- **`page.admin.html`**: Admin dashboard
 
 ### Components
 - **`components/`**: Reusable UI components

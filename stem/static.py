@@ -25,22 +25,22 @@ def mount_static_files(app: FastAPI):
 def get_login_page(request: Request) -> HTMLResponse:
     """Get the login HTML page using Jinja2 templating."""
     context = get_common_context(request)
-    return render_page("login.html", context)
+    return render_page("page.login.html", context)
 
 def get_conversation_page(request: Request, user: UserModel) -> HTMLResponse:
     """Get the conversation interface HTML page using Jinja2 templating."""
     context = get_common_context(request, user)
-    return render_page("conversation.html", context)
+    return render_page("page.conversation.html", context)
 
 def get_profile_page(request: Request, user: UserModel) -> HTMLResponse:
     """Get the user profile HTML page using Jinja2 templating."""
     context = get_common_context(request, user)
-    return render_page("profile.html", context)
+    return render_page("page.profile.html", context)
 
 def get_admin_page(request: Request, user: UserModel) -> HTMLResponse:
     """Get the admin dashboard HTML page using Jinja2 templating."""
     context = get_common_context(request, user)
-    return render_page("admin.html", context)
+    return render_page("page.admin.html", context)
 
 # Legacy functions for backward compatibility (deprecated)
 def get_profile_page_with_chat_sidebar(request: Request, user: UserModel) -> HTMLResponse:
