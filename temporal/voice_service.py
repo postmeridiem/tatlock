@@ -3,12 +3,13 @@ Voice Service
 
 Main service for coordinating voice processing, speech recognition,
 temporal context, and language understanding.
+
+Note: Voice processing has been removed from this version.
+Voice features are not available.
 """
 
 import asyncio
 import logging
-import tempfile
-import os
 from typing import Optional, Callable, Dict, Any
 from .temporal_context import TemporalContext
 from .language_processor import LanguageProcessor
@@ -21,55 +22,20 @@ class VoiceService:
         self.language_processor = LanguageProcessor()
         self.websocket_server = None
         self.audio_callbacks = []
-        self.whisper_model = None
         self.is_initialized = False
         
-        logger.info("VoiceService initialized")
+        logger.info("VoiceService initialized (voice processing not available)")
         
     async def initialize(self) -> bool:
-        """Initialize the voice service with required models"""
-        try:
-            # Import whisper here to avoid startup delays
-            import whisper
-            self.whisper_model = whisper.load_model("base")
-            self.is_initialized = True
-            logger.info("VoiceService fully initialized with Whisper model")
-            return True
-        except ImportError:
-            logger.warning("Whisper not available. Install with: pip install openai-whisper")
-            return False
-        except Exception as e:
-            logger.error(f"Failed to initialize VoiceService: {e}")
-            return False
+        """Initialize the voice service"""
+        logger.info("VoiceService initialized in text-only mode")
+        return False
             
     async def transcribe_audio(self, audio_data: bytes) -> Optional[str]:
-        """Convert audio to text using Whisper"""
-        if not self.is_initialized:
-            logger.error("VoiceService not initialized")
-            return None
-            
-        try:
-            # Save audio to temporary file
-            with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as f:
-                f.write(audio_data)
-                temp_file = f.name
-                
-            # Transcribe with Whisper
-            if self.whisper_model is not None:
-                result = self.whisper_model.transcribe(temp_file)
-                os.unlink(temp_file)
-                
-                transcribed_text = str(result["text"]).strip()
-                logger.info(f"Transcribed audio: '{transcribed_text}'")
-                return transcribed_text
-            else:
-                logger.error("Whisper model not initialized")
-                return None
-            
-        except Exception as e:
-            logger.error(f"Transcription error: {e}")
-            return None
-            
+        """Convert audio to text"""
+        logger.warning("Voice transcription is not available")
+        return None
+
     async def process_voice_command(self, text: str, websocket=None) -> Dict[str, Any]:
         """Process voice command through temporal context"""
         if not text:
@@ -121,7 +87,7 @@ class VoiceService:
             return f"Time query detected: {text}"
         else:
             return f"Voice command processed: {text}"
-            
+        
     async def send_response_to_client(self, websocket, response: Dict[str, Any]) -> None:
         """Send response back to client via WebSocket"""
         try:
@@ -129,7 +95,7 @@ class VoiceService:
             await websocket.send(json.dumps(response))
         except Exception as e:
             logger.error(f"Failed to send response to client: {e}")
-            
+        
     def get_temporal_summary(self) -> Dict[str, Any]:
         """Get a summary of temporal context"""
         return self.temporal_context.get_interaction_summary()
@@ -145,15 +111,13 @@ class VoiceService:
         try:
             async for message in websocket:
                 if isinstance(message, bytes) and message.startswith(b'audio:'):
-                    # Process audio chunk
-                    audio_data = message[6:]  # Remove 'audio:' prefix
-                    text = await self.transcribe_audio(audio_data)
-                    if text:
-                        await self.process_voice_command(text, websocket)
-                elif isinstance(message, bytes):
-                    # Convert bytes to string and process as text
-                    text_message = message.decode('utf-8', errors='ignore')
-                    await self.process_voice_command(text_message, websocket)
+                    # Voice processing is not available
+                    error_response = {
+                        "error": "Voice processing is not available",
+                        "message": "Voice features have been removed from this version",
+                        "status": "disabled"
+                    }
+                    await self.send_response_to_client(websocket, error_response)
                 elif isinstance(message, str):
                     # Handle text messages
                     try:
@@ -169,7 +133,7 @@ class VoiceService:
             logger.error(f"WebSocket error: {e}")
         finally:
             logger.info(f"WebSocket connection closed: {websocket.remote_address}")
-            
+        
     async def start_websocket_server(self, host: str = "localhost", port: int = 8765) -> None:
         """Start WebSocket server for real-time audio"""
         try:
@@ -182,9 +146,10 @@ class VoiceService:
             logger.error("WebSockets not available. Install with: pip install websockets")
         except Exception as e:
             logger.error(f"Failed to start WebSocket server: {e}")
-            
+        
     def stop_websocket_server(self) -> None:
         """Stop WebSocket server"""
         if self.websocket_server:
             self.websocket_server.close()
+            self.websocket_server = None
             logger.info("Voice WebSocket server stopped") 

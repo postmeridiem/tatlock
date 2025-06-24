@@ -1796,10 +1796,12 @@ def require_admin_role():
 ### Overview
 The voice input system integrates real-time audio capture with the chat interface, providing a natural way to interact with Tatlock using speech.
 
+**Note**: Voice processing (audio transcription) has been removed from this version. The system operates in text-only mode.
+
 ### Architecture
 - **Frontend**: Microphone button in chat interface with WebSocket audio streaming
-- **Backend**: FastAPI WebSocket endpoint with Whisper speech recognition
-- **Processing**: Temporal context and language understanding pipeline
+- **Backend**: FastAPI WebSocket endpoint (voice processing disabled)
+- **Processing**: Temporal context and language understanding pipeline (text-only)
 
 ### Key Components
 
@@ -1839,9 +1841,9 @@ async def websocket_voice_endpoint(websocket: WebSocket):
 # Voice processing in temporal/voice_service.py
 class VoiceService:
     async def transcribe_audio(self, audio_data: bytes) -> Optional[str]:
-        # Use Whisper for speech-to-text
-        result = self.whisper_model.transcribe(temp_file)
-        return result["text"].strip()
+        # Voice processing is not available
+        logger.warning("Voice transcription is not available")
+        return None
     
     async def process_voice_command(self, text: str) -> Dict[str, Any]:
         # Add to temporal context and extract intent
@@ -1853,7 +1855,7 @@ class VoiceService:
 ### Coding Patterns
 
 #### WebSocket Audio Streaming
-- **Binary Protocol**: Audio chunks sent with "audio:" prefix
+- **Binary Protocol**: Audio chunks sent with "audio:" prefix (returns error response)
 - **Chunked Processing**: 250ms audio chunks for real-time processing
 - **Session Authentication**: WebSocket requires valid session cookie
 
@@ -1886,10 +1888,11 @@ python temporal/integration_example.py server
 ```
 
 ### Future Enhancements
+- **Voice Processing**: Re-enable audio transcription with alternative libraries
 - **Always-on Detection**: Background keyword spotting
 - **Voice Synthesis**: Text-to-speech responses
 - **Multi-language Support**: International voice recognition
-- **Hardware Integration**: Raspberry Pi and embedded systems 
+- **Hardware Integration**: Raspberry Pi and embedded systems
 
 ## Database Schema
 

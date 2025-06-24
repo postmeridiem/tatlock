@@ -1,35 +1,71 @@
+#!/usr/bin/env python3
 """
-Test script for Temporal Voice components
-
-Tests the basic functionality without requiring external dependencies.
+Test voice processing functionality
 """
 
 import asyncio
-import logging
 import sys
 import os
-from datetime import datetime
 
-# Add parent directory to path for imports
+# Add the project root to the Python path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+from temporal.voice_service import VoiceService
 from temporal.temporal_context import TemporalContext
 from temporal.language_processor import LanguageProcessor
 
-# Set up logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+
+async def test_basic_functionality():
+    """Test basic voice service functionality"""
+    print("Testing basic voice service functionality...")
+    
+    # Create voice service
+    service = VoiceService()
+    
+    # Test initialization
+    result = await service.initialize()
+    print(f"Initialization result: {result}")
+    
+    # Test text processing
+    response = await service.process_voice_command("Hello, how are you?")
+    print(f"Text processing response: {response}")
+    
+    # Test temporal context
+    summary = service.get_temporal_summary()
+    print(f"Temporal summary: {summary}")
+    
+    print("✅ Basic functionality test completed")
+
+
+async def test_language_processing():
+    """Test language processing functionality"""
+    print("\nTesting language processing...")
+    
+    processor = LanguageProcessor()
+    
+    # Test intent extraction
+    intent = processor.extract_intent("What's the weather like today?")
+    print(f"Weather intent: {intent}")
+    
+    intent = processor.extract_intent("What time is it?")
+    print(f"Time intent: {intent}")
+    
+    intent = processor.extract_intent("This is urgent!")
+    print(f"Urgent intent: {intent}")
+    
+    print("✅ Language processing test completed")
+
 
 async def test_temporal_context():
     """Test temporal context functionality"""
-    print("=== Testing Temporal Context ===")
+    print("\nTesting temporal context...")
     
-    context = TemporalContext(context_window_hours=24)
+    context = TemporalContext()
     
-    # Add some test interactions
-    context.add_interaction("What's the weather like today?")
-    context.add_interaction("Set a reminder for tomorrow morning")
-    context.add_interaction("What time is it now?")
+    # Add some interactions
+    context.add_interaction("Hello")
+    context.add_interaction("How are you?")
+    context.add_interaction("What's the weather?")
     
     # Get current context
     current_context = context.get_current_context()
@@ -39,68 +75,65 @@ async def test_temporal_context():
     summary = context.get_interaction_summary()
     print(f"Interaction summary: {summary}")
     
-    return context
+    print("✅ Temporal context test completed")
 
-def test_language_processor():
-    """Test language processor functionality"""
-    print("\n=== Testing Language Processor ===")
-    
-    processor = LanguageProcessor()
-    
-    # Test temporal reference resolution
-    test_texts = [
-        "What's the weather like today?",
-        "Set a reminder for tomorrow morning",
-        "What time is it now?",
-        "Tell me about yesterday's meeting"
-    ]
-    
-    context = {"current_time": datetime.now()}
-    
-    for text in test_texts:
-        processed = processor.process_with_context(text, context)
-        intent = processor.extract_intent(text)
-        print(f"Original: {text}")
-        print(f"Processed: {processed}")
-        print(f"Intent: {intent}")
-        print()
 
-async def test_voice_service_basic():
-    """Test basic voice service functionality without external dependencies"""
-    print("\n=== Testing Voice Service (Basic) ===")
+async def test_voice_service_integration():
+    """Test voice service integration"""
+    print("\nTesting voice service integration...")
     
-    from temporal.voice_service import VoiceService
+    service = VoiceService()
     
-    voice_service = VoiceService()
+    # Test without initialization (no voice processing)
+    result = await service.initialize()
+    print(f"Service initialization: {result}")
     
-    # Test without initialization (no Whisper)
-    test_text = "What's the weather like today?"
-    response = await voice_service.process_voice_command(test_text)
+    # Test text command processing
+    response = await service.process_voice_command("Tell me about the weather")
+    print(f"Command response: {response}")
     
-    print(f"Voice command response: {response}")
+    # Test cortex integration
+    cortex_response = await service.send_to_cortex("Weather query", {
+        "urgency": "normal",
+        "categories": ["weather"]
+    })
+    print(f"Cortex response: {cortex_response}")
     
-    # Test temporal summary
-    summary = voice_service.get_temporal_summary()
-    print(f"Temporal summary: {summary}")
+    print("✅ Voice service integration test completed")
+
 
 async def main():
-    """Run all tests"""
-    print("🧠 Testing Temporal Voice Components\n")
+    """Main test function"""
+    print("🎤 Voice Processing Test Suite")
+    print("=" * 50)
     
-    # Test temporal context
-    context = await test_temporal_context()
+    try:
+        await test_basic_functionality()
+        await test_language_processing()
+        await test_temporal_context()
+        await test_voice_service_integration()
+        
+        print("\n" + "=" * 50)
+        print("✅ All tests completed successfully!")
+        print("\nNote: Voice processing (audio transcription) is not available in this version.")
+        print("The service operates in text-only mode.")
+        
+    except Exception as e:
+        print(f"\n❌ Test failed: {e}")
+        import traceback
+        traceback.print_exc()
+        return 1
     
-    # Test language processor
-    test_language_processor()
-    
-    # Test voice service (basic)
-    await test_voice_service_basic()
-    
-    print("\n✅ All basic tests completed!")
-    print("\nNext steps:")
-    print("1. Install dependencies: pip install openai-whisper websockets")
-    print("2. Test with real audio input")
-    print("3. Integrate with existing Tatlock agent system")
+    return 0
+
 
 if __name__ == "__main__":
-    asyncio.run(main()) 
+    print("Voice Processing Test Suite")
+    print("=" * 50)
+    print("This test suite verifies the voice processing functionality.")
+    print("Note: Voice processing (audio transcription) is not available.")
+    print("The service operates in text-only mode.")
+    print()
+    
+    exit_code = asyncio.run(main())
+    sys.exit(exit_code) 

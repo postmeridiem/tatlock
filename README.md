@@ -81,12 +81,13 @@ Tatlock is organized into modules inspired by brain regions:
 - **Memory System**: Persistent conversation history and user data
 - **Multi-user Support**: Role-based access control and user management
 
-### 🎤 **Voice Input System**
+### 🎤 **Voice Input System** ⚠️ **Not Available**
 - **Microphone Button**: Click to start voice recording in the chat interface
 - **Keyword Detection**: Say "Tatlock" followed by your command
 - **Real-time Processing**: 5-second auto-pause with instant transcription
 - **Temporal Context**: Time-aware language understanding and processing
-- **WebSocket Streaming**: Low-latency audio processing with Whisper
+- **WebSocket Streaming**: Low-latency audio processing
+- **⚠️ Note**: Voice processing has been removed from this version. The system operates in text-only mode.
 
 ### 🔧 **System Management**
 - **Admin Dashboard**: User, role, and group management
