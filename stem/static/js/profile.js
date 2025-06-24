@@ -1,10 +1,11 @@
 // Profile page specific functionality
 
+// Functions are now globally available from common.js
+// import { showSection, registerSectionLoader } from './common.js';
+
 // Profile management
 let currentSection = 'profile';
 let isEditing = false;
-
-import { showSection, registerSectionLoader } from './common.js';
 
 // Register section loaders
 registerSectionLoader('activity-section', loadActivityList);

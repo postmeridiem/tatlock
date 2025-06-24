@@ -1,4 +1,5 @@
-import { showSection, registerSectionLoader } from './common.js';
+// Functions are now globally available from common.js
+// import { showSection, registerSectionLoader } from './common.js';
 
 // Admin dashboard specific functionality
 

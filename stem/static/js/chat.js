@@ -1,7 +1,8 @@
 // Shared chat functionality for Tatlock
 // This file provides chat functionality that can be used across different pages
 
-import { showSection, registerSectionLoader } from './common.js';
+// Functions are now globally available from common.js
+// import { showSection, registerSectionLoader } from './common.js';
 
 class TatlockChat {
     constructor(options = {}) {
