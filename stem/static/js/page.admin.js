@@ -17,6 +17,7 @@ registerSectionLoader('users', loadUsers);
 registerSectionLoader('roles-section', loadRoles);
 registerSectionLoader('groups-section', loadGroups);
 registerSectionLoader('tools-section', loadTools);
+registerSectionLoader('settings-section', loadSystemSettings);
 
 // Initialize dashboard
 document.addEventListener('DOMContentLoaded', function() {
@@ -116,6 +117,12 @@ async function loadUsers() {
 async function loadRoles() {
     const rolesTableBody = document.getElementById('roles-table-body');
     
+    // Check if the roles section exists (might not be visible yet)
+    if (!rolesTableBody) {
+        console.log('Roles table body not found, skipping roles load');
+        return;
+    }
+    
     try {
         const response = await fetch('/admin/roles', {
             credentials: 'include'  // Include session cookies
@@ -159,6 +166,12 @@ async function loadRoles() {
 // Load groups
 async function loadGroups() {
     const groupsTableBody = document.getElementById('groups-table-body');
+    
+    // Check if the groups section exists (might not be visible yet)
+    if (!groupsTableBody) {
+        console.log('Groups table body not found, skipping groups load');
+        return;
+    }
     
     try {
         const response = await fetch('/admin/groups', {
@@ -689,7 +702,7 @@ window.onclick = function(event) {
 // Navigation handler
 function handleHashNavigation() {
     const hash = window.location.hash.substring(1);
-    const validSections = ['stats', 'users', 'roles-section', 'groups-section', 'tools-section'];
+    const validSections = ['stats', 'users', 'roles-section', 'groups-section', 'tools-section', 'settings-section'];
     const sectionId = validSections.includes(hash) ? hash : 'stats';
     showSection(sectionId);
 }
