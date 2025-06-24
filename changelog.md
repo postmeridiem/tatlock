@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **Conversation Page Navigation**: Fixed hash-based navigation not working on conversation page
+  - Added proper initialization of hash navigation with `initializeHashNavigation('conversation')`
+  - Updated section loaders to match navigation item IDs (`conversation`, `system-info`, `benchmarks`)
+  - Added hash change event listener for proper navigation handling
+  - Fixed section loader registration to use correct section IDs
+  - Added proper content loading for system-info and benchmarks sections
+  - Ensures navigation links work correctly and sections display properly
+
 ## [0.3.3] - 2024-06-25
 ### Fixed
 - **Install Script .env Creation**: Modified installer to automatically create .env file when none exists

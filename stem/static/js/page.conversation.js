@@ -184,15 +184,113 @@ function loadChatSettings() {
 }
 
 // Register section loaders for conversation page
-registerSectionLoader('chat-section', loadChatMessages);
-registerSectionLoader('history-section', loadChatHistory);
-registerSectionLoader('settings-section', loadChatSettings);
+registerSectionLoader('conversation', loadChatMessages);
+registerSectionLoader('system-info', loadSystemInfo);
+registerSectionLoader('benchmarks', loadBenchmarks);
+
+// Initialize hash navigation for conversation page
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize hash navigation with 'conversation' as default section
+    initializeHashNavigation('conversation');
+    
+    // Set up hash change listener for navigation
+    window.addEventListener('hashchange', function() {
+        const hash = window.location.hash.substring(1);
+        const validSections = ['conversation', 'system-info', 'benchmarks'];
+        if (validSections.includes(hash)) {
+            showSection(hash);
+        }
+    });
+});
+
+// Section loader functions
+function loadSystemInfo() {
+    const systemInfoContent = document.getElementById('system-info-content');
+    if (!systemInfoContent) return;
+    
+    systemInfoContent.innerHTML = `
+        <div class="loading">Loading system information...</div>
+    `;
+    
+    // Load system info content
+    fetchSystemInfo()
+        .then(info => {
+            systemInfoContent.innerHTML = `
+                <div class="info-grid">
+                    <div class="info-card">
+                        <h3>CPU</h3>
+                        <p>Usage: <span id="cpu-usage-percent">${info.cpu.usage.overall_percent}%</span></p>
+                        <p>Cores: <span id="cpu-core-count">${info.cpu.count.logical}</span></p>
+                    </div>
+                    <div class="info-card">
+                        <h3>Memory</h3>
+                        <p>Usage: <span id="ram-usage-percent">${info.memory.ram.usage_percent}%</span></p>
+                        <p>Used: <span id="ram-used">${info.memory.ram.used_gb}GB</span> / <span id="ram-total">${info.memory.ram.total_gb}GB</span></p>
+                    </div>
+                    <div class="info-card">
+                        <h3>Disk</h3>
+                        <p>Usage: <span id="disk-usage-percent">${info.disk.root_partition.usage_percent}%</span></p>
+                        <p>Used: <span id="disk-used">${info.disk.root_partition.used_gb}GB</span> / <span id="disk-total">${info.disk.root_partition.total_gb}GB</span></p>
+                    </div>
+                    <div class="info-card">
+                        <h3>System</h3>
+                        <p>Uptime: <span id="system-uptime">${formatUptime(info.uptime)}</span></p>
+                        <p>Processes: <span id="process-count">${info.processes.total}</span></p>
+                    </div>
+                </div>
+                <div class="system-details">
+                    <h3>Raw System Data</h3>
+                    <pre id="system-info-raw"></pre>
+                </div>
+            `;
+            
+            // Update the raw data display
+            const rawInfoEl = document.getElementById('system-info-raw');
+            if (rawInfoEl && typeof highlightJSON === 'function') {
+                rawInfoEl.innerHTML = highlightJSON(JSON.stringify(info, null, 2));
+            }
+        })
+        .catch(error => {
+            systemInfoContent.innerHTML = `
+                <div class="error">Failed to load system information: ${error.message}</div>
+            `;
+        });
+}
+
+function loadBenchmarks() {
+    const benchmarksContent = document.getElementById('benchmarks-content');
+    if (!benchmarksContent) return;
+    
+    benchmarksContent.innerHTML = `
+        <div class="benchmark-controls">
+            <h3>Performance Benchmarks</h3>
+            <div class="button-group">
+                <button onclick="runBenchmark('comprehensive')" class="button">Run Comprehensive</button>
+                <button onclick="runBenchmark('llm')" class="button">Run LLM Test</button>
+                <button onclick="runBenchmark('tools')" class="button">Run Tools Test</button>
+            </div>
+        </div>
+        <div class="benchmark-results" id="benchmark-results">
+            <div class="info">Click a benchmark button to run tests...</div>
+        </div>
+    `;
+}
+
+function formatUptime(uptime) {
+    if (uptime.days > 0) {
+        return `${uptime.days}d ${uptime.hours}h ${uptime.minutes}m`;
+    } else if (uptime.hours > 0) {
+        return `${uptime.hours}h ${uptime.minutes}m`;
+    } else {
+        return `${uptime.minutes}m`;
+    }
+}
 
 // Navigation handler for conversation page
 function handleHashNavigation() {
     const hash = window.location.hash.substring(1);
-    const validSections = ['server-log', 'benchmark', 'system-info'];
-    const sectionId = validSections.includes(hash) ? hash : 'server-log';
+    const validSections = ['conversation', 'system-info', 'benchmarks'];
+    const sectionId = validSections.includes(hash) ? hash : 'conversation';
     showSection(sectionId);
 }
 
