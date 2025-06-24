@@ -33,9 +33,24 @@
     <!-- Users Section -->
     <div id="users" class="section" style="display: none;">
         <div class="section-title">User Management</div>
-        <button class="add-btn" onclick="showUserModal()">Add New User</button>
         <div id="users-content">
-            <div class="loading">Loading users...</div>
+            <div class="add-btn-container"><button class="add-btn" onclick="showUserModal()">Add New User</button></div>
+            <table class="user-table">
+                <thead>
+                    <tr>
+                        <th>Username</th>
+                        <th>First Name</th>
+                        <th>Last Name</th>
+                        <th>Email</th>
+                        <th>Roles</th>
+                        <th>Groups</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="users-table-body">
+                    <tr><td colspan="7" class="loading">Loading users...</td></tr>
+                </tbody>
+            </table>
         </div>
     </div>
     
