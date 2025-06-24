@@ -886,10 +886,10 @@ async def get_tool_details(tool_key: str, _: None = Depends(require_admin_role))
         
         # Get tool parameters
         cursor.execute("""
-            SELECT parameter_name, type, description, required
+            SELECT name, type, description, is_required
             FROM tool_parameters
             WHERE tool_key = ?
-            ORDER BY parameter_name
+            ORDER BY name
         """, (tool_key,))
         
         parameters = []
