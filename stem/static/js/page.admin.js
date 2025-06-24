@@ -811,6 +811,12 @@ function renderOllamaModelRow(setting) {
                     <option value="">Loading...</option>
                 </select>
                 <div class="current-value-display">Current: ${currentValue}</div>
+                <div id="ollamaDownloadProgress" class="download-progress" style="display: none;">
+                    <div class="progress-bar">
+                        <div class="progress-fill"></div>
+                    </div>
+                    <div class="progress-text"></div>
+                </div>
             </td>
             <td>${setting.description || ''}</td>
             <td>
@@ -897,21 +903,112 @@ function confirmOllamaRemoveModal() {
     }
 }
 async function saveOllamaModel(newValue, removePrevious) {
+    const progressContainer = document.getElementById('ollamaDownloadProgress');
+    const progressFill = progressContainer?.querySelector('.progress-fill');
+    const progressText = progressContainer?.querySelector('.progress-text');
+    const saveBtn = document.getElementById('ollamaModelSaveBtn');
+    
     try {
+        // Show progress indicator
+        if (progressContainer) {
+            progressContainer.style.display = 'block';
+            progressFill.style.width = '0%';
+            progressText.textContent = 'Starting download...';
+        }
+        
+        // Disable save button during download
+        if (saveBtn) {
+            saveBtn.disabled = true;
+            saveBtn.textContent = 'Downloading...';
+        }
+        
         const response = await fetch(`/admin/settings/ollama_model`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             credentials: 'include',
             body: JSON.stringify({ setting_value: newValue, remove_previous: !!removePrevious })
         });
+        
         if (!response.ok) {
             const error = await response.json();
             throw new Error(error.detail || 'Failed to update model');
         }
-        snackbar.success('Ollama model updated and downloaded');
-        ollamaModelPreviousValue = newValue;
-        await loadSystemSettings();
+        
+        // Start polling for progress
+        const pollProgress = async () => {
+            try {
+                const progressResponse = await fetch(`/admin/settings/ollama_model/progress/${encodeURIComponent(newValue)}`, {
+                    credentials: 'include'
+                });
+                
+                if (progressResponse.ok) {
+                    const progress = await progressResponse.json();
+                    
+                    if (progressContainer && progressFill && progressText) {
+                        progressFill.style.width = `${progress.progress}%`;
+                        progressText.textContent = progress.message;
+                    }
+                    
+                    if (progress.status === 'downloading') {
+                        // Continue polling
+                        setTimeout(pollProgress, 1000);
+                    } else if (progress.status === 'completed') {
+                        // Download completed
+                        if (progressContainer) {
+                            progressContainer.style.display = 'none';
+                        }
+                        if (saveBtn) {
+                            saveBtn.disabled = false;
+                            saveBtn.textContent = 'Save';
+                        }
+                        snackbar.success('Ollama model updated and downloaded successfully');
+                        ollamaModelPreviousValue = newValue;
+                        await loadSystemSettings();
+                        
+                        // Clear progress after a delay
+                        setTimeout(() => {
+                            fetch(`/admin/settings/ollama_model/progress/${encodeURIComponent(newValue)}`, {
+                                method: 'DELETE',
+                                credentials: 'include'
+                            });
+                        }, 5000);
+                    } else if (progress.status === 'error') {
+                        // Download failed
+                        if (progressContainer) {
+                            progressContainer.style.display = 'none';
+                        }
+                        if (saveBtn) {
+                            saveBtn.disabled = false;
+                            saveBtn.textContent = 'Save';
+                        }
+                        snackbar.error(`Download failed: ${progress.error || 'Unknown error'}`);
+                        
+                        // Clear progress
+                        fetch(`/admin/settings/ollama_model/progress/${encodeURIComponent(newValue)}`, {
+                            method: 'DELETE',
+                            credentials: 'include'
+                        });
+                    }
+                }
+            } catch (error) {
+                console.error('Error polling progress:', error);
+                // Continue polling even if there's an error
+                setTimeout(pollProgress, 2000);
+            }
+        };
+        
+        // Start polling after a short delay
+        setTimeout(pollProgress, 500);
+        
     } catch (error) {
+        // Hide progress indicator on error
+        if (progressContainer) {
+            progressContainer.style.display = 'none';
+        }
+        if (saveBtn) {
+            saveBtn.disabled = false;
+            saveBtn.textContent = 'Save';
+        }
         snackbar.error(`Error updating model: ${error.message}`);
     }
 }

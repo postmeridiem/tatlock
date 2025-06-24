@@ -35,6 +35,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Sorts major models first, then local models for better organization
   - Avoids overwhelming users with hundreds of language-specific variants
 
+### Added
+- Progress indicator for Ollama model downloads in admin dashboard
+  - Real-time progress bar showing download percentage
+  - Status messages with current download state
+  - Automatic polling for progress updates
+  - Visual feedback during model downloads
+  - Progress tracking for both new downloads and model updates
+
 ## [0.3.6] - 2024-06-25
 ### Fixed
 - **Admin Dashboard Ollama Model Selector**: Fixed issues with Ollama model selection in admin dashboard

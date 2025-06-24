@@ -22,6 +22,9 @@ except ImportError:
     logger.warning("Ollama library not available - model management will be disabled")
     OLLAMA_AVAILABLE = False
 
+# Global progress tracking for Ollama model downloads
+_ollama_download_progress = {}
+
 class SystemSettingsManager:
     """
     Manages system settings stored in the system database.
@@ -123,7 +126,31 @@ class SystemSettingsManager:
                     
                     if setting_value not in model_names:
                         logger.info(f"Downloading Ollama model: {setting_value}")
-                        ollama.pull(setting_value)
+                        # Initialize progress tracking
+                        _ollama_download_progress[setting_value] = {
+                            'status': 'downloading',
+                            'progress': 0,
+                            'message': 'Starting download...',
+                            'error': None
+                        }
+                        
+                        try:
+                            # Use a custom pull function that tracks progress
+                            self._pull_model_with_progress(setting_value)
+                            _ollama_download_progress[setting_value] = {
+                                'status': 'completed',
+                                'progress': 100,
+                                'message': 'Download completed successfully',
+                                'error': None
+                            }
+                        except Exception as e:
+                            _ollama_download_progress[setting_value] = {
+                                'status': 'error',
+                                'progress': 0,
+                                'message': f'Download failed: {str(e)}',
+                                'error': str(e)
+                            }
+                            raise
                     else:
                         logger.info(f"Ollama model {setting_value} is already available")
                         
@@ -145,6 +172,80 @@ class SystemSettingsManager:
         except Exception as e:
             logger.error(f"Error setting {setting_key}: {e}")
             return False
+    
+    def _pull_model_with_progress(self, model_name: str):
+        """
+        Pull a model with progress tracking.
+        """
+        try:
+            # Start the pull operation
+            response = ollama.pull(model_name, stream=True)
+            
+            total_size = 0
+            downloaded_size = 0
+            
+            for chunk in response:
+                if 'total' in chunk:
+                    total_size = chunk['total']
+                if 'completed' in chunk:
+                    downloaded_size = chunk['completed']
+                    if total_size > 0:
+                        progress = int((downloaded_size / total_size) * 100)
+                    else:
+                        progress = 0
+                    
+                    _ollama_download_progress[model_name] = {
+                        'status': 'downloading',
+                        'progress': progress,
+                        'message': f'Downloading... {progress}%',
+                        'error': None
+                    }
+                    
+                    logger.debug(f"Download progress for {model_name}: {progress}%")
+            
+            # Mark as completed
+            _ollama_download_progress[model_name] = {
+                'status': 'completed',
+                'progress': 100,
+                'message': 'Download completed successfully',
+                'error': None
+            }
+            
+        except Exception as e:
+            _ollama_download_progress[model_name] = {
+                'status': 'error',
+                'progress': 0,
+                'message': f'Download failed: {str(e)}',
+                'error': str(e)
+            }
+            raise
+    
+    def get_ollama_download_progress(self, model_name: str) -> dict:
+        """
+        Get the download progress for a specific model.
+        
+        Args:
+            model_name (str): The name of the model
+            
+        Returns:
+            dict: Progress information with status, progress percentage, message, and error
+        """
+        return _ollama_download_progress.get(model_name, {
+            'status': 'not_found',
+            'progress': 0,
+            'message': 'No download in progress',
+            'error': None
+        })
+    
+    def clear_ollama_download_progress(self, model_name: str):
+        """
+        Clear the download progress for a specific model.
+        
+        Args:
+            model_name (str): The name of the model
+        """
+        if model_name in _ollama_download_progress:
+            del _ollama_download_progress[model_name]
     
     def get_all_settings(self) -> List[Dict[str, Any]]:
         """
