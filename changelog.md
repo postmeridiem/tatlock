@@ -52,6 +52,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Automatic polling for progress updates
   - Visual feedback during model downloads
   - Progress tracking for both new downloads and model updates
+- Fun startup messages on system boot
+  - Added "Wake up (wake up)" and "Grab a brush and put a little make-up" messages
+  - Display current LLM model being used on startup
+  - Enhanced system boot logging with personality
 
 ## [0.3.6] - 2024-06-25
 ### Fixed

@@ -84,6 +84,10 @@ async def lifespan(app: FastAPI):
     Initializes voice service on startup and performs cleanup on shutdown.
     """
     # Startup
+    logger.info("Wake up (wake up)")
+    logger.info("Grab a brush and put a little make-up")
+    logger.info(f"Tatlock starting up with LLM model: {OLLAMA_MODEL}")
+    
     logger.info("Starting Tatlock application...")
     try:
         await voice_service.initialize()
