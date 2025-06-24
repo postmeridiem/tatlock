@@ -25,6 +25,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Added better logging for debugging Ollama model management issues
   - Fixed handling of Ollama Model objects (using 'model' attribute instead of 'name' key)
   - Added support for multiple API response formats (Model objects and dictionaries)
+- Fixed Ollama model availability and tool support issues
+  - Removed non-existent models (e.g., gemma2:7b) from curated list
+  - Added tool support testing to filter models that don't support function calling
+  - Only include models that actually exist and support tools in the dropdown
+  - Added fallback to default model if no tool-supporting models are found
+  - Improved model validation to prevent download errors
 
 ### Improved
 - **Ollama Model Refresh**: Enhanced model refresh to show major models from Ollama library

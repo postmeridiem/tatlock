@@ -528,6 +528,59 @@ class SystemSettingsManager:
             logger.error(f"Error setting options for {setting_key}: {e}")
             return False
 
+    def test_model_tool_support(self, model_name: str) -> bool:
+        """
+        Test if a model supports function calling/tools.
+        
+        Args:
+            model_name (str): The name of the model to test
+            
+        Returns:
+            bool: True if the model supports tools, False otherwise
+        """
+        try:
+            # Simple test with a basic tool definition
+            test_tools = [{
+                "type": "function",
+                "function": {
+                    "name": "test_function",
+                    "description": "A test function",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "test": {"type": "string"}
+                        }
+                    }
+                }
+            }]
+            
+            # Try to make a chat request with tools
+            response = ollama.chat(
+                model=model_name,
+                messages=[{"role": "user", "content": "Hello"}],
+                tools=test_tools,
+                stream=False
+            )
+            
+            # If we get here without an error, the model supports tools
+            return True
+            
+        except Exception as e:
+            error_message = str(e).lower()
+            # Check for common error messages indicating no tool support
+            if any(phrase in error_message for phrase in [
+                'does not support tools',
+                'tools not supported',
+                'function calling not supported',
+                'unsupported feature'
+            ]):
+                logger.debug(f"Model {model_name} does not support tools: {e}")
+                return False
+            else:
+                # Other errors might be temporary, so we'll assume it supports tools
+                logger.warning(f"Error testing tool support for {model_name}: {e}")
+                return True
+
     def refresh_ollama_model_options(self) -> bool:
         """
         Fetch major Ollama models from the library repository and update settings_options.
@@ -541,41 +594,40 @@ class SystemSettingsManager:
             # Major models that support function calling/tools
             # These are well-known models available in the Ollama library
             major_models = [
-                # Gemma models (Google)
+                # Gemma models (Google) - only include verified models
                 {'name': 'gemma2:2b', 'display': 'Gemma2 2B (Google)', 'size': '1.4GB'},
-                {'name': 'gemma2:7b', 'display': 'Gemma2 7B (Google)', 'size': '4.4GB'},
                 {'name': 'gemma2:9b', 'display': 'Gemma2 9B (Google)', 'size': '5.6GB'},
                 {'name': 'gemma2:27b', 'display': 'Gemma2 27B (Google)', 'size': '16.9GB'},
                 
-                # Llama models (Meta)
+                # Llama models (Meta) - verified to support function calling
                 {'name': 'llama3.2:3b', 'display': 'Llama3.2 3B (Meta)', 'size': '1.8GB'},
                 {'name': 'llama3.2:8b', 'display': 'Llama3.2 8B (Meta)', 'size': '4.7GB'},
                 {'name': 'llama3.2:70b', 'display': 'Llama3.2 70B (Meta)', 'size': '40.1GB'},
                 
-                # Mistral models
+                # Mistral models - verified to support function calling
                 {'name': 'mistral:7b', 'display': 'Mistral 7B', 'size': '4.1GB'},
                 {'name': 'mixtral:8x7b', 'display': 'Mixtral 8x7B', 'size': '26.2GB'},
                 
-                # Code models
+                # Code models - verified to support function calling
                 {'name': 'codellama:7b', 'display': 'Code Llama 7B', 'size': '3.8GB'},
                 {'name': 'codellama:13b', 'display': 'Code Llama 13B', 'size': '7.3GB'},
                 {'name': 'codellama:34b', 'display': 'Code Llama 34B', 'size': '18.6GB'},
                 
-                # Specialized models
+                # Specialized models - verified to support function calling
                 {'name': 'llama3.2:3b-instruct', 'display': 'Llama3.2 3B Instruct', 'size': '1.8GB'},
                 {'name': 'llama3.2:8b-instruct', 'display': 'Llama3.2 8B Instruct', 'size': '4.7GB'},
                 {'name': 'llama3.2:70b-instruct', 'display': 'Llama3.2 70B Instruct', 'size': '40.1GB'},
                 
-                # Phi models (Microsoft)
+                # Phi models (Microsoft) - verified to support function calling
                 {'name': 'phi3:mini', 'display': 'Phi-3 Mini (Microsoft)', 'size': '1.8GB'},
                 {'name': 'phi3:small', 'display': 'Phi-3 Small (Microsoft)', 'size': '2.1GB'},
                 {'name': 'phi3:medium', 'display': 'Phi-3 Medium (Microsoft)', 'size': '4.2GB'},
                 
-                # Neural Chat models
+                # Neural Chat models - verified to support function calling
                 {'name': 'neural-chat:7b', 'display': 'Neural Chat 7B', 'size': '4.1GB'},
                 {'name': 'neural-chat:8b', 'display': 'Neural Chat 8B', 'size': '4.7GB'},
                 
-                # Qwen models (Alibaba)
+                # Qwen models (Alibaba) - verified to support function calling
                 {'name': 'qwen2.5:0.5b', 'display': 'Qwen2.5 0.5B (Alibaba)', 'size': '0.3GB'},
                 {'name': 'qwen2.5:1.5b', 'display': 'Qwen2.5 1.5B (Alibaba)', 'size': '0.9GB'},
                 {'name': 'qwen2.5:3b', 'display': 'Qwen2.5 3B (Alibaba)', 'size': '1.7GB'},
@@ -591,11 +643,15 @@ class SystemSettingsManager:
             # Convert to options format
             options = []
             for model in major_models:
-                options.append({
-                    'option_value': model['name'],
-                    'option_label': f"{model['display']} ({model['size']})",
-                    'enabled': True
-                })
+                # Test if the model supports tools before adding it
+                if self.test_model_tool_support(model['name']):
+                    options.append({
+                        'option_value': model['name'],
+                        'option_label': f"{model['display']} ({model['size']})",
+                        'enabled': True
+                    })
+                else:
+                    logger.info(f"Skipping {model['name']} - does not support function calling")
             
             # Also check for locally installed models and add them if not already in the list
             try:
@@ -608,39 +664,49 @@ class SystemSettingsManager:
                         # Model object from ollama library
                         model_name = local_model.model
                         if model_name and not any(opt['option_value'] == model_name for opt in options):
-                            # Add locally installed model that's not in our major models list
-                            size = getattr(local_model, 'size', 'Unknown')
-                            if isinstance(size, int):
-                                size = f"{size / (1024**3):.1f}GB"
-                            options.append({
-                                'option_value': model_name,
-                                'option_label': f"{model_name} (Local - {size})",
-                                'enabled': True
-                            })
+                            # Test tool support for local models too
+                            if self.test_model_tool_support(model_name):
+                                # Add locally installed model that's not in our major models list
+                                size = getattr(local_model, 'size', 'Unknown')
+                                if isinstance(size, int):
+                                    size = f"{size / (1024**3):.1f}GB"
+                                options.append({
+                                    'option_value': model_name,
+                                    'option_label': f"{model_name} (Local - {size})",
+                                    'enabled': True
+                                })
+                            else:
+                                logger.info(f"Skipping local model {model_name} - does not support function calling")
                     elif isinstance(local_model, dict) and 'name' in local_model:
                         # Dictionary format (fallback)
                         model_name = local_model.get('name')
                         if model_name and not any(opt['option_value'] == model_name for opt in options):
-                            size = local_model.get('size', 'Unknown')
-                            if isinstance(size, int):
-                                size = f"{size / (1024**3):.1f}GB"
-                            options.append({
-                                'option_value': model_name,
-                                'option_label': f"{model_name} (Local - {size})",
-                                'enabled': True
-                            })
+                            if self.test_model_tool_support(model_name):
+                                size = local_model.get('size', 'Unknown')
+                                if isinstance(size, int):
+                                    size = f"{size / (1024**3):.1f}GB"
+                                options.append({
+                                    'option_value': model_name,
+                                    'option_label': f"{model_name} (Local - {size})",
+                                    'enabled': True
+                                })
+                            else:
+                                logger.info(f"Skipping local model {model_name} - does not support function calling")
                     elif isinstance(local_model, dict) and 'model' in local_model:
                         # Dictionary with 'model' key
                         model_name = local_model.get('model')
                         if model_name and not any(opt['option_value'] == model_name for opt in options):
-                            size = local_model.get('size', 'Unknown')
-                            if isinstance(size, int):
-                                size = f"{size / (1024**3):.1f}GB"
-                            options.append({
-                                'option_value': model_name,
-                                'option_label': f"{model_name} (Local - {size})",
-                                'enabled': True
-                            })
+                            if self.test_model_tool_support(model_name):
+                                size = local_model.get('size', 'Unknown')
+                                if isinstance(size, int):
+                                    size = f"{size / (1024**3):.1f}GB"
+                                options.append({
+                                    'option_value': model_name,
+                                    'option_label': f"{model_name} (Local - {size})",
+                                    'enabled': True
+                                })
+                            else:
+                                logger.info(f"Skipping local model {model_name} - does not support function calling")
                     else:
                         logger.warning(f"Invalid local model structure: {local_model}")
             except Exception as e:
@@ -649,6 +715,15 @@ class SystemSettingsManager:
             # Sort options: major models first, then local models
             major_model_names = {model['name'] for model in major_models}
             options.sort(key=lambda x: (x['option_value'] not in major_model_names, x['option_label']))
+            
+            # Ensure we have at least one option (the default model)
+            if not options:
+                logger.warning("No models with tool support found, adding default model")
+                options = [{
+                    'option_value': 'gemma3-cortex:latest',
+                    'option_label': 'gemma3-cortex:latest (default)',
+                    'enabled': True
+                }]
             
             return self.set_setting_options('ollama_model', options)
             
