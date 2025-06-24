@@ -120,6 +120,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Made initializeHashNavigation, showSection, and showSnackbar functions globally available in common.js
   - Fixed ReferenceError that was occurring when debug.js tried to call initializeHashNavigation
   - Ensures proper script loading order and function availability across all pages
+- **ES6 Export Syntax Fix**: Fixed 'Unexpected token export' error in common.js
+  - Removed export statements from common.js since it's loaded as a regular script
+  - Made all functions (registerSectionLoader, showSection, initializeHashNavigation, showSnackbar) globally available via window object
+  - Fixed syntax error that was occurring when common.js was loaded in non-module context
+  - Ensures compatibility with regular script loading across all pages
 - Fixed issue where settings dropdown would not load due to missing `settings_options` table.
 - Fixed repeated errors in logs by ensuring database schema is created and migrations are applied.
 - Fixed UI bugs related to model selection and modal dialog state.
