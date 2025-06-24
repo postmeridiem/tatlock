@@ -150,8 +150,8 @@ Jinja2-based server-side templating system:
 
 ### **JavaScript Modules** (`static/js/`)
 - **`common.js`**: Shared functionality (snackbar, dark mode, chat sidepane)
-- **`admin.js`**: Admin dashboard functionality
-- **`profile.js`**: Profile management functionality
+- **`page.admin.js`**: Admin dashboard functionality
+- **`page.profile.js`**: Profile management functionality
 - **`chat.js`**: Chat interface with voice input support
 - **`debug.js`**: Debug console functionality
 

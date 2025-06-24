@@ -40,7 +40,7 @@ class TestAdminFrontend:
         
         # Should have the JavaScript files loaded
         assert 'src="/static/js/common.js"' in content
-        assert 'src="/static/js/admin.js"' in content
+        assert 'src="/static/js/page.admin.js"' in content
         
         # Should have the user modal structure
         assert 'id="userModal"' in content

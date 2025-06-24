@@ -497,7 +497,7 @@ function initializeChat(options = {}) {
 
 document.addEventListener('DOMContentLoaded', () => {
     // This is a fallback initialization for pages that don't have a specific chat setup.
-    // The main initialization is now handled in specific page scripts (e.g., admin.js, profile.js)
+    // The main initialization is now handled in specific page scripts (e.g., page.admin.js, page.profile.js)
     if (document.getElementById('sidepane-input')) {
         setTimeout(() => { // Delay to ensure sidebar is loaded
             new TatlockChat({
