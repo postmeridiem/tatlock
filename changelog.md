@@ -135,6 +135,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Ensures registerSectionLoader and other functions are available before admin.js and profile.js load
   - Fixed dependency loading order that was causing functions to be undefined
   - Maintains proper script loading order across all templates
+- **Script Loading Order Standardization**: Standardized script inclusion pattern across all templates
+  - Reordered scripts in conversation.html to follow consistent pattern: common.js → auth.js → page-specific scripts → utilities
+  - Ensures all templates follow the same dependency loading pattern
+  - Maintains proper script loading order for function availability across all pages
 - Fixed issue where settings dropdown would not load due to missing `settings_options` table.
 - Fixed repeated errors in logs by ensuring database schema is created and migrations are applied.
 - Fixed UI bugs related to model selection and modal dialog state.
