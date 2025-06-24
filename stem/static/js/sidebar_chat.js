@@ -1,5 +1,5 @@
-// Shared chat functionality for Tatlock
-// This file provides chat functionality that can be used across different pages
+// Sidebar chat functionality for Tatlock
+// This file provides the TatlockChat class for sidebar chat across different pages
 
 // Functions are now globally available from common.js
 // import { showSection, registerSectionLoader } from './common.js';
@@ -202,167 +202,145 @@ class TatlockChat {
         } catch (error) {
             console.error('Error sending message:', error);
             
-            // Log error to interaction log if enabled
-            if (this.enableLogging && this.logFunction) {
-                this.logFunction('Chat Error', { error: error.message });
+            // Remove loading indicator
+            if (loadingDiv.parentNode) {
+                this.chatMessages.removeChild(loadingDiv);
             }
             
-            // Remove loading indicator
-            this.chatMessages.removeChild(loadingDiv);
-            
+            // Add error message
             this.addMessage('Sorry, I encountered an error. Please try again.', 'ai');
         }
     }
     
     async startVoiceCapture() {
-        if (this.debugMode) {
-            console.log('startVoiceCapture called');
-        }
-        if (!navigator.mediaDevices || !window.MediaRecorder) {
-            alert('Voice capture not supported in this browser.');
-            return;
-        }
-        this.chatMicBtn.classList.add('active');
-        this.isRecording = true;
-        this.transcriptBuffer = '';
-        this.audioChunks = [];
-        this.lastAudioTimestamp = Date.now();
-        
-        // Show listening feedback
-        if (this.debugMode) {
-            console.log('Showing listening feedback');
-        }
-        this.showListeningFeedback();
-        
-        // Open WebSocket
-        this.voiceWebSocket = new WebSocket((location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/ws/voice');
-        this.voiceWebSocket.binaryType = 'arraybuffer';
-        this.voiceWebSocket.onmessage = (event) => this.handleVoiceResult(event);
-        this.voiceWebSocket.onclose = () => this.stopVoiceCapture();
-        // Start recording
         try {
+            // Request microphone access
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            
+            // Create MediaRecorder
             this.mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+            
+            // Set up WebSocket connection
+            this.voiceWebSocket = new WebSocket(`ws://${window.location.host}/ws/voice`);
+            
             this.mediaRecorder.ondataavailable = (e) => {
-                if (e.data.size > 0) {
-                    this.sendAudioChunk(e.data);
-                }
+                this.sendAudioChunk(e.data);
             };
+            
             this.mediaRecorder.onstop = () => {
                 stream.getTracks().forEach(track => track.stop());
             };
-            this.mediaRecorder.start(250); // Send chunks every 250ms
-            // Start pause timer
+            
+            // Start recording
+            this.mediaRecorder.start(250); // 250ms chunks
+            this.isRecording = true;
+            
+            // Update UI
+            this.chatMicBtn.classList.add('recording');
+            this.showListeningFeedback();
+            
+            // Set up WebSocket event handlers
+            this.voiceWebSocket.onmessage = (event) => {
+                this.handleVoiceResult(event);
+            };
+            
+            this.voiceWebSocket.onerror = (error) => {
+                console.error('WebSocket error:', error);
+                this.stopVoiceCapture();
+            };
+            
+            this.voiceWebSocket.onclose = () => {
+                console.log('WebSocket connection closed');
+                this.stopVoiceCapture();
+            };
+            
+            // Start timeout for auto-stop
             this.resetVoiceTimeout();
-            if (this.debugMode) {
-                console.log('Voice capture started successfully');
-            }
-        } catch (err) {
-            console.error('Error starting voice capture:', err);
-            this.stopVoiceCapture();
-            alert('Could not access microphone: ' + err.message);
+            
+        } catch (error) {
+            console.error('Error starting voice capture:', error);
+            alert('Error accessing microphone. Please check permissions.');
         }
     }
-
+    
     stopVoiceCapture() {
-        this.isRecording = false;
-        this.chatMicBtn.classList.remove('active');
-        
-        // Remove listening feedback
-        this.removeListeningFeedback();
-        
-        if (this.mediaRecorder && this.mediaRecorder.state !== 'inactive') {
+        if (this.mediaRecorder && this.isRecording) {
             this.mediaRecorder.stop();
+            this.isRecording = false;
         }
-        if (this.voiceWebSocket && this.voiceWebSocket.readyState === WebSocket.OPEN) {
+        
+        if (this.voiceWebSocket) {
             this.voiceWebSocket.close();
+            this.voiceWebSocket = null;
         }
+        
         if (this.voiceTimeout) {
             clearTimeout(this.voiceTimeout);
             this.voiceTimeout = null;
         }
+        
+        // Update UI
+        this.chatMicBtn.classList.remove('recording');
+        this.removeListeningFeedback();
+        
+        // Clear transcript buffer
+        this.transcriptBuffer = '';
     }
-
+    
     sendAudioChunk(blob) {
-        if (!this.voiceWebSocket || this.voiceWebSocket.readyState !== WebSocket.OPEN) return;
-        // Convert blob to ArrayBuffer and send with 'audio:' prefix
-        const reader = new FileReader();
-        reader.onload = () => {
-            const arrayBuffer = reader.result;
-            // Send as binary with 'audio:' prefix
-            const prefix = new TextEncoder().encode('audio:');
-            const combined = new Uint8Array(prefix.length + arrayBuffer.byteLength);
-            combined.set(prefix, 0);
-            combined.set(new Uint8Array(arrayBuffer), prefix.length);
-            this.voiceWebSocket.send(combined.buffer);
-            this.lastAudioTimestamp = Date.now();
+        if (this.voiceWebSocket && this.voiceWebSocket.readyState === WebSocket.OPEN) {
+            this.voiceWebSocket.send(blob);
             this.resetVoiceTimeout();
-        };
-        reader.readAsArrayBuffer(blob);
+        }
     }
-
+    
     resetVoiceTimeout() {
-        if (this.voiceTimeout) clearTimeout(this.voiceTimeout);
+        if (this.voiceTimeout) {
+            clearTimeout(this.voiceTimeout);
+        }
         this.voiceTimeout = setTimeout(() => {
             this.stopVoiceCapture();
         }, this.pauseDuration);
     }
-
+    
     handleVoiceResult(event) {
-        // Expecting JSON with transcript and intent
         try {
             const data = JSON.parse(event.data);
-            if (data.original_text) {
-                this.transcriptBuffer += ' ' + data.original_text;
+            
+            if (data.type === 'transcript') {
+                const transcript = data.text.toLowerCase();
+                
                 // Check for keyword
-                if (this.transcriptBuffer.toLowerCase().includes(this.keyword)) {
-                    // Extract prompt after keyword
-                    const idx = this.transcriptBuffer.toLowerCase().indexOf(this.keyword);
-                    const after = this.transcriptBuffer.slice(idx + this.keyword.length).trim();
-                    if (after.length > 0) {
-                        if (this.debugMode) {
-                            console.log('Voice command detected:', after);
-                        }
+                if (transcript.includes(this.keyword)) {
+                    // Extract command after keyword
+                    const keywordIndex = transcript.indexOf(this.keyword);
+                    const command = transcript.substring(keywordIndex + this.keyword.length).trim();
+                    
+                    if (command) {
+                        this.showVoiceCommandFeedback(command);
                         
-                        // Set the input value
-                        this.chatInput.value = after;
-                        this.chatInput.dispatchEvent(new Event('input'));
-                        
-                        // Stop voice capture
-                        this.stopVoiceCapture();
-                        
-                        // Show voice command feedback
-                        this.showVoiceCommandFeedback(after);
-                        
-                        // Auto-submit the message after a short delay to allow UI to update
+                        // Set the command as input and send
                         setTimeout(() => {
+                            this.chatInput.value = command;
+                            this.chatInput.style.height = 'auto';
+                            this.chatInput.style.height = Math.min(this.chatInput.scrollHeight, 120) + 'px';
+                            this.chatSendBtn.disabled = false;
                             this.sendMessage();
-                        }, 100);
+                        }, 500);
                         
-                        // Log voice command if logging is enabled
-                        if (this.enableLogging && this.logFunction) {
-                            this.logFunction('Voice Command', { 
-                                original_text: data.original_text,
-                                extracted_command: after,
-                                keyword: this.keyword
-                            });
-                        }
+                        this.stopVoiceCapture();
                     }
                 }
             }
-        } catch (e) {
-            // Ignore non-JSON or partial results
-            if (this.debugMode) {
-                console.debug('Voice result parsing error:', e);
-            }
+        } catch (error) {
+            console.error('Error handling voice result:', error);
         }
     }
     
     showVoiceCommandFeedback(command) {
-        // Create a temporary feedback message
+        // Create feedback message
         const feedbackDiv = document.createElement('div');
-        feedbackDiv.className = 'chat-message voice-feedback';
+        feedbackDiv.className = 'chat-message voice-command';
         feedbackDiv.innerHTML = `
             <div class="voice-command-detected">
                 <span class="material-icons">mic</span>
@@ -531,36 +509,4 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }, 100);
     }
-});
-
-// Example for chat messages
-function loadChatMessages() {
-    const chatMessages = document.getElementById('chat-messages');
-    if (!chatMessages) return;
-    chatMessages.innerHTML = '<li class="loading">Loading messages...</li>';
-    // ... fetch and populate chat messages ...
-}
-
-// Register section loaders
-registerSectionLoader('chat-section', loadChatMessages);
-registerSectionLoader('history-section', loadChatHistory);
-registerSectionLoader('settings-section', loadChatSettings);
-
-// Navigation handler
-function handleHashNavigation() {
-    const hash = window.location.hash.substring(1);
-    const sectionIdMap = {
-        'chat': 'chat-section',
-        'history': 'history-section',
-        'settings': 'settings-section'
-    };
-    const sectionId = sectionIdMap[hash] || 'chat-section';
-    showSection(sectionId);
-}
-
-document.addEventListener('DOMContentLoaded', function() {
-    handleHashNavigation();
-    window.addEventListener('hashchange', handleHashNavigation);
-});
-
-// Repeat this pattern for any other dynamic content areas. 
+}); 
