@@ -689,14 +689,8 @@ window.onclick = function(event) {
 // Navigation handler
 function handleHashNavigation() {
     const hash = window.location.hash.substring(1);
-    const sectionIdMap = {
-        'stats': 'stats',
-        'users': 'users',
-        'roles': 'roles-section',
-        'groups': 'groups-section',
-        'tools': 'tools-section'
-    };
-    const sectionId = sectionIdMap[hash] || 'stats';
+    const validSections = ['stats', 'users', 'roles-section', 'groups-section', 'tools-section'];
+    const sectionId = validSections.includes(hash) ? hash : 'stats';
     showSection(sectionId);
 }
 

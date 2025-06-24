@@ -91,6 +91,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Cleaned up root README.md to focus on high-level overview and installation
 
 ### Changed
+- **JavaScript File Organization**: Merged debug.js functionality into page.conversation.js for unified conversation page management
+  - Moved all benchmark functionality (runBenchmark, displayBenchmarkResults, renderComprehensiveBenchmark, renderLLMBenchmark, renderToolsBenchmark) from debug.js to page.conversation.js
+  - Consolidated event listeners for debug controls and benchmark buttons into single setupDebugEventListeners function
+  - Removed duplicate log and system info functions that were already present in page.conversation.js
+  - Eliminated debug.js file to reduce code fragmentation and improve maintainability
+  - All conversation page functionality now centralized in page.conversation.js
+  - Maintained all existing functionality while improving code organization
 - **Route Refactoring**: Refactored `/chat` route to `/conversation` to prevent confusion with chat sidebar
   - Renamed route from `/chat` to `/conversation` for main conversation interface
   - Updated all related function names from `chat_page` to `conversation_page`
@@ -122,6 +129,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated frontend JS (`page.admin.js`) and CSS (`style.css`) for settings UI and modal dialogs.
 - **JavaScript File Organization**: Renamed `login.js` to `page.login.js` for consistency with other page-specific scripts
   - Updated all template references to use `page.login.js`
+- Renamed JavaScript plugin files with `plugin.` prefix for better organization:
+  - `chart.min.js` → `plugin.chart.min.js`
+  - `chart.umd.min.js.map` → `plugin.chart.umd.min.js.map`
+  - `json-highlight.js` → `plugin.json-highlight.js`
+  - `marked.min.js` → `plugin.marked.min.js`
+- Updated all references to renamed plugin files in templates and static files
+- Updated sourceMappingURL in renamed chart map file to maintain proper source mapping
+- Isolated login page from common.js dependency by duplicating togglePassword function to page.login.js
+- Removed common.js script loading from login template for complete page isolation
+- Merged auth.js functionality into common.js for unified shared JavaScript management:
+  - Comprehensive SnackbarManager class with confirm dialogs
+  - User dropdown and theme toggle functionality
+  - User info loading and authentication handling
+  - Anchor link handling and scroll management
+  - Removed auth.js script loading from all templates
+  - Deleted auth.js file after successful merge
+- Renamed `sidebar_chat.js` to `component.chatbar.js` for consistent component naming convention
+- Updated all template references to use new component.chatbar.js filename
+- Updated template documentation to include component script naming patterns
+- Comprehensive documentation of JavaScript file naming patterns in developer.md:
+  - Page-specific scripts: `page.{pagename}.js`
+  - Component scripts: `component.{componentname}.js`
+  - Shared scripts: `{functionality}.js`
+  - Plugin scripts: `plugin.{library}.js`
+  - Script loading order guidelines
+  - Naming guidelines and best practices
+  - Migration and exception handling procedures
+- Renamed `marked.min.js` to `plugin.marked.min.js` to complete plugin naming standardization
+- Updated all template references, documentation, and test assertions to use new plugin.marked.min.js filename
+- Corrected script loading for admin and profile pages to include component.chatbar.js since they use the chat sidebar
 
 ### Fixed
 - **JavaScript Error Fix**: Fixed `initializeHashNavigation is not defined` error in conversation page

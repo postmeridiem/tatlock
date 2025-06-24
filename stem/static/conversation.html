@@ -16,8 +16,9 @@
     <meta name="apple-mobile-web-app-title" content="Tatlock">
     <meta name="application-name" content="Tatlock">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <script src="/static/js/chart.min.js"></script>
-    <script src="/static/js/marked.min.js"></script>
+    <script src="/static/js/plugin.chart.min.js"></script>
+    <script src="/static/js/plugin.json-highlight.js"></script>
+    <script src="/static/js/plugin.marked.min.js"></script>
     <style>
         /* Mobile responsive styles - inline to bypass caching */
         @media (max-width: 768px) {
@@ -238,9 +239,9 @@
         <div class="sidebar-nav">
             <div class="nav-section">
                 <div class="nav-title">Debug</div>
-                <a href="#server-log" class="nav-item active" onclick="showSection('server-log')">Server Log</a>
-                <a href="#benchmark" class="nav-item" onclick="showSection('benchmark')">Benchmark</a>
-                <a href="#system-info" class="nav-item" onclick="showSection('system-info')">System Info</a>
+                <a href="#server-log" class="nav-item active">Server Log</a>
+                <a href="#benchmark" class="nav-item">Benchmark</a>
+                <a href="#system-info" class="nav-item">System Info</a>
             </div>
         </div>
         
@@ -293,9 +294,8 @@
     <div class="snackbar-container" id="snackbar-container"></div>
     
     <script src="/static/js/common.js"></script>
-    <script src="/static/js/auth.js"></script>
-    <script src="/static/js/json-highlight.js"></script>
-    <script src="/static/js/chat.js"></script>
-    <script src="/static/js/debug.js"></script>
+    <script src="/static/js/component.chatbar.js"></script>
+    <script src="/static/js/page.conversation.js"></script>
+    <script src="/static/js/plugin.marked.min.js"></script>
 </body>
 </html> 

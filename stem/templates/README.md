@@ -24,6 +24,50 @@ This directory contains all Jinja2 templates for Tatlock's web interface. These 
   - **`snackbar.html`**: Notification component
   - **`chat_sidebar.html`**: Chat sidebar component
 
+## JavaScript File Organization
+
+### File Naming Conventions
+JavaScript files in `stem/static/js/` follow specific naming patterns for clarity and maintainability:
+
+#### Page-Specific Scripts
+- **Pattern**: `page.{pagename}.js`
+- **Examples**:
+  - `page.login.js` - Login page functionality
+  - `page.conversation.js` - Conversation/debug console functionality
+  - `page.profile.js` - User profile management
+  - `page.admin.js` - Admin dashboard functionality
+
+#### Shared Scripts
+- **`common.js`** - Shared utilities and functions used across multiple pages
+- **`component.chatbar.js`** - Chat sidebar functionality (separated from conversation page)
+
+#### Plugin Scripts
+- **Pattern**: `plugin.{library}.js`
+- **Examples**:
+  - `plugin.chart.min.js` - Chart.js library
+  - `plugin.chart.umd.min.js.map` - Chart.js source map
+  - `plugin.json-highlight.js` - JSON syntax highlighting library
+  - `plugin.marked.min.js` - Markdown parsing library
+
+#### Component Scripts
+- **Pattern**: `component.{componentname}.js`
+- **Examples**:
+  - `component.chatbar.js` - Chat sidebar component functionality
+
+#### Script Loading Order
+Templates follow a consistent script loading order:
+1. `common.js` - Shared utilities first
+2. `auth.js` - Authentication functionality
+3. Page-specific script (e.g., `page.admin.js`)
+4. Plugin scripts as needed
+
+### Benefits
+- **Clear Purpose**: File names immediately indicate their purpose
+- **Maintainability**: Easy to locate and modify specific functionality
+- **Consistency**: Uniform naming across the codebase
+- **Separation of Concerns**: Page-specific vs. shared functionality clearly separated
+- **Plugin Management**: Third-party libraries clearly identified
+
 ## Jinja2 Template Integration Pattern
 
 ### Core Principle

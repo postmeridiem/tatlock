@@ -958,6 +958,117 @@ def database_operation(self, param: str) -> List[Dict[str, Any]]:
 ### JavaScript Coding Standards
 - **library maintenance**: Keep javascript in javascript files, making sure to used shared libraries where code duplicates
 
+#### JavaScript File Naming Patterns
+
+Tatlock follows a structured naming convention for JavaScript files to ensure clarity, maintainability, and consistency across the codebase.
+
+##### File Type Categories
+
+**Page-Specific Scripts**
+- **Pattern**: `page.{pagename}.js`
+- **Purpose**: Functionality specific to individual pages
+- **Examples**:
+  - `page.login.js` - Login page functionality
+  - `page.conversation.js` - Conversation/debug console functionality
+  - `page.profile.js` - User profile management
+  - `page.admin.js` - Admin dashboard functionality
+- **Loading**: Loaded only on their respective pages
+- **Scope**: Page-specific DOM manipulation, event handlers, and business logic
+
+**Component Scripts**
+- **Pattern**: `component.{componentname}.js`
+- **Purpose**: Reusable UI component functionality
+- **Examples**:
+  - `component.chatbar.js` - Chat sidebar component functionality
+- **Loading**: Loaded on pages that use the specific component
+- **Scope**: Component-specific behavior, state management, and interactions
+
+**Shared Scripts**
+- **Pattern**: `{functionality}.js` (for core shared functionality)
+- **Purpose**: Common functionality used across multiple pages
+- **Examples**:
+  - `common.js` - Shared utilities, authentication, UI components, and navigation
+- **Loading**: Loaded on all pages that require shared functionality
+- **Scope**: Global utilities, authentication handling, theme management, snackbar system
+
+**Plugin Scripts**
+- **Pattern**: `plugin.{library}.js`
+- **Purpose**: Third-party libraries and external dependencies
+- **Examples**:
+  - `plugin.chart.min.js` - Chart.js library
+  - `plugin.chart.umd.min.js.map` - Chart.js source map
+  - `plugin.json-highlight.js` - JSON syntax highlighting library
+  - `plugin.marked.min.js` - Markdown parsing library
+- **Loading**: Loaded on pages that require the specific library
+- **Scope**: External library functionality, no custom code
+
+##### Script Loading Order
+
+Templates follow a consistent script loading order to ensure proper dependency resolution:
+
+1. **`common.js`** - Shared utilities and core functionality first
+2. **Component scripts** - Reusable component functionality
+3. **Page-specific scripts** - Page-specific functionality
+4. **Plugin scripts** - External libraries as needed
+
+**Example Loading Pattern:**
+```html
+{% block scripts %}
+<script src="/static/js/common.js"></script>
+<script src="/static/js/component.chatbar.js"></script>
+<script src="/static/js/page.conversation.js"></script>
+<script src="/static/js/plugin.marked.min.js"></script>
+{% endblock %}
+```
+
+##### Naming Guidelines
+
+**Consistency**
+- Use lowercase with hyphens for multi-word names
+- Follow established patterns exactly
+- Maintain clear separation between categories
+
+**Descriptive Names**
+- Page names should match the route/functionality
+- Component names should describe the UI element
+- Plugin names should match the library name
+
+**Avoid Confusion**
+- Don't mix patterns (e.g., don't use `page.` prefix for components)
+- Don't use generic names that could apply to multiple categories
+- Don't create exceptions to established patterns
+
+##### Benefits
+
+- **Clear Purpose**: File names immediately indicate their purpose and scope
+- **Maintainability**: Easy to locate and modify specific functionality
+- **Consistency**: Uniform naming across the entire codebase
+- **Separation of Concerns**: Clear distinction between different types of functionality
+- **Scalability**: Easy to add new files following established patterns
+- **Dependency Management**: Clear loading order prevents conflicts
+
+##### Migration Guidelines
+
+When renaming or reorganizing JavaScript files:
+
+1. **Follow Established Patterns**: Use the appropriate prefix for the file type
+2. **Update All References**: Update all template files and documentation
+3. **Maintain Backward Compatibility**: Ensure existing functionality continues to work
+4. **Update Documentation**: Keep naming pattern documentation current
+5. **Test Thoroughly**: Verify all pages load correctly after changes
+
+##### Exception Handling
+
+**Login Page Isolation**
+- The login page is an exception that duplicates `togglePassword` function from `common.js`
+- This isolation prevents unnecessary dependencies on unauthenticated pages
+- Document exceptions clearly in code comments and changelog
+
+**Legacy Files**
+- Some files may not follow current patterns
+- Legacy files should be renamed when practical
+- Document why legacy naming exists
+
 #### Jinja2 Template Integration Pattern
 
 **IMPORTANT**: Follow the proper Jinja2 templating pattern for dynamic content:

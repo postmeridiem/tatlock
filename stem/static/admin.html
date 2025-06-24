@@ -14,7 +14,11 @@
     <meta name="msapplication-TileImage" content="/static/favicon/mstile-150x150.png">
     <meta name="apple-mobile-web-app-title" content="Tatlock">
     <meta name="application-name" content="Tatlock">
-    <script src="/static/js/marked.min.js"></script>
+    <script src="/static/js/common.js"></script>
+    <script src="/static/js/page.admin.js"></script>
+    <script src="/static/js/plugin.chart.min.js"></script>
+    <script src="/static/js/plugin.json-highlight.js"></script>
+    <script src="/static/js/plugin.marked.min.js"></script>
 </head>
 <body>
     <div class="header-bar">
@@ -34,11 +38,11 @@
         <div class="sidebar-nav">
             <div class="nav-section">
                 <div class="nav-title">Admin</div>
-                <a href="#stats" class="nav-item active" onclick="showSection('stats')">Dashboard</a>
-                <a href="#users" class="nav-item" onclick="showSection('users')">User Management</a>
-                <a href="#roles" class="nav-item" onclick="showSection('roles-section')">Roles</a>
-                <a href="#groups" class="nav-item" onclick="showSection('groups-section')">Groups</a>
-                <a href="#tools" class="nav-item" onclick="showSection('tools-section')">Tools</a>
+                <a href="#stats" class="nav-item active">Dashboard</a>
+                <a href="#users" class="nav-item">User Management</a>
+                <a href="#roles-section" class="nav-item">Roles</a>
+                <a href="#groups-section" class="nav-item">Groups</a>
+                <a href="#tools-section" class="nav-item">Tools</a>
             </div>
         </div>
         
@@ -278,10 +282,5 @@
     
     <!-- Snackbar Container -->
     <div class="snackbar-container" id="snackbar-container"></div>
-    
-    <script src="/static/js/common.js"></script>
-    <script src="/static/js/auth.js"></script>
-    <script src="/static/js/chat.js"></script>
-    <script src="/static/js/page.admin.js"></script>
 </body>
 </html> 

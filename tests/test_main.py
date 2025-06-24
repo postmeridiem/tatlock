@@ -235,7 +235,7 @@ class TestConversationPage:
         response = authenticated_admin_client.get("/conversation")
         
         assert response.status_code == 200
-        assert "marked.min.js" in response.text
+        assert "plugin.marked.min.js" in response.text
         assert "marked" in response.text
     
     def test_conversation_page_includes_logo(self, authenticated_admin_client):
@@ -423,7 +423,7 @@ class TestAdminPage:
         assert response.status_code == 200
         assert "chat-sidepane" in response.text
         assert "chat-input" in response.text
-        assert "marked.min.js" in response.text
+        assert "plugin.marked.min.js" in response.text
     
     def test_admin_page_includes_shared_chat_js(self, authenticated_admin_client):
         """Test admin page includes the shared chat.js file."""
@@ -457,7 +457,7 @@ class TestProfilePage:
         assert response.status_code == 200
         assert "chat-sidepane" in response.text
         assert "chat-input" in response.text
-        assert "marked.min.js" in response.text
+        assert "plugin.marked.min.js" in response.text
     
     def test_profile_page_includes_shared_chat_js(self, authenticated_admin_client):
         """Test profile page includes the shared chat.js file."""
