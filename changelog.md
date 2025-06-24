@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.6] - 2024-06-25
 ### Fixed
 - **Admin Dashboard Ollama Model Selector**: Fixed issues with Ollama model selection in admin dashboard
   - Fixed backend `refresh_ollama_model_options()` to return all available Ollama models instead of filtering by tool keys
