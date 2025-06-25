@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **System Settings Simplification**: Removed complex Ollama model dropdown functionality from system settings page
+  - Converted ollama_model setting to use standard text input like other settings
+  - Removed model downloader, refresh function, and progress tracking from backend
+  - Removed dropdown UI components, modal dialogs, and related JavaScript functions
+  - Simplified setting management to use consistent edit/save pattern across all settings
+  - Eliminated Ollama-specific API endpoints and backend methods
+  - Users can now manually enter any Ollama model name as a simple text value
+
 ### Fixed
 - Removed hardcoded 'Rotterdam' reference in agent system message; now dynamically uses the user's actual location from their personal profile (falls back to 'unknown location' if not set)
 
