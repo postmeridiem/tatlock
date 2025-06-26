@@ -23,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Removed hardcoded 'Rotterdam' reference in agent system message; now dynamically uses the user's actual location from their personal profile (falls back to 'unknown location' if not set)
 - Various UI and data display improvements for the System Info section on the conversation page.
+- Network card in System Info now stretches the entire row and displays sent/recv in one line with two centered columns for improved clarity and consistency.
 
 ## [0.3.8] - 2024-06-26
 
