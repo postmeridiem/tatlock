@@ -2533,3 +2533,8 @@ table tr:last-child td, .user-table tr:last-child td {
     margin-bottom: 8px;
 }
 
+.network-metric-tile {
+  margin-top: 1.5rem;
+  margin-bottom: 0;
+}
+
