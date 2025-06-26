@@ -301,11 +301,11 @@ function loadSystemInfo() {
                         <div class="tile-title">Network</div>
                         <div class="network-row" style="display:flex;justify-content:space-evenly;align-items:center;width:100%;margin:12px 0;">
                             <div class="network-col" style="flex:1;text-align:center;">
-                                <span style='color:#90caf9;font-weight:bold;'><span class="material-icons" style="vertical-align:middle;font-size:1.1em;">arrow_upward</span> <span id="network-sent">${info.network.bytes_sent_gb}GB</span></span>
+                                <span style='color:#90caf9;font-weight:bold;'><span class="material-icons" style="vertical-align:middle;font-size:1.1em;">arrow_upward</span> <span id="network-sent" class="tile-value" style="color:#fff; font-size:2.1rem; font-weight:bold;">${info.network.bytes_sent_gb}GB</span></span>
                                 <div style="font-size:0.95em; color:#b0bec5;">sent</div>
                             </div>
                             <div class="network-col" style="flex:1;text-align:center;">
-                                <span style='color:#90caf9;font-weight:bold;'><span class="material-icons" style="vertical-align:middle;font-size:1.1em;">arrow_downward</span> <span id="network-recv">${info.network.bytes_recv_gb}GB</span></span>
+                                <span style='color:#90caf9;font-weight:bold;'><span class="material-icons" style="vertical-align:middle;font-size:1.1em;">arrow_downward</span> <span id="network-recv" class="tile-value" style="color:#fff; font-size:2.1rem; font-weight:bold;">${info.network.bytes_recv_gb}GB</span></span>
                                 <div style="font-size:0.95em; color:#b0bec5;">recv</div>
                             </div>
                         </div>
