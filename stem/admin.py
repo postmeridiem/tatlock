@@ -807,46 +807,6 @@ async def set_setting_options(setting_key: str, options: list[dict], _: None = D
         logger.error(f"Error setting options for {setting_key}: {e}")
         raise HTTPException(status_code=500, detail=f"Error setting options: {str(e)}")
 
-@admin_router.post("/settings/options/ollama_model/refresh")
-async def refresh_ollama_model_options(_: None = Depends(require_admin_role)):
-    """
-    Refresh the list of available Ollama models from the Ollama API.
-    Requires admin role.
-    """
-    try:
-        success = system_settings_manager.refresh_ollama_model_options()
-        if not success:
-            raise HTTPException(status_code=500, detail="Failed to refresh Ollama model options")
-        return {"message": "Ollama model options refreshed"}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error refreshing Ollama model options: {str(e)}")
-
-@admin_router.get("/settings/ollama_model/progress/{model_name}")
-async def get_ollama_download_progress(model_name: str, _: None = Depends(require_admin_role)):
-    """
-    Get the download progress for a specific Ollama model.
-    Requires admin role.
-    """
-    try:
-        progress = system_settings_manager.get_ollama_download_progress(model_name)
-        return progress
-    except Exception as e:
-        logger.error(f"Error getting download progress for {model_name}: {e}")
-        raise HTTPException(status_code=500, detail=f"Error getting download progress: {str(e)}")
-
-@admin_router.delete("/settings/ollama_model/progress/{model_name}")
-async def clear_ollama_download_progress(model_name: str, _: None = Depends(require_admin_role)):
-    """
-    Clear the download progress for a specific Ollama model.
-    Requires admin role.
-    """
-    try:
-        system_settings_manager.clear_ollama_download_progress(model_name)
-        return {"message": f"Progress cleared for {model_name}"}
-    except Exception as e:
-        logger.error(f"Error clearing download progress for {model_name}: {e}")
-        raise HTTPException(status_code=500, detail=f"Error clearing download progress: {str(e)}")
-
 # Tools Management Endpoints
 
 @admin_router.get("/tools")

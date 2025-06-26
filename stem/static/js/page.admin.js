@@ -760,23 +760,19 @@ async function loadSystemSettings() {
             `;
             
             categoryData.settings.forEach(setting => {
-                if (setting.setting_key === 'ollama_model') {
-                    settingsHtml += renderOllamaModelRow(setting);
-                } else {
-                    const valueDisplay = setting.is_sensitive ? 
-                        (setting.setting_value ? '••••••••' : 'Not set') : 
-                        (setting.setting_value || 'Not set');
-                    settingsHtml += `
-                        <tr>
-                            <td><strong>${setting.setting_key}</strong></td>
-                            <td class="setting-value" data-setting-key="${setting.setting_key}">${valueDisplay}</td>
-                            <td>${setting.description || ''}</td>
-                            <td>
-                                <button class="action-button edit-btn" onclick="editSetting('${setting.setting_key}', '${setting.setting_value || ''}', ${setting.is_sensitive})">Edit</button>
-                            </td>
-                        </tr>
-                    `;
-                }
+                const valueDisplay = setting.is_sensitive ? 
+                    (setting.setting_value ? '••••••••' : 'Not set') : 
+                    (setting.setting_value || 'Not set');
+                settingsHtml += `
+                    <tr>
+                        <td><strong>${setting.setting_key}</strong></td>
+                        <td class="setting-value" data-setting-key="${setting.setting_key}">${valueDisplay}</td>
+                        <td>${setting.description || ''}</td>
+                        <td>
+                            <button class="action-button edit-btn" onclick="editSetting('${setting.setting_key}', '${setting.setting_value || ''}', ${setting.is_sensitive})">Edit</button>
+                        </td>
+                    </tr>
+                `;
             });
             
             settingsHtml += `
@@ -788,8 +784,6 @@ async function loadSystemSettings() {
         });
         
         settingsContainer.innerHTML = settingsHtml;
-        // Attach event listeners for Ollama model dropdown and refresh
-        setupOllamaModelDropdown();
         
     } catch (error) {
         settingsContainer.innerHTML = `
@@ -797,219 +791,6 @@ async function loadSystemSettings() {
                 Error loading system settings: ${error.message}
             </div>
         `;
-    }
-}
-
-function renderOllamaModelRow(setting) {
-    // Render the dropdown and refresh button for ollama_model
-    const currentValue = setting.setting_value || 'Not set';
-    return `
-        <tr>
-            <td><strong>${setting.setting_key}</strong></td>
-            <td class="setting-value" data-setting-key="${setting.setting_key}">
-                <select id="ollamaModelDropdown" class="ollama-model-dropdown">
-                    <option value="">Loading...</option>
-                </select>
-                <div class="current-value-display">Current: ${currentValue}</div>
-                <div id="ollamaDownloadProgress" class="download-progress" style="display: none;">
-                    <div class="progress-bar">
-                        <div class="progress-fill"></div>
-                    </div>
-                    <div class="progress-text"></div>
-                </div>
-            </td>
-            <td>${setting.description || ''}</td>
-            <td>
-                <button class="action-button" id="ollamaModelRefreshBtn">Refresh</button>
-                <button class="action-button save-btn" id="ollamaModelSaveBtn">Save</button>
-            </td>
-        </tr>
-    `;
-}
-
-async function setupOllamaModelDropdown() {
-    const dropdown = document.getElementById('ollamaModelDropdown');
-    const refreshBtn = document.getElementById('ollamaModelRefreshBtn');
-    const saveBtn = document.getElementById('ollamaModelSaveBtn');
-    if (!dropdown || !refreshBtn || !saveBtn) return;
-    
-    // Fetch options
-    const options = await fetch('/admin/settings/options/ollama_model', { credentials: 'include' })
-        .then(r => r.json())
-        .catch(() => []);
-    
-    dropdown.innerHTML = '';
-    options.forEach(opt => {
-        const option = document.createElement('option');
-        option.value = opt.option_value;
-        option.textContent = opt.option_label;
-        dropdown.appendChild(option);
-    });
-    
-    // Get current value from the setting data
-    const currentValue = await fetch('/admin/settings/ollama_model', { credentials: 'include' })
-        .then(r => r.json())
-        .then(setting => setting.setting_value)
-        .catch(() => null);
-    
-    if (currentValue && options.some(opt => opt.option_value === currentValue)) {
-        dropdown.value = currentValue;
-        ollamaModelPreviousValue = currentValue;
-    } else if (options.length > 0) {
-        dropdown.value = options[0].option_value;
-        ollamaModelPreviousValue = options[0].option_value;
-    }
-    
-    // Refresh button
-    refreshBtn.onclick = async () => {
-        refreshBtn.disabled = true;
-        try {
-            await fetch('/admin/settings/options/ollama_model/refresh', { method: 'POST', credentials: 'include' });
-            await setupOllamaModelDropdown();
-        } catch (error) {
-            snackbar.error('Failed to refresh Ollama models');
-        } finally {
-            refreshBtn.disabled = false;
-        }
-    };
-    
-    // Save button
-    saveBtn.onclick = () => {
-        const newValue = dropdown.value;
-        if (newValue !== ollamaModelPreviousValue) {
-            // Show modal if previous is not initial model
-            if (ollamaModelPreviousValue && ollamaModelPreviousValue !== 'gemma3-cortex:latest') {
-                ollamaModelPendingValue = newValue;
-                showOllamaRemoveModal();
-            } else {
-                saveOllamaModel(newValue, false);
-            }
-        }
-    };
-}
-
-function showOllamaRemoveModal() {
-    document.getElementById('ollamaRemoveModal').style.display = 'block';
-}
-function closeOllamaRemoveModal() {
-    document.getElementById('ollamaRemoveModal').style.display = 'none';
-    ollamaModelPendingValue = null;
-}
-function confirmOllamaRemoveModal() {
-    document.getElementById('ollamaRemoveModal').style.display = 'none';
-    if (ollamaModelPendingValue) {
-        saveOllamaModel(ollamaModelPendingValue, true);
-        ollamaModelPendingValue = null;
-    }
-}
-async function saveOllamaModel(newValue, removePrevious) {
-    const progressContainer = document.getElementById('ollamaDownloadProgress');
-    const progressFill = progressContainer?.querySelector('.progress-fill');
-    const progressText = progressContainer?.querySelector('.progress-text');
-    const saveBtn = document.getElementById('ollamaModelSaveBtn');
-    
-    try {
-        // Show progress indicator
-        if (progressContainer) {
-            progressContainer.style.display = 'block';
-            progressFill.style.width = '0%';
-            progressText.textContent = 'Starting download...';
-        }
-        
-        // Disable save button during download
-        if (saveBtn) {
-            saveBtn.disabled = true;
-            saveBtn.textContent = 'Downloading...';
-        }
-        
-        const response = await fetch(`/admin/settings/ollama_model`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            credentials: 'include',
-            body: JSON.stringify({ setting_value: newValue, remove_previous: !!removePrevious })
-        });
-        
-        if (!response.ok) {
-            const error = await response.json();
-            throw new Error(error.detail || 'Failed to update model');
-        }
-        
-        // Start polling for progress
-        const pollProgress = async () => {
-            try {
-                const progressResponse = await fetch(`/admin/settings/ollama_model/progress/${encodeURIComponent(newValue)}`, {
-                    credentials: 'include'
-                });
-                
-                if (progressResponse.ok) {
-                    const progress = await progressResponse.json();
-                    
-                    if (progressContainer && progressFill && progressText) {
-                        progressFill.style.width = `${progress.progress}%`;
-                        progressText.textContent = progress.message;
-                    }
-                    
-                    if (progress.status === 'downloading') {
-                        // Continue polling
-                        setTimeout(pollProgress, 1000);
-                    } else if (progress.status === 'completed') {
-                        // Download completed
-                        if (progressContainer) {
-                            progressContainer.style.display = 'none';
-                        }
-                        if (saveBtn) {
-                            saveBtn.disabled = false;
-                            saveBtn.textContent = 'Save';
-                        }
-                        snackbar.success('Ollama model updated and downloaded successfully');
-                        ollamaModelPreviousValue = newValue;
-                        await loadSystemSettings();
-                        
-                        // Clear progress after a delay
-                        setTimeout(() => {
-                            fetch(`/admin/settings/ollama_model/progress/${encodeURIComponent(newValue)}`, {
-                                method: 'DELETE',
-                                credentials: 'include'
-                            });
-                        }, 5000);
-                    } else if (progress.status === 'error') {
-                        // Download failed
-                        if (progressContainer) {
-                            progressContainer.style.display = 'none';
-                        }
-                        if (saveBtn) {
-                            saveBtn.disabled = false;
-                            saveBtn.textContent = 'Save';
-                        }
-                        snackbar.error(`Download failed: ${progress.error || 'Unknown error'}`);
-                        
-                        // Clear progress
-                        fetch(`/admin/settings/ollama_model/progress/${encodeURIComponent(newValue)}`, {
-                            method: 'DELETE',
-                            credentials: 'include'
-                        });
-                    }
-                }
-            } catch (error) {
-                console.error('Error polling progress:', error);
-                // Continue polling even if there's an error
-                setTimeout(pollProgress, 2000);
-            }
-        };
-        
-        // Start polling after a short delay
-        setTimeout(pollProgress, 500);
-        
-    } catch (error) {
-        // Hide progress indicator on error
-        if (progressContainer) {
-            progressContainer.style.display = 'none';
-        }
-        if (saveBtn) {
-            saveBtn.disabled = false;
-            saveBtn.textContent = 'Save';
-        }
-        snackbar.error(`Error updating model: ${error.message}`);
     }
 }
 

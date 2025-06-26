@@ -14,17 +14,6 @@ from typing import Dict, List, Optional, Any
 # Set up logging for this module
 logger = logging.getLogger(__name__)
 
-# Import ollama at module level to avoid import issues
-try:
-    import ollama
-    OLLAMA_AVAILABLE = True
-except ImportError:
-    logger.warning("Ollama library not available - model management will be disabled")
-    OLLAMA_AVAILABLE = False
-
-# Global progress tracking for Ollama model downloads
-_ollama_download_progress = {}
-
 class SystemSettingsManager:
     """
     Manages system settings stored in the system database.
@@ -70,16 +59,15 @@ class SystemSettingsManager:
     
     def set_setting(self, setting_key: str, setting_value: str, remove_previous: bool = False) -> bool:
         """
-        Set a system setting value. For ollama_model, download the model if not present and optionally remove the previous model.
+        Set a system setting value.
         Args:
             setting_key (str): The setting key to update
             setting_value (str): The new setting value
-            remove_previous (bool): If True, remove the previous model from disk (except initial model)
+            remove_previous (bool): Ignored parameter kept for compatibility
         Returns:
             bool: True if successful, False otherwise
         """
         try:
-            previous_value = self.get_setting(setting_key)
             conn = sqlite3.connect(self.db_path)
             cursor = conn.cursor()
             cursor.execute(
@@ -101,151 +89,11 @@ class SystemSettingsManager:
             conn.commit()
             conn.close()
             logger.info(f"Updated setting {setting_key}")
-            # Ollama model management
-            if setting_key == 'ollama_model' and OLLAMA_AVAILABLE:
-                try:
-                    # Download the new model if not present
-                    models_response = ollama.list()
-                    models = models_response.get('models', [])
-                    
-                    # Safely extract model names with error handling
-                    model_names = []
-                    for model in models:
-                        # Handle both Model objects and dictionaries
-                        if hasattr(model, 'model'):
-                            # Model object from ollama library
-                            model_names.append(model.model)
-                        elif isinstance(model, dict) and 'name' in model:
-                            # Dictionary format (fallback)
-                            model_names.append(model['name'])
-                        elif isinstance(model, dict) and 'model' in model:
-                            # Dictionary with 'model' key
-                            model_names.append(model['model'])
-                        else:
-                            logger.warning(f"Invalid model structure: {model}")
-                    
-                    if setting_value not in model_names:
-                        logger.info(f"Downloading Ollama model: {setting_value}")
-                        # Initialize progress tracking
-                        _ollama_download_progress[setting_value] = {
-                            'status': 'downloading',
-                            'progress': 0,
-                            'message': 'Starting download...',
-                            'error': None
-                        }
-                        
-                        try:
-                            # Use a custom pull function that tracks progress
-                            self._pull_model_with_progress(setting_value)
-                            _ollama_download_progress[setting_value] = {
-                                'status': 'completed',
-                                'progress': 100,
-                                'message': 'Download completed successfully',
-                                'error': None
-                            }
-                        except Exception as e:
-                            _ollama_download_progress[setting_value] = {
-                                'status': 'error',
-                                'progress': 0,
-                                'message': f'Download failed: {str(e)}',
-                                'error': str(e)
-                            }
-                            raise
-                    else:
-                        logger.info(f"Ollama model {setting_value} is already available")
-                        
-                    # Remove previous model if requested and not the initial model
-                    initial_model = 'gemma3-cortex:latest'
-                    if remove_previous and previous_value and previous_value != initial_model and previous_value != setting_value:
-                        logger.info(f"Removing previous Ollama model: {previous_value}")
-                        try:
-                            ollama.delete(previous_value)
-                        except Exception as e:
-                            logger.warning(f"Failed to remove model {previous_value}: {e}")
-                except Exception as e:
-                    logger.error(f"Error managing Ollama model {setting_value}: {e}")
-                    # Don't fail the setting update if Ollama operations fail
-                    # The setting is still saved to the database
-            elif setting_key == 'ollama_model' and not OLLAMA_AVAILABLE:
-                logger.warning("Ollama library not available - skipping model management")
             return True
+            
         except Exception as e:
             logger.error(f"Error setting {setting_key}: {e}")
             return False
-    
-    def _pull_model_with_progress(self, model_name: str):
-        """
-        Pull a model with progress tracking.
-        """
-        try:
-            # Start the pull operation
-            response = ollama.pull(model_name, stream=True)
-            
-            total_size = 0
-            downloaded_size = 0
-            
-            for chunk in response:
-                if 'total' in chunk:
-                    total_size = chunk['total']
-                if 'completed' in chunk:
-                    downloaded_size = chunk['completed']
-                    if total_size > 0:
-                        progress = int((downloaded_size / total_size) * 100)
-                    else:
-                        progress = 0
-                    
-                    _ollama_download_progress[model_name] = {
-                        'status': 'downloading',
-                        'progress': progress,
-                        'message': f'Downloading... {progress}%',
-                        'error': None
-                    }
-                    
-                    logger.debug(f"Download progress for {model_name}: {progress}%")
-            
-            # Mark as completed
-            _ollama_download_progress[model_name] = {
-                'status': 'completed',
-                'progress': 100,
-                'message': 'Download completed successfully',
-                'error': None
-            }
-            
-        except Exception as e:
-            _ollama_download_progress[model_name] = {
-                'status': 'error',
-                'progress': 0,
-                'message': f'Download failed: {str(e)}',
-                'error': str(e)
-            }
-            raise
-    
-    def get_ollama_download_progress(self, model_name: str) -> dict:
-        """
-        Get the download progress for a specific model.
-        
-        Args:
-            model_name (str): The name of the model
-            
-        Returns:
-            dict: Progress information with status, progress percentage, message, and error
-        """
-        return _ollama_download_progress.get(model_name, {
-            'status': 'not_found',
-            'progress': 0,
-            'message': 'No download in progress',
-            'error': None
-        })
-    
-    def clear_ollama_download_progress(self, model_name: str):
-        """
-        Clear the download progress for a specific model.
-        
-        Args:
-            model_name (str): The name of the model
-        """
-        if model_name in _ollama_download_progress:
-            del _ollama_download_progress[model_name]
     
     def get_all_settings(self) -> List[Dict[str, Any]]:
         """
@@ -436,19 +284,6 @@ class SystemSettingsManager:
             logger.error(f"Error deleting category {category_name}: {e}")
             return False
     
-    def get_ollama_config(self) -> Dict[str, str]:
-        """
-        Get Ollama configuration settings.
-        
-        Returns:
-            Dict[str, str]: Ollama configuration
-        """
-        return {
-            'model': self.get_setting('ollama_model') or 'gemma3-cortex:latest',
-            'host': self.get_setting('ollama_host') or 'http://localhost:11434',
-            'timeout': self.get_setting('ollama_timeout') or '30'
-        }
-    
     def get_api_keys(self) -> Dict[str, str]:
         """
         Get API key settings.
@@ -528,206 +363,6 @@ class SystemSettingsManager:
             logger.error(f"Error setting options for {setting_key}: {e}")
             return False
 
-    def test_model_tool_support(self, model_name: str) -> bool:
-        """
-        Test if a model supports function calling/tools.
-        
-        Args:
-            model_name (str): The name of the model to test
-            
-        Returns:
-            bool: True if the model supports tools, False otherwise
-        """
-        try:
-            # Simple test with a basic tool definition
-            test_tools = [{
-                "type": "function",
-                "function": {
-                    "name": "test_function",
-                    "description": "A test function",
-                    "parameters": {
-                        "type": "object",
-                        "properties": {
-                            "test": {"type": "string"}
-                        }
-                    }
-                }
-            }]
-            
-            # Try to make a chat request with tools
-            response = ollama.chat(
-                model=model_name,
-                messages=[{"role": "user", "content": "Hello"}],
-                tools=test_tools,
-                stream=False
-            )
-            
-            # If we get here without an error, the model supports tools
-            return True
-            
-        except Exception as e:
-            error_message = str(e).lower()
-            # Check for common error messages indicating no tool support
-            if any(phrase in error_message for phrase in [
-                'does not support tools',
-                'tools not supported',
-                'function calling not supported',
-                'unsupported feature'
-            ]):
-                logger.debug(f"Model {model_name} does not support tools: {e}")
-                return False
-            else:
-                # Other errors might be temporary, so we'll assume it supports tools
-                logger.warning(f"Error testing tool support for {model_name}: {e}")
-                return True
-
-    def refresh_ollama_model_options(self) -> bool:
-        """
-        Fetch major Ollama models from the library repository and update settings_options.
-        Focuses on well-known models that support function calling.
-        Returns True if successful.
-        """
-        try:
-            import requests
-            import json
-            
-            # Major models that support function calling/tools
-            # These are well-known models available in the Ollama library
-            # Only include models smaller than or equal to gemma3-cortex (8.1 GB)
-            # AND verified to support function calling/tools
-            major_models = [
-                # Llama models (Meta) - verified to support function calling
-                {'name': 'llama3.2:3b', 'display': 'Llama3.2 3B (Meta)', 'size': '1.8GB'},
-                {'name': 'llama3.2:8b', 'display': 'Llama3.2 8B (Meta)', 'size': '4.7GB'},
-                
-                # Mistral models - verified to support function calling
-                {'name': 'mistral:7b', 'display': 'Mistral 7B', 'size': '4.1GB'},
-                
-                # Code models - verified to support function calling
-                {'name': 'codellama:7b', 'display': 'Code Llama 7B', 'size': '3.8GB'},
-                {'name': 'codellama:13b', 'display': 'Code Llama 13B', 'size': '7.3GB'},
-                
-                # Specialized models - verified to support function calling
-                {'name': 'llama3.2:3b-instruct', 'display': 'Llama3.2 3B Instruct', 'size': '1.8GB'},
-                {'name': 'llama3.2:8b-instruct', 'display': 'Llama3.2 8B Instruct', 'size': '4.7GB'},
-                
-                # Phi models (Microsoft) - verified to support function calling
-                {'name': 'phi3:mini', 'display': 'Phi-3 Mini (Microsoft)', 'size': '1.8GB'},
-                {'name': 'phi3:small', 'display': 'Phi-3 Small (Microsoft)', 'size': '2.1GB'},
-                {'name': 'phi3:medium', 'display': 'Phi-3 Medium (Microsoft)', 'size': '4.2GB'},
-                
-                # Neural Chat models - verified to support function calling
-                {'name': 'neural-chat:7b', 'display': 'Neural Chat 7B', 'size': '4.1GB'},
-                {'name': 'neural-chat:8b', 'display': 'Neural Chat 8B', 'size': '4.7GB'},
-                
-                # Qwen models (Alibaba) - verified to support function calling
-                {'name': 'qwen2.5:0.5b', 'display': 'Qwen2.5 0.5B (Alibaba)', 'size': '0.3GB'},
-                {'name': 'qwen2.5:1.5b', 'display': 'Qwen2.5 1.5B (Alibaba)', 'size': '0.9GB'},
-                {'name': 'qwen2.5:3b', 'display': 'Qwen2.5 3B (Alibaba)', 'size': '1.7GB'},
-                {'name': 'qwen2.5:7b', 'display': 'Qwen2.5 7B (Alibaba)', 'size': '4.1GB'},
-                {'name': 'qwen2.5:14b', 'display': 'Qwen2.5 14B (Alibaba)', 'size': '8.1GB'},
-                
-                # Default model (keep for compatibility)
-                {'name': 'gemma3-cortex:latest', 'display': 'Gemma3 Cortex (Default)', 'size': 'N/A'}
-            ]
-            
-            # Convert to options format
-            options = []
-            for model in major_models:
-                # Test if the model supports tools before adding it
-                if self.test_model_tool_support(model['name']):
-                    options.append({
-                        'option_value': model['name'],
-                        'option_label': f"{model['display']} ({model['size']})",
-                        'enabled': True
-                    })
-                else:
-                    logger.info(f"Skipping {model['name']} - does not support function calling")
-            
-            # Also check for locally installed models and add them if not already in the list
-            try:
-                import ollama
-                local_models_response = ollama.list()
-                local_models = local_models_response.get('models', [])
-                for local_model in local_models:
-                    # Handle both Model objects and dictionaries
-                    if hasattr(local_model, 'model'):
-                        # Model object from ollama library
-                        model_name = local_model.model
-                        if model_name and not any(opt['option_value'] == model_name for opt in options):
-                            # Test tool support for local models too
-                            if self.test_model_tool_support(model_name):
-                                # Add locally installed model that's not in our major models list
-                                size = getattr(local_model, 'size', 'Unknown')
-                                if isinstance(size, int):
-                                    size = f"{size / (1024**3):.1f}GB"
-                                options.append({
-                                    'option_value': model_name,
-                                    'option_label': f"{model_name} (Local - {size})",
-                                    'enabled': True
-                                })
-                            else:
-                                logger.info(f"Skipping local model {model_name} - does not support function calling")
-                    elif isinstance(local_model, dict) and 'name' in local_model:
-                        # Dictionary format (fallback)
-                        model_name = local_model.get('name')
-                        if model_name and not any(opt['option_value'] == model_name for opt in options):
-                            if self.test_model_tool_support(model_name):
-                                size = local_model.get('size', 'Unknown')
-                                if isinstance(size, int):
-                                    size = f"{size / (1024**3):.1f}GB"
-                                options.append({
-                                    'option_value': model_name,
-                                    'option_label': f"{model_name} (Local - {size})",
-                                    'enabled': True
-                                })
-                            else:
-                                logger.info(f"Skipping local model {model_name} - does not support function calling")
-                    elif isinstance(local_model, dict) and 'model' in local_model:
-                        # Dictionary with 'model' key
-                        model_name = local_model.get('model')
-                        if model_name and not any(opt['option_value'] == model_name for opt in options):
-                            if self.test_model_tool_support(model_name):
-                                size = local_model.get('size', 'Unknown')
-                                if isinstance(size, int):
-                                    size = f"{size / (1024**3):.1f}GB"
-                                options.append({
-                                    'option_value': model_name,
-                                    'option_label': f"{model_name} (Local - {size})",
-                                    'enabled': True
-                                })
-                            else:
-                                logger.info(f"Skipping local model {model_name} - does not support function calling")
-                    else:
-                        logger.warning(f"Invalid local model structure: {local_model}")
-            except Exception as e:
-                logger.warning(f"Could not fetch local models: {e}")
-            
-            # Sort options: major models first, then local models
-            major_model_names = {model['name'] for model in major_models}
-            options.sort(key=lambda x: (x['option_value'] not in major_model_names, x['option_label']))
-            
-            # Ensure we have at least one option (the default model)
-            if not options:
-                logger.warning("No models with tool support found, adding default model")
-                options = [{
-                    'option_value': 'gemma3-cortex:latest',
-                    'option_label': 'gemma3-cortex:latest (default)',
-                    'enabled': True
-                }]
-            
-            return self.set_setting_options('ollama_model', options)
-            
-        except Exception as e:
-            logger.error(f"Error refreshing Ollama model options: {e}")
-            # Add default option if refresh fails
-            default_options = [{
-                'option_value': 'gemma3-cortex:latest',
-                'option_label': 'gemma3-cortex:latest (default)',
-                'enabled': True
-            }]
-            return self.set_setting_options('ollama_model', default_options)
-
     def update_tool_status_based_on_api_keys(self) -> bool:
         """
         Update tool enabled status based on current API key availability.
@@ -754,32 +389,6 @@ class SystemSettingsManager:
         except Exception as e:
             logger.error(f"Error updating tool status: {e}")
             return False
-
-    def validate_and_fix_current_model(self) -> bool:
-        """
-        Validate that the current model supports tools and switch to a working model if needed.
-        
-        Returns:
-            bool: True if model is valid or was successfully fixed, False otherwise
-        """
-        try:
-            current_model = self.get_setting('ollama_model')
-            if not current_model:
-                logger.warning("No model set, using default")
-                return self.set_setting('ollama_model', 'gemma3-cortex:latest')
-            
-            # Test if current model supports tools
-            if self.test_model_tool_support(current_model):
-                logger.info(f"Current model {current_model} supports tools - no change needed")
-                return True
-            else:
-                logger.warning(f"Current model {current_model} does not support tools, switching to default")
-                return self.set_setting('ollama_model', 'gemma3-cortex:latest')
-                
-        except Exception as e:
-            logger.error(f"Error validating current model: {e}")
-            # Fallback to default model
-            return self.set_setting('ollama_model', 'gemma3-cortex:latest')
 
 # Global instance
 system_settings_manager = SystemSettingsManager() 

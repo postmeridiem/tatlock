@@ -154,11 +154,69 @@ function updateSystemInfoDOM(info) {
 }
 
 function renderSystemInfoGraphs(info) {
-    if (typeof Chart === 'undefined') {
-        console.error('Chart.js is not loaded');
-        return;
-    }
-    // ... (chart rendering logic from debug.js) ...
+    // Maintain history buffer
+    if (!Array.isArray(systemInfoHistory)) systemInfoHistory = [];
+    if (systemInfoHistory.length >= MAX_HISTORY) systemInfoHistory.shift();
+    systemInfoHistory.push({
+        cpu: info.cpu.usage.overall_percent,
+        ram: info.memory.ram.usage_percent
+    });
+    // Prepare data
+    const cpuData = systemInfoHistory.map(d => d.cpu);
+    const ramData = systemInfoHistory.map(d => d.ram);
+    const labels = Array.from({length: systemInfoHistory.length}, (_, i) => `${i - systemInfoHistory.length + 1 + MAX_HISTORY}s`);
+    // CPU Chart
+    const cpuCtx = document.getElementById('cpuChart').getContext('2d');
+    if (cpuChart) cpuChart.destroy();
+    cpuChart = new Chart(cpuCtx, {
+        type: 'line',
+        data: {
+            labels,
+            datasets: [{
+                label: 'CPU %',
+                data: cpuData,
+                borderColor: '#90caf9',
+                backgroundColor: 'rgba(144,202,249,0.1)',
+                fill: true,
+                tension: 0.2,
+                pointRadius: 0
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: { legend: { display: false } },
+            scales: {
+                y: { min: 0, max: 100, ticks: { color: '#b0bec5' } },
+                x: { display: false }
+            }
+        }
+    });
+    // RAM Chart
+    const ramCtx = document.getElementById('ramChart').getContext('2d');
+    if (ramChart) ramChart.destroy();
+    ramChart = new Chart(ramCtx, {
+        type: 'line',
+        data: {
+            labels,
+            datasets: [{
+                label: 'RAM %',
+                data: ramData,
+                borderColor: '#a97ffb',
+                backgroundColor: 'rgba(169,127,251,0.1)',
+                fill: true,
+                tension: 0.2,
+                pointRadius: 0
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: { legend: { display: false } },
+            scales: {
+                y: { min: 0, max: 100, ticks: { color: '#b0bec5' } },
+                x: { display: false }
+            }
+        }
+    });
 }
 
 // --- Section Loaders and Navigation ---
@@ -212,42 +270,78 @@ function loadSystemInfo() {
         <div class="loading">Loading system information...</div>
     `;
     
-    // Load system info content
     fetchSystemInfo()
         .then(info => {
+            // Group first four tiles, then network tile below
             systemInfoContent.innerHTML = `
-                <div class="info-grid">
-                    <div class="info-card">
-                        <h3>CPU</h3>
-                        <p>Usage: <span id="cpu-usage-percent">${info.cpu.usage.overall_percent}%</span></p>
-                        <p>Cores: <span id="cpu-core-count">${info.cpu.count.logical}</span></p>
+                <div class="metrics-tiles" style="margin-bottom:0;">
+                    <div class="metric-tile">
+                        <div class="tile-title">CPU Usage</div>
+                        <div class="tile-value" id="cpu-usage-percent">${info.cpu.usage.overall_percent}%</div>
+                        <div class="tile-desc">Cores: <span id="cpu-core-count">${info.cpu.count.logical}</span></div>
                     </div>
-                    <div class="info-card">
-                        <h3>Memory</h3>
-                        <p>Usage: <span id="ram-usage-percent">${info.memory.ram.usage_percent}%</span></p>
-                        <p>Used: <span id="ram-used">${info.memory.ram.used_gb}GB</span> / <span id="ram-total">${info.memory.ram.total_gb}GB</span></p>
+                    <div class="metric-tile">
+                        <div class="tile-title">RAM Usage</div>
+                        <div class="tile-value" id="ram-usage-percent">${info.memory.ram.usage_percent}%</div>
+                        <div class="tile-desc">Used: <span id="ram-used">${info.memory.ram.used_gb}GB</span> / <span id="ram-total">${info.memory.ram.total_gb}GB</span></div>
                     </div>
-                    <div class="info-card">
-                        <h3>Disk</h3>
-                        <p>Usage: <span id="disk-usage-percent">${info.disk.root_partition.usage_percent}%</span></p>
-                        <p>Used: <span id="disk-used">${info.disk.root_partition.used_gb}GB</span> / <span id="disk-total">${info.disk.root_partition.total_gb}GB</span></p>
+                    <div class="metric-tile">
+                        <div class="tile-title">Disk Usage</div>
+                        <div class="tile-value" id="disk-usage-percent">${info.disk.root_partition.usage_percent}%</div>
+                        <div class="tile-desc">Used: <span id="disk-used">${info.disk.root_partition.used_gb}GB</span> / <span id="disk-total">${info.disk.root_partition.total_gb}GB</span></div>
                     </div>
-                    <div class="info-card">
-                        <h3>System</h3>
-                        <p>Uptime: <span id="system-uptime">${formatUptime(info.uptime)}</span></p>
-                        <p>Processes: <span id="process-count">${info.processes.total}</span></p>
+                    <div class="metric-tile">
+                        <div class="tile-title">Uptime</div>
+                        <div class="tile-value" id="system-uptime">${formatUptime(info.uptime)}</div>
+                        <div class="tile-desc">Processes: <span id="process-count">${info.processes.total}</span></div>
                     </div>
                 </div>
-                <div class="system-details">
+                <div class="metrics-tiles">
+                    <div class="metric-tile" style="min-width:220px;max-width:350px;">
+                        <div class="tile-title">Network</div>
+                        <div class="tile-value network-tile-value">
+                            <span style='color:#90caf9;font-weight:bold;'><span class="material-icons" style="vertical-align:middle;font-size:1.1em;">arrow_upward</span> ${info.network.bytes_sent_gb}GB</span> <span style="font-size:0.95em; color:#b0bec5;">sent</span><br>
+                            <span style='color:#90caf9;font-weight:bold;'><span class="material-icons" style="vertical-align:middle;font-size:1.1em;">arrow_downward</span> ${info.network.bytes_recv_gb}GB</span> <span style="font-size:0.95em; color:#b0bec5;">recv</span>
+                        </div>
+                        <div class="tile-desc">Interfaces: ${info.network.interfaces.length}</div>
+                    </div>
+                </div>
+                <div class="metrics-graphs">
+                    <div class="chart-container">
+                        <canvas id="cpuChart"></canvas>
+                        <div class="chart-label">CPU Usage (last 60s)</div>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="ramChart"></canvas>
+                        <div class="chart-label">RAM Usage (last 60s)</div>
+                    </div>
+                </div>
+                <div class="system-info-card">
                     <h3>Raw System Data</h3>
-                    <pre id="system-info-raw"></pre>
+                    <pre id="system-info-raw" style="font-family:monospace;font-size:13px;line-height:1.5;background:var(--bg-tertiary);padding:12px;border-radius:4px;overflow-x:auto;"></pre>
                 </div>
             `;
-            
+            // Render charts (ensure Chart.js is loaded)
+            if (window.Chart) {
+                renderSystemInfoGraphs(info);
+            } else if (window['plugin_chart_min_js_loaded'] !== true) {
+                // Dynamically load plugin.chart.min.js if not already loaded
+                const script = document.createElement('script');
+                script.src = '/static/js/plugin.chart.min.js';
+                script.onload = function() {
+                    window['plugin_chart_min_js_loaded'] = true;
+                    renderSystemInfoGraphs(info);
+                };
+                document.body.appendChild(script);
+            }
             // Update the raw data display
             const rawInfoEl = document.getElementById('system-info-raw');
-            if (rawInfoEl && typeof highlightJSON === 'function') {
-                rawInfoEl.innerHTML = highlightJSON(JSON.stringify(info, null, 2));
+            if (rawInfoEl) {
+                if (typeof highlightJSON === 'function') {
+                    rawInfoEl.innerHTML = highlightJSON(JSON.stringify(info, null, 2));
+                } else {
+                    rawInfoEl.textContent = JSON.stringify(info, null, 2);
+                }
             }
         })
         .catch(error => {
