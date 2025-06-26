@@ -15,9 +15,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Simplified setting management to use consistent edit/save pattern across all settings
   - Eliminated Ollama-specific API endpoints and backend methods
   - Users can now manually enter any Ollama model name as a simple text value
+- **System Info Section UI/UX:**
+  - Grouped the first four metric tiles (CPU, RAM, Disk, Uptime) on a single row and moved the Network tile to a new row for better visual grouping.
+  - Fixed the system info graphs to display live CPU and RAM usage history (last 60s) with proper data buffering and Chart.js integration.
+  - Improved the raw system data display: always shows pretty-printed JSON in a monospace block, with syntax highlighting if available.
 
 ### Fixed
 - Removed hardcoded 'Rotterdam' reference in agent system message; now dynamically uses the user's actual location from their personal profile (falls back to 'unknown location' if not set)
+- Various UI and data display improvements for the System Info section on the conversation page.
 
 ## [0.3.7] - 2024-06-24
 
