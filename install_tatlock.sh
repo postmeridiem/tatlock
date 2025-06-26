@@ -894,14 +894,6 @@ HOSTNAME=$hostname_input
 PORT=$port_input
 ALLOWED_ORIGINS=http://$hostname_input:$port_input
 
-# API Keys (Required - Please update these with your actual API keys)
-OPENWEATHER_API_KEY=your_openweather_api_key_here
-GOOGLE_API_KEY=your_google_api_key_here
-GOOGLE_CSE_ID=your_google_cse_id_here
-
-# Database Configuration
-DATABASE_ROOT=hippocampus/
-
 # Security
 STARLETTE_SECRET=$STARLETTE_SECRET
 EOF
