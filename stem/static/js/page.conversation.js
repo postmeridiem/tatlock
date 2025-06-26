@@ -297,7 +297,7 @@ function loadSystemInfo() {
                     </div>
                 </div>
                 <div class="metrics-tiles">
-                    <div class="metric-tile network-metric-tile" style="min-width:100%;max-width:100%;display:flex;flex-direction:column;align-items:stretch;">
+                    <div class="metric-tile network-metric-tile">
                         <div class="tile-title">Network</div>
                         <div class="network-row" style="display:flex;justify-content:space-evenly;align-items:center;width:100%;margin:12px 0;">
                             <div class="network-col" style="flex:1;text-align:center;">
