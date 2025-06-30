@@ -20,7 +20,7 @@
     {'id': 'settings-section', 'text': 'System Settings'}
 ] %}
 {{ render_nav('Admin', nav_items) }}
-
+ 
 <div class="content-area">
     <!-- System statistics overview -->
     <div id="stats" class="section">
@@ -264,24 +264,9 @@
             </div>
         </div>
     </div>
-
     <!-- Snackbar Container -->
     {% include 'components/snackbar.html' %}
 </div>
-{% endblock %}
-
-{% block page_styles %}
-<style>
-    .main-content {
-        display: flex;
-        padding: 0;
-    }
-    .content-area {
-        flex-grow: 1;
-        padding: 20px;
-        overflow-y: auto;
-    }
-</style>
 {% endblock %}
 
 {% block scripts %}

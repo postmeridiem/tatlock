@@ -17,7 +17,7 @@
     {'id': 'system-info', 'text': 'System Info'},
 ] %}
 {{ render_nav('Conversation', nav_items) }}
-
+ 
 <div class="content-area">
     <!-- Conversation Section: main chat interface -->
     <div id="conversation" class="section">
@@ -42,9 +42,9 @@
             <!-- System information will be loaded here -->
         </div>
     </div>
+    <!-- Snackbar Container -->
+    {% include 'components/snackbar.html' %}
 </div>
-<!-- Snackbar Container -->
-{% include 'components/snackbar.html' %}
 {% endblock %}
 
 {% block scripts %}

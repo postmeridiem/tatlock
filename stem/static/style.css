@@ -343,13 +343,6 @@ body {
 }
 
 /* Main Layout - Left Pane Navigator / Right Page Pane */
-.main-layout {
-    display: flex;
-    background: var(--bg-primary);
-    height: calc(100vh - var(--header-height));
-    overflow: hidden;
-    margin-top: 0;
-}
 
 .sidebar-nav {
     width: 350px;
@@ -359,13 +352,6 @@ body {
     height: 100%;
     overflow-y: auto;
     border-right: 1px solid var(--border-color);
-}
-
-.main-content {
-    flex-grow: 1;
-    padding: 20px;
-    overflow-y: auto;
-    height: 100%;
 }
 
 .nav-section {
