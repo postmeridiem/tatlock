@@ -91,13 +91,8 @@ async def lifespan(app: FastAPI):
     
     logger.info("Starting Tatlock application...")
     try:
-        # Validate and fix current model if needed
-        logger.info("Validating current Ollama model...")
-        if system_settings_manager.validate_and_fix_current_model():
-            logger.info("Model validation successful")
-        else:
-            logger.warning("Model validation failed, using fallback model")
-        
+        # Initialize voice service
+        logger.info("Initializing voice service...")
         await voice_service.initialize()
         logger.info("Voice service initialized successfully")
     except Exception as e:
@@ -219,14 +214,6 @@ async def chat_endpoint(request: ChatRequest, user: UserModel = Depends(get_curr
     try:
         if not user:
             raise HTTPException(status_code=401, detail="User not authenticated")
-        
-        # Validate current model supports tools before processing
-        try:
-            if not system_settings_manager.validate_and_fix_current_model():
-                logger.warning("Model validation failed, but continuing with fallback model")
-        except Exception as e:
-            logger.error(f"Model validation error: {e}")
-            # Continue with current model, let the agent handle any issues
         
         # Pydantic models in a list are not automatically converted to dicts,
         # so we do it manually before passing to the agent.

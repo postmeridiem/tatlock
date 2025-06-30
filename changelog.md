@@ -7,8 +7,59 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.10] - 2024-06-27
+
+### Changed
+- **System Settings Simplification**: Removed complex Ollama model dropdown functionality from system settings page
+  - Converted ollama_model setting to use standard text input like other settings
+  - Removed model downloader, refresh function, and progress tracking from backend
+  - Removed dropdown UI components, modal dialogs, and related JavaScript functions
+  - Simplified setting management to use consistent edit/save pattern across all settings
+  - Eliminated Ollama-specific API endpoints and backend methods
+  - Users can now manually enter any Ollama model name as a simple text value
+- **System Info Section UI/UX:**
+  - Grouped the first four metric tiles (CPU, RAM, Disk, Uptime) on a single row and moved the Network tile to a new row for better visual grouping.
+  - Fixed the system info graphs to display live CPU and RAM usage history (last 60s) with proper data buffering and Chart.js integration.
+  - Improved the raw system data display: always shows pretty-printed JSON in a monospace block, with syntax highlighting if available.
+
 ### Fixed
 - Removed hardcoded 'Rotterdam' reference in agent system message; now dynamically uses the user's actual location from their personal profile (falls back to 'unknown location' if not set)
+- Various UI and data display improvements for the System Info section on the conversation page.
+- Network card in System Info now stretches the entire row and displays sent/recv in one line with two centered columns for improved clarity and consistency.
+- Fixed conversation page template to use consistent .content-area class instead of .main-content
+- Removed obsolete API key and database configuration comments from install script
+- Cleaned up template structure for better consistency with other pages
+
+## [0.3.9] - 2024-06-27
+
+### Changed
+- **System Settings Simplification**: Removed complex Ollama model dropdown functionality from system settings page
+  - Converted ollama_model setting to use standard text input like other settings
+  - Removed model downloader, refresh function, and progress tracking from backend
+  - Removed dropdown UI components, modal dialogs, and related JavaScript functions
+  - Simplified setting management to use consistent edit/save pattern across all settings
+  - Eliminated Ollama-specific API endpoints and backend methods
+  - Users can now manually enter any Ollama model name as a simple text value
+- **System Info Section UI/UX:**
+  - Grouped the first four metric tiles (CPU, RAM, Disk, Uptime) on a single row and moved the Network tile to a new row for better visual grouping.
+  - Fixed the system info graphs to display live CPU and RAM usage history (last 60s) with proper data buffering and Chart.js integration.
+  - Improved the raw system data display: always shows pretty-printed JSON in a monospace block, with syntax highlighting if available.
+
+### Fixed
+- Removed hardcoded 'Rotterdam' reference in agent system message; now dynamically uses the user's actual location from their personal profile (falls back to 'unknown location' if not set)
+- Various UI and data display improvements for the System Info section on the conversation page.
+- Network card in System Info now stretches the entire row and displays sent/recv in one line with two centered columns for improved clarity and consistency.
+
+## [0.3.8] - 2024-06-26
+
+### Changed
+- **System Info Section UI/UX:**
+  - Grouped the first four metric tiles (CPU, RAM, Disk, Uptime) on a single row and moved the Network tile to a new row for better visual grouping.
+  - Fixed the system info graphs to display live CPU and RAM usage history (last 60s) with proper data buffering and Chart.js integration.
+  - Improved the raw system data display: always shows pretty-printed JSON in a monospace block, with syntax highlighting if available.
+
+### Fixed
+- Various UI and data display improvements for the System Info section on the conversation page.
 
 ## [0.3.7] - 2024-06-24
 
