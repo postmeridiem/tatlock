@@ -37,15 +37,15 @@
     
     <!-- Main layout container -->
     <div class="main-layout">
+        
+        <!-- Main content -->
+        {% block content %}{% endblock %}
+
+        
         <!-- Chat sidebar (if enabled) -->
         {% if show_chat_sidebar %}
             {% include 'components/chat_sidebar.html' %}
         {% endif %}
-        
-        <!-- Main content -->
-        <main class="main-content">
-            {% block content %}{% endblock %}
-        </main>
     </div>
     
     <!-- Scripts -->
