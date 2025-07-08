@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.3.14] - 2025-07-08
 ### Changed
 - **Memory Management**: Restyled the memory management section in the profile page to use a table for a cleaner and more organized layout.
+- **Admin Dashboard**: Aligned the styling of the 'Edit' button in the User Management section with other action buttons for visual consistency.
 
 ### Fixed
 - **CSS Spacing**: Corrected the spacing for the network card in the system info section.
