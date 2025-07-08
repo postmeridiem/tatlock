@@ -1237,6 +1237,10 @@ table tr:last-child td, .user-table tr:last-child td {
     margin-top: 20px;
 }
 
+.network-metric-tile {
+    margin-top: 1.5rem;
+}
+
 /*
  * 6. Utilities
  * ------------
