@@ -51,15 +51,16 @@ async def execute_take_screenshot_from_url(url: str, session_id: str, username: 
         }
 
 
-def sync_take_screenshot(url: str, file_path: str, cookies: dict = None, wait_for_timeout: int = 0) -> dict:
+def sync_take_screenshot(url: str, file_path: str, cookies: dict = None, wait_for_timeout: int = 5000, selector: str = None) -> dict:
     """
-    Takes a screenshot of a URL and saves it to a file using the synchronous Playwright API.
+    Takes a screenshot of a URL or a specific element and saves it to a file.
 
     Args:
         url: The URL to take a screenshot of.
         file_path: The path to save the screenshot to.
         cookies: A dictionary of cookies to set in the browser context.
         wait_for_timeout: The time in milliseconds to wait before taking the screenshot.
+        selector: The CSS selector of a specific element to capture. If None, captures the full page.
 
     Returns:
         A dictionary with the status of the operation.
@@ -71,10 +72,16 @@ def sync_take_screenshot(url: str, file_path: str, cookies: dict = None, wait_fo
             if cookies:
                 context.add_cookies([{"name": k, "value": v, "domain": "localhost", "path": "/"} for k, v in cookies.items()])
             page = context.new_page()
-            page.goto(url)
+            page.goto(url, wait_until='networkidle')
             if wait_for_timeout > 0:
                 page.wait_for_timeout(wait_for_timeout)
-            page.screenshot(path=file_path, full_page=True)
+            
+            if selector:
+                element = page.locator(selector)
+                element.screenshot(path=file_path)
+            else:
+                page.screenshot(path=file_path, full_page=True)
+                
             browser.close()
         return {"status": "success", "file_path": file_path}
     except Exception as e:
