@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.18] - 2025-07-08
+### Changed
+- **Development**: Updated `GEMINI.md` with a mandatory, detailed protocol for Git workflow and a safer, more reliable debugging process for web applications. This includes using a dedicated `ide_debugging` directory for all temporary files, which is now ignored by Git.
+
 ## [0.3.17] - 2025-07-08
 ### Added
 - **Development**: Added a dedicated `ide_debugging` directory for temporary debugging files and added it to `.gitignore`.
