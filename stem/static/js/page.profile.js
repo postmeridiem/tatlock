@@ -363,29 +363,31 @@ async function loadConversations(searchTerm = '') {
 }
 
 function renderConversations(conversations) {
-    const conversationListDiv = document.getElementById('conversation-list');
+    const conversationTableBody = document.getElementById('conversation-list-table-body');
+    if (!conversationTableBody) {
+        console.error('conversation-list-table-body element not found');
+        return;
+    }
     if (conversations.length === 0) {
-        conversationListDiv.innerHTML = '<p>No conversations found.</p>';
+        conversationTableBody.innerHTML = '<tr><td colspan="4">No conversations found.</td></tr>';
         return;
     }
 
     let html = '';
     conversations.forEach(convo => {
         html += `
-            <div class="conversation-item" id="convo-${convo.id}">
-                <div class="convo-topic">${convo.topic || 'No Topic'}</div>
-                <div class="convo-summary">${convo.summary || 'No summary available.'}</div>
-                <div class="convo-meta">
-                    <span>Last Activity: ${new Date(convo.last_activity).toLocaleString()}</span>
-                </div>
-                <div class="convo-actions">
-                    <button class="view-btn" onclick="viewConversation('${convo.id}')">View</button>
-                    <button class="delete-btn" onclick="deleteConversation('${convo.id}')">Delete</button>
-                </div>
-            </div>
+            <tr id="convo-${convo.id}">
+                <td>${convo.topic || 'No Topic'}</td>
+                <td>${convo.summary || 'No summary available.'}</td>
+                <td>${new Date(convo.last_activity).toLocaleString()}</td>
+                <td>
+                    <button class="action-button view-btn" onclick="viewConversation('${convo.id}')">View</button>
+                    <button class="action-button delete-btn" onclick="deleteConversation('${convo.id}')">Delete</button>
+                </td>
+            </tr>
         `;
     });
-    conversationListDiv.innerHTML = html;
+    conversationTableBody.innerHTML = html;
 }
 
 async function viewConversation(conversationId) {

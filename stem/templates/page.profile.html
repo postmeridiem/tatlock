@@ -79,7 +79,19 @@
             </button>
         </div>
         <div id="conversation-list" class="conversation-list-container">
-            <div class="loading">Loading conversations...</div>
+            <table class="user-table">
+                <thead>
+                    <tr>
+                        <th>Topic</th>
+                        <th>Summary</th>
+                        <th>Last Activity</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="conversation-list-table-body">
+                    <tr><td colspan="4" class="loading">Loading conversations...</td></tr>
+                </tbody>
+            </table>
         </div>
     </div>
 </div>

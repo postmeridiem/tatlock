@@ -1206,6 +1206,37 @@ table tr:last-child td, .user-table tr:last-child td {
     margin-top: 5px;
 }
 
+.view-btn {
+    background-color: var(--accent-color);
+    color: white;
+}
+
+.view-btn:hover {
+    background-color: var(--accent-hover);
+}
+
+.disable-btn {
+    background-color: var(--error-color);
+    color: white;
+}
+
+.disable-btn:hover {
+    background-color: #d32f2f;
+}
+
+.enable-btn {
+    background-color: var(--success-color);
+    color: white;
+}
+
+.enable-btn:hover {
+    background-color: #45a049;
+}
+
+.conversation-list-container .user-table {
+    margin-top: 20px;
+}
+
 /*
  * 6. Utilities
  * ------------
