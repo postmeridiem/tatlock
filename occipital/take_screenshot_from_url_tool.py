@@ -8,6 +8,7 @@ import logging
 from typing import Optional
 from hippocampus.user_database import get_user_image_path
 from occipital.website_tester import WebsiteTester
+from playwright.sync_api import sync_playwright
 
 # Set up logging for this module
 logger = logging.getLogger(__name__)
@@ -48,6 +49,29 @@ async def execute_take_screenshot_from_url(url: str, session_id: str, username: 
             "session_id": session_id,
             "url": url
         }
+
+
+def sync_take_screenshot(url: str, file_path: str) -> dict:
+    """
+    Takes a screenshot of a URL and saves it to a file using the synchronous Playwright API.
+
+    Args:
+        url: The URL to take a screenshot of.
+        file_path: The path to save the screenshot to.
+
+    Returns:
+        A dictionary with the status of the operation.
+    """
+    try:
+        with sync_playwright() as p:
+            browser = p.chromium.launch()
+            page = browser.new_page()
+            page.goto(url)
+            page.screenshot(path=file_path)
+            browser.close()
+        return {"status": "success", "file_path": file_path}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
 
 
 def analyze_screenshot_file(session_id: str, original_prompt: Optional[str], username: str = "admin") -> dict:
@@ -110,4 +134,4 @@ def analyze_screenshot_file(session_id: str, original_prompt: Optional[str], use
             "success": False,
             "error": str(e),
             "session_id": session_id
-        } 
+        }
