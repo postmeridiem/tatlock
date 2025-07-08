@@ -7,10 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.3.13] - 2025-07-08
+## [0.3.14] - 2025-07-08
 ### Changed
 - **Memory Management**: Restyled the memory management section in the profile page to use a table for a cleaner and more organized layout.
 
+### Fixed
+- **CSS Spacing**: Corrected the spacing for the network card in the system info section.
+
+## [0.3.13] - 2025-07-08
 ### Added
 - **Screenshot Tool**: Improved the screenshot tool to take full-page, high-resolution screenshots and handle authenticated sessions.
 - **Developer Workflow**: Updated `GEMINI.md` with instructions for a visual changes workflow, including taking before and after screenshots to verify UI changes.
