@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.11] - 2025-07-08
+### Fixed
+- **CSS Alignment**: Corrected the CSS for the main layout on the conversation page to properly align the left and right menu bars.
+
 ## [0.3.10] - 2024-06-27
 
 ### Changed
