@@ -97,9 +97,10 @@ Security standards:
 
 ### Git Workflow
 - **Branching Strategy**: Before making any code changes, check the current Git branch.
-- **Never commit to `main`**: You must never commit changes directly to the `main` branch.
-- **Create a new branch from `main`**: If the current branch is `main`, create a new branch with a descriptive name (e.g., `fix/bug-description` or `feature/new-feature-name`).
-- **Stay in the current branch**: If the current branch is not `main`, stay in that branch unless explicitly instructed to switch.
+- **Never commit to `main`**: You must never commit changes directly to the `main` branch. All work must be done in a feature or fix branch.
+- **Create a new branch from `main`**: If you are on the `main` branch, you must create a new branch before making any changes. Use a descriptive name like `fix/bug-description` or `feature/new-feature-name`.
+- **Stay in the current branch**: If you are already in a feature or fix branch, stay in that branch unless explicitly instructed to switch.
+- **Do not merge branches**: Do not merge any branch into `main` unless explicitly instructed to do so by the user.
 
 ### Visual Changes Workflow
 - **Always take screenshots**: When making changes to CSS, JavaScript, or HTML, you must always take "before" and "after" screenshots to verify the changes.
