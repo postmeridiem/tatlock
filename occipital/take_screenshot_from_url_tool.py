@@ -67,14 +67,14 @@ def sync_take_screenshot(url: str, file_path: str, cookies: dict = None, wait_fo
     try:
         with sync_playwright() as p:
             browser = p.chromium.launch()
-            context = browser.new_context()
+            context = browser.new_context(viewport={'width': 2000, 'height': 1080})
             if cookies:
                 context.add_cookies([{"name": k, "value": v, "domain": "localhost", "path": "/"} for k, v in cookies.items()])
             page = context.new_page()
             page.goto(url)
             if wait_for_timeout > 0:
                 page.wait_for_timeout(wait_for_timeout)
-            page.screenshot(path=file_path)
+            page.screenshot(path=file_path, full_page=True)
             browser.close()
         return {"status": "success", "file_path": file_path}
     except Exception as e:
