@@ -1118,14 +1118,14 @@ def login_user(request: Request, username: str, password: str) -> dict:
     Returns:
         dict: Result with success status and message
     """
+    logger.info(f"Attempting to log in user: {username}")
     user = security_manager.authenticate_user(username, password)
     if user:
-        logger.debug(f"login_user: Setting session for user '{username}'")
+        logger.info(f"Login successful for user: {username}")
         request.session["user"] = username
-        logger.debug(f"login_user: Session set, session data: {dict(request.session)}")
         return {"success": True, "message": "Login successful"}
     else:
-        logger.warning(f"login_user: Authentication failed for user '{username}'")
+        logger.warning(f"Login failed for user: {username}")
         return {"success": False, "message": "Invalid username or password"}
 
 def logout_user(request: Request) -> dict:
