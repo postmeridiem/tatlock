@@ -95,12 +95,49 @@ Security standards:
 4.  **Tag**: Create a git tag `vX.Y.Z`.
 5.  **Push to Remote**: Push the `main` branch and all tags to the remote repository using `git push origin main --tags`.
 
-### Git Workflow
-- **Branching Strategy**: Before making any code changes, check the current Git branch.
-- **Never commit to `main`**: You must never commit changes directly to the `main` branch. All work must be done in a feature or fix branch.
-- **Create a new branch from `main`**: If you are on the `main` branch, you must create a new branch before making any changes. Use a descriptive name like `fix/bug-description` or `feature/new-feature-name`.
-- **Stay in the current branch**: If you are already in a feature or fix branch, stay in that branch unless explicitly instructed to switch.
-- **Do not merge branches**: Do not merge any branch into `main` unless explicitly instructed to do so by the user.
+### Development Protocols
+
+#### Mandatory Git Workflow Protocol
+
+For any task that involves modifying code or documentation, you MUST follow this protocol without deviation.
+
+**1. Branch Verification & Creation:**
+- **Action:** Immediately upon receiving the task, run `git branch`.
+- **Condition:** If the current branch is `main`, you MUST create a new branch before proceeding.
+- **Branch Naming:** The new branch name MUST follow the pattern `fix/<short-description>` for bug fixes or `feature/<short-description>` for new features.
+- **Confirmation:** Announce the branch you are working on.
+
+**2. Implementation:**
+- Perform all necessary code modifications, file creations, or other requested actions within the designated branch.
+
+**3. Pre-Commit Verification:**
+- **Action:** Before committing, you MUST run `git status` to review all changes.
+- **Staging:** Use `git add <file>` to stage only the files directly related to the completed task. Avoid using `git add .`.
+- **Review:** After staging, you MUST run `git diff --staged` to review the exact changes that will be committed.
+
+**4. Merging Protocol (Upon User Request):**
+- **Action:** When the user approves the changes and requests a merge, you MUST follow these steps in order:
+    1. `git checkout main`
+    2. `git merge <your-branch-name>`
+    3. `git push origin main` (Only if explicitly asked to push)
+
+**5. Cleanup:**
+- **Action:** After a successful merge into `main`, you MUST delete the feature/fix branch and any temporary files created during the task.
+- **Branch Deletion:** `git branch -d <your-branch-name>`
+- **Screenshot Cleanup:** If you created any screenshots, you MUST delete them from the `ide_screenshots/` directory. Use `rm ide_screenshots/<screenshot-file-name>.png`.
+
+#### Revised Debugging Protocol for Web Applications
+
+To ensure I can correctly diagnose issues with web applications, I will now follow this strict protocol:
+
+1.  **Setup:** Create the `ide_debugging` directory if it doesn't exist.
+2.  **Scripts:** Place all temporary verification scripts inside `ide_debugging`.
+3.  **Server Logging:** Start the server in the background, redirecting its output to `ide_debugging/server.log`.
+    *   **Command:** `python main.py > ide_debugging/server.log 2>&1 &`
+4.  **Verification:** Run the verification script from the root directory.
+5.  **Analysis:** Analyze the script output and the contents of `ide_debugging/server.log`.
+6.  **Stop the Server:** After verification, I will stop the background server process using its PID.
+7.  **Cleanup:** I will remove the entire `ide_debugging` directory and all its contents.
 
 ### Visual Changes Workflow
 - **Always take screenshots**: When making changes to CSS, JavaScript, or HTML, you must always take "before" and "after" screenshots to verify the changes.
