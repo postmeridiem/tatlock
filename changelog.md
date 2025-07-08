@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.17] - 2025-07-08
+### Added
+- **Development**: Added a dedicated `ide_debugging` directory for temporary debugging files and added it to `.gitignore`.
+
+### Changed
+- **Development**: Updated the debugging protocol to use a dedicated log file and to place all temporary files in the `ide_debugging` directory.
+
 ## [0.3.16] - 2025-07-08
 ### Fixed
 - **UI**: Corrected the CSS to properly center the login box on the login page.
