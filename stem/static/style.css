@@ -135,6 +135,18 @@ body {
     overflow: hidden;
 }
 
+.main-layout {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+}
+
+.content-area {
+    flex: 1;
+    padding: 20px;
+    overflow-y: auto;
+}
+
 /* Header Bar */
 .header-bar {
     background: #18191a;
