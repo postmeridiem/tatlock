@@ -341,8 +341,8 @@ function initializeMemoryManagement() {
 }
 
 async function loadConversations(searchTerm = '') {
-    const conversationListDiv = document.getElementById('conversation-list');
-    conversationListDiv.innerHTML = '<div class="loading">Loading conversations...</div>';
+    const conversationTableBody = document.getElementById('conversation-list-table-body');
+    conversationTableBody.innerHTML = '<tr><td colspan="4" class="loading">Loading conversations...</td></tr>';
 
     try {
         let url = '/hippocampus/longterm/conversations';
@@ -358,7 +358,7 @@ async function loadConversations(searchTerm = '') {
         const conversations = await response.json();
         renderConversations(conversations);
     } catch (error) {
-        conversationListDiv.innerHTML = `<div class="error-message">${error.message}</div>`;
+        conversationTableBody.innerHTML = `<tr><td colspan="4" class="error-message">${error.message}</td></tr>`;
     }
 }
 
