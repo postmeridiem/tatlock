@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.16] - 2025-07-08
+### Fixed
+- **UI**: Corrected the CSS to properly center the login box on the login page.
+- **UI**: Fixed an issue where the navigation indicator was not updating when switching sections in the user profile and admin pages.
+- **Memory Management**: Fixed a bug where the topic and summary were not being displayed in the memory management section of the profile page.
+- **Memory Management**: Fixed an error that occurred when viewing a conversation from the memory management section.
+
 ## [0.3.15] - 2025-07-08
 ### Fixed
 - Corrected several failing tests in the test suite.
