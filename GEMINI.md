@@ -105,7 +105,6 @@ Security standards:
 - **Always take screenshots**: When making changes to CSS, JavaScript, or HTML, you must always take "before" and "after" screenshots to verify the changes.
 - **Use the `sync_take_screenshot` tool**: This is the standard for capturing the UI.
 - **Default Behavior**: The tool waits 5 seconds, sets a 2000px viewport width, and captures the full page.
-- **Targeted Screenshots**: For pages with nested scrolling containers (like `.content-area`), you **must** use the `selector` argument to capture the specific scrolling element. Example: `sync_take_screenshot(..., selector='.content-area')`.
 - **Analyze the screenshots**: After capturing, use the `analyze_screenshot_file` tool or visual inspection to compare the "before" and "after" images.
 
 ### Adding New Tools

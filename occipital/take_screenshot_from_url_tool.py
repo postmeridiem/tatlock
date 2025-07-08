@@ -51,16 +51,15 @@ async def execute_take_screenshot_from_url(url: str, session_id: str, username: 
         }
 
 
-def sync_take_screenshot(url: str, file_path: str, cookies: dict = None, wait_for_timeout: int = 5000, selector: str = None) -> dict:
+def sync_take_screenshot(url: str, file_path: str, cookies: dict = None, wait_for_timeout: int = 5000) -> dict:
     """
-    Takes a screenshot of a URL or a specific element and saves it to a file.
+    Takes a screenshot of a URL and saves it to a file.
 
     Args:
         url: The URL to take a screenshot of.
         file_path: The path to save the screenshot to.
         cookies: A dictionary of cookies to set in the browser context.
         wait_for_timeout: The time in milliseconds to wait before taking the screenshot.
-        selector: The CSS selector of a specific element to capture. If None, captures the full page.
 
     Returns:
         A dictionary with the status of the operation.
@@ -76,11 +75,7 @@ def sync_take_screenshot(url: str, file_path: str, cookies: dict = None, wait_fo
             if wait_for_timeout > 0:
                 page.wait_for_timeout(wait_for_timeout)
             
-            if selector:
-                element = page.locator(selector)
-                element.screenshot(path=file_path)
-            else:
-                page.screenshot(path=file_path, full_page=True)
+            page.screenshot(path=file_path, full_page=True)
                 
             browser.close()
         return {"status": "success", "file_path": file_path}
