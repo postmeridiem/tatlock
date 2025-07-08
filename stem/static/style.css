@@ -1157,6 +1157,28 @@ table tr:last-child td, .user-table tr:last-child td {
     background: var(--bg-tertiary);
 }
 
+/* Memory Management */
+.memory-controls {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.search-input {
+    flex: 1;
+    padding: 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    font-size: 14px;
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+}
+
+.conversation-list-container {
+    margin-top: 20px;
+}
+
 /*
  * 6. Utilities
  * ------------
