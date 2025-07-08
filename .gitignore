@@ -30,3 +30,6 @@ hippocampus/longterm/
 hippocampus/shortterm/
 hippocampus/system.db
 ide_screenshots/
+
+# Temporary directory for IDE/agent debugging files
+ide_debugging/
