@@ -833,7 +833,7 @@ table tr:last-child td, .user-table tr:last-child td {
 }
 
 .metric-tile {
-    background: var(--bg-secondary);
+    background: var(--bg-tertiary);
     border-radius: 1rem;
     box-shadow: 0 2px 8px rgba(0,0,0,0.08);
     padding: 1.2rem 2rem;
@@ -911,7 +911,7 @@ table tr:last-child td, .user-table tr:last-child td {
 }
 
 .system-info-card {
-    background: var(--bg-secondary);
+    background: var(--bg-tertiary);
     border-radius: 1rem;
     box-shadow: 0 2px 8px rgba(0,0,0,0.08);
     padding: 1.5rem;
@@ -926,7 +926,7 @@ table tr:last-child td, .user-table tr:last-child td {
 }
 
 .system-info-card pre {
-    background: var(--bg-tertiary);
+    background: var(--bg-secondary);
     padding: 15px;
     border-radius: 4px;
     overflow-x: auto;
@@ -1188,7 +1188,7 @@ table tr:last-child td, .user-table tr:last-child td {
 }
 
 .stat-card {
-    background: var(--bg-secondary);
+    background: var(--bg-tertiary);
     padding: 20px;
     border-radius: 8px;
     box-shadow: var(--shadow);
