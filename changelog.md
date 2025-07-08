@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.12] - 2025-07-08
+### Fixed
+- **CSS Cleanup**: Refactored and cleaned up the main stylesheet (`style.css`) for better organization and maintainability. Restored all missing styles for the benchmark section, admin dashboard, profile page, and action buttons.
+
+### Added
+- **Screenshot Tool**: Added a new tool to take screenshots of web pages, which can be used to visually verify UI changes.
+
 ## [0.3.11] - 2025-07-08
 ### Fixed
 - **CSS Alignment**: Corrected the CSS for the main layout on the conversation page to properly align the left and right menu bars.
