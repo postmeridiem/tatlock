@@ -103,6 +103,7 @@ Security standards:
 
 ### Visual Changes Workflow
 - **Always take screenshots**: When making changes to CSS, JavaScript, or HTML, you must always take "before" and "after" screenshots to verify the changes.
+- **Authentication**: The first time you need to take a screenshot in a session, ask the user for their username and password. Store these credentials in your own session memory to avoid asking again.
 - **Use the `sync_take_screenshot` tool**: This is the standard for capturing the UI.
 - **Default Behavior**: The tool waits 5 seconds, sets a 2000px viewport width, and captures the full page.
 - **Analyze the screenshots**: After capturing, use the `analyze_screenshot_file` tool or visual inspection to compare the "before" and "after" images.
