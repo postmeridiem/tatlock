@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.13] - 2025-07-08
+### Added
+- **Screenshot Tool**: Improved the screenshot tool to take full-page, high-resolution screenshots and handle authenticated sessions.
+- **Developer Workflow**: Updated `GEMINI.md` with instructions for a visual changes workflow, including taking before and after screenshots to verify UI changes.
+
+### Fixed
+- **CSS Cleanup**: Performed a major cleanup and restructuring of the main stylesheet (`style.css`) to improve organization, remove redundancy, and restore missing styles.
+
 ## [0.3.12] - 2025-07-08
 ### Fixed
 - **CSS Cleanup**: Refactored and cleaned up the main stylesheet (`style.css`) for better organization and maintainability. Restored all missing styles for the benchmark section, admin dashboard, profile page, and action buttons.

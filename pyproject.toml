@@ -1,5 +1,5 @@
 [project]
 name = "tatlock"
-version = "0.3.12"
+version = "0.3.13"
 description = "A comprehensive AI assistant framework with modular architecture"
 requires-python = "==3.10.*" 
