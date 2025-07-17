@@ -32,7 +32,8 @@ async def get_user_conversations(
             "start_time": c['started_at'],
             "last_activity": c['last_activity'],
             "title": c.get('title', 'Untitled Conversation'),
-            "message_count": c.get('message_count', 0)
+            "message_count": c.get('message_count', 0),
+            "topic": c.get('topic', 'No Topic')
         }
         for c in conversations
     ]

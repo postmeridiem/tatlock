@@ -236,15 +236,28 @@ def get_topic_statistics(user: UserModel) -> list[dict]:
 # New conversation management functions
 def get_user_conversations(user: UserModel, limit: int = 50) -> list:
     """
-    Retrieves all conversations for a specific user.
+    Retrieves all conversations for a specific user, including topics.
     """
     query = """
-        SELECT conversation_id, started_at, last_activity, title, message_count
+        SELECT conversation_id
         FROM conversations
         ORDER BY last_activity DESC
         LIMIT ?;
     """
-    return execute_user_query(user.username, query, (limit,))
+    conversation_ids = execute_user_query(user.username, query, (limit,))
+    
+    conversations = []
+    for row in conversation_ids:
+        conversation_id = row['conversation_id']
+        details = get_conversation_details(conversation_id, user)
+        if details:
+            # For the main list, we only need the primary topic, not all of them.
+            # Let's say the primary topic is the first one in the list.
+            primary_topic = details['topics'][0]['topic_name'] if details['topics'] else None
+            details['topic'] = primary_topic
+            conversations.append(details)
+            
+    return conversations
 
 
 def get_conversation_details(conversation_id: str, user: UserModel) -> dict | None:
