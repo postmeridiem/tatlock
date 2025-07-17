@@ -44,8 +44,8 @@ class TestAPIAuthentication:
     
     def test_logout(self, authenticated_admin_client):
         """Test logout functionality."""
-        response = authenticated_admin_client.post("/logout", follow_redirects=False)
-        
+        response = authenticated_admin_client.get("/logout", follow_redirects=False)
+    
         assert response.status_code == 302
         assert response.headers["location"] == "/"
 
@@ -529,4 +529,69 @@ class TestAPIErrorHandling:
                 response = client.get(endpoint, follow_redirects=False)
                 # GET requests should redirect to login (302) due to custom exception handler
                 assert response.status_code == 302
-                assert "/login" in response.headers["location"] 
+                assert "/login" in response.headers["location"]
+
+
+class TestMemoryAPIEndpoints:
+    """Test memory (hippocampus) API endpoints."""
+
+    def test_delete_single_memory_turn(self, authenticated_admin_client, admin_user):
+        """Test deleting a single memory turn from a conversation."""
+        # 1. Have a conversation to create some memories
+        convo_res = authenticated_admin_client.post("/cortex", json={"message": "Hello, this is a test for deletion.", "history": []})
+        assert convo_res.status_code == 200
+        convo_data = convo_res.json()
+        conversation_id = convo_data["conversation_id"]
+
+        # 2. Get the messages from that conversation to find a memory ID
+        messages_res = authenticated_admin_client.get(f"/hippocampus/longterm/conversation/{conversation_id}/messages")
+        assert messages_res.status_code == 200
+        messages = messages_res.json()
+        assert len(messages) > 0
+        
+        # Let's try to delete the user's message (the first one)
+        memory_to_delete = next((m for m in messages if m['role'] == 'user'), None)
+        assert memory_to_delete is not None
+        memory_id = memory_to_delete['id'] # This is the interaction_id (a string)
+
+        # 3. Delete that specific memory turn
+        delete_res = authenticated_admin_client.delete(f"/hippocampus/longterm/memory/{memory_id}")
+        assert delete_res.status_code == 204
+
+        # 4. Verify the memory was deleted
+        messages_after_delete_res = authenticated_admin_client.get(f"/hippocampus/longterm/conversation/{conversation_id}/messages")
+        assert messages_after_delete_res.status_code == 200
+        messages_after_delete = messages_after_delete_res.json()
+        assert not any(m['id'] == memory_id for m in messages_after_delete)
+
+        # 5. Verify a user cannot delete another user's memory 
+        # For this, we need another user. We can create one.
+        from tests.api_harness import TestAPIHarness
+        
+        harness = TestAPIHarness()
+        other_user_details = harness.create_user("otheruser")
+        other_client = harness.get_authenticated_client(other_user_details['username'], other_user_details['password'])
+        
+        # Have the other user create a memory
+        other_convo_res = other_client.post("/cortex", json={"message": "This is other user's memory.", "history": []})
+        assert other_convo_res.status_code == 200
+        other_convo_id = other_convo_res.json()["conversation_id"]
+        
+        other_messages_res = other_client.get(f"/hippocampus/longterm/conversation/{other_convo_id}/messages")
+        other_messages = other_messages_res.json()
+        other_memory_id = other_messages[0]['id']
+
+        # Now, the original admin user tries to delete the other user's memory
+        malicious_delete_res = authenticated_admin_client.delete(f"/hippocampus/longterm/memory/{other_memory_id}")
+        assert malicious_delete_res.status_code == 404 # Should be "Not Found" or "Access Denied"
+
+        # 6. Clean up the conversations
+        cleanup_convo_res = authenticated_admin_client.delete(f"/hippocampus/longterm/conversation/{conversation_id}")
+        assert cleanup_convo_res.status_code == 204
+        
+        other_cleanup_res = other_client.delete(f"/hippocampus/longterm/conversation/{other_convo_id}")
+        assert other_cleanup_res.status_code == 204
+        
+        # Cleanup the created user
+        from tests.conftest import cleanup_user_data
+        cleanup_user_data(other_user_details['username']) 
