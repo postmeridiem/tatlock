@@ -236,28 +236,34 @@ def get_topic_statistics(user: UserModel) -> list[dict]:
 # New conversation management functions
 def get_user_conversations(user: UserModel, limit: int = 50) -> list:
     """
-    Retrieves all conversations for a specific user, including topics.
+    Retrieves all conversations for a specific user with summary and primary topic in a single query.
     """
     query = """
-        SELECT conversation_id
-        FROM conversations
-        ORDER BY last_activity DESC
+        SELECT 
+            c.conversation_id, 
+            c.title,
+            c.started_at, 
+            c.last_activity, 
+            c.message_count,
+            (SELECT m.user_prompt 
+             FROM memories m 
+             WHERE m.conversation_id = c.conversation_id AND m.user_prompt IS NOT NULL AND TRIM(m.user_prompt) != ''
+             ORDER BY m.timestamp ASC 
+             LIMIT 1) as summary,
+            (SELECT t.topic_name 
+             FROM conversation_topics ct
+             JOIN topics t ON ct.topic_id = t.topic_id
+             WHERE ct.conversation_id = c.conversation_id
+             ORDER BY ct.topic_count DESC
+             LIMIT 1) as topic
+        FROM conversations c
+        ORDER BY c.last_activity DESC
         LIMIT ?;
     """
-    conversation_ids = execute_user_query(user.username, query, (limit,))
+    results = execute_user_query(user.username, query, (limit,))
     
-    conversations = []
-    for row in conversation_ids:
-        conversation_id = row['conversation_id']
-        details = get_conversation_details(conversation_id, user)
-        if details:
-            # For the main list, we only need the primary topic, not all of them.
-            # Let's say the primary topic is the first one in the list.
-            primary_topic = details['topics'][0]['topic_name'] if details['topics'] else None
-            details['topic'] = primary_topic
-            conversations.append(details)
-            
-    return conversations
+    # Convert results to expected format and filter out None results
+    return [dict(row) for row in results if row]
 
 
 def get_conversation_details(conversation_id: str, user: UserModel) -> dict | None:
@@ -273,6 +279,8 @@ def get_conversation_details(conversation_id: str, user: UserModel) -> dict | No
         # Get from user's longterm database
         db_path = ensure_user_database(user.username)
         conn = sqlite3.connect(db_path)
+        # Use row factory to get results as dictionaries
+        conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
         
         cursor.execute("""
@@ -281,12 +289,24 @@ def get_conversation_details(conversation_id: str, user: UserModel) -> dict | No
             WHERE conversation_id = ?
         """, (conversation_id,))
         
-        row = cursor.fetchone()
+        conversation_row = cursor.fetchone()
         
-        if not row:
+        if not conversation_row:
             conn.close()
             return None
         
+        # Fetch the first user prompt as a summary
+        cursor.execute("""
+            SELECT user_prompt
+            FROM memories
+            WHERE conversation_id = ? AND user_prompt IS NOT NULL AND TRIM(user_prompt) != ''
+            ORDER BY timestamp ASC
+            LIMIT 1
+        """, (conversation_id,))
+        
+        summary_row = cursor.fetchone()
+        summary = summary_row['user_prompt'] if summary_row else "No summary available."
+
         # Get conversation topics from the same database
         cursor.execute("""
             SELECT t.topic_name, ct.topic_count, ct.first_occurrence, ct.last_occurrence
@@ -296,25 +316,15 @@ def get_conversation_details(conversation_id: str, user: UserModel) -> dict | No
             ORDER BY ct.topic_count DESC
         """, (conversation_id,))
         
-        topics = []
-        for topic_row in cursor.fetchall():
-            topics.append({
-                'topic_name': topic_row[0],
-                'count': topic_row[1],
-                'first_occurrence': topic_row[2],
-                'last_occurrence': topic_row[3]
-            })
+        topics = [dict(row) for row in cursor.fetchall()]
         
         conn.close()
         
-        return {
-            'conversation_id': row[0],
-            'title': row[1],
-            'started_at': row[2],
-            'last_activity': row[3],
-            'message_count': row[4],
-            'topics': topics
-        }
+        details = dict(conversation_row)
+        details['summary'] = summary
+        details['topics'] = topics
+        
+        return details
         
     except sqlite3.Error as e:
         logger.error(f"Error getting conversation details for '{conversation_id}': {e}")
@@ -324,16 +334,36 @@ def get_conversation_details(conversation_id: str, user: UserModel) -> dict | No
 def search_conversations(user: UserModel, search_term: str, limit: int = 50) -> list:
     """
     Searches conversations by title for a specific user.
+    Also fetches the first user_prompt as a summary and primary topic in a single query.
     """
     query = """
-        SELECT conversation_id, started_at, last_activity, title, message_count
-        FROM conversations
-        WHERE title LIKE ?
-        ORDER BY last_activity DESC
+        SELECT 
+            c.conversation_id, 
+            c.started_at, 
+            c.last_activity, 
+            c.title, 
+            c.message_count,
+            (SELECT m.user_prompt 
+             FROM memories m 
+             WHERE m.conversation_id = c.conversation_id AND m.user_prompt IS NOT NULL AND TRIM(m.user_prompt) != ''
+             ORDER BY m.timestamp ASC 
+             LIMIT 1) as summary,
+            (SELECT t.topic_name 
+             FROM conversation_topics ct
+             JOIN topics t ON ct.topic_id = t.topic_id
+             WHERE ct.conversation_id = c.conversation_id
+             ORDER BY ct.topic_count DESC
+             LIMIT 1) as topic
+        FROM conversations c
+        WHERE c.title LIKE ?
+        ORDER BY c.last_activity DESC
         LIMIT ?;
     """
     like_term = f"%{search_term}%"
-    return execute_user_query(user.username, query, (like_term, limit))
+    results = execute_user_query(user.username, query, (like_term, limit))
+    
+    # Convert results to expected format and filter out None results
+    return [dict(row) for row in results if row]
 
 
 def get_conversation_messages(user: UserModel, conversation_id: str) -> list:
