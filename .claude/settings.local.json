@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git checkout:*)",
+      "Bash(python -m pytest tests/test_hippocampus_recall.py -v)",
+      "Bash(source:*)",
+      "Bash(python -m pytest tests/test_hippocampus_recall.py::test_conversation_summary_edge_cases -v)",
+      "Bash(python -m pytest tests/test_tools.py -v)",
+      "Bash(python -m pytest tests/*)",
+      "Bash(python -m pytest tests/ --tb=short)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

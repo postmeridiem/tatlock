@@ -4,7 +4,10 @@ from stem.security import get_current_user
 from stem.models import UserModel
 from hippocampus import recall, forget
 import os
+import logging
 from fastapi.responses import FileResponse
+
+logger = logging.getLogger(__name__)
 
 # Central router for all hippocampus-related endpoints
 router = APIRouter(
@@ -24,19 +27,30 @@ async def get_user_conversations(
     if not user:
         raise HTTPException(status_code=401, detail="Not authenticated")
     
-    conversations = recall.search_conversations(user, search) if search else recall.get_user_conversations(user)
-    
-    return [
-        {
-            "id": c['conversation_id'],
-            "start_time": c['started_at'],
-            "last_activity": c['last_activity'],
-            "title": c.get('title', 'Untitled Conversation'),
-            "message_count": c.get('message_count', 0),
-            "topic": c.get('topic', 'No Topic')
-        }
-        for c in conversations
-    ]
+    try:
+        if search:
+            conversations = recall.search_conversations(user, search)
+        else:
+            conversations = recall.get_user_conversations(user)
+        
+        # Filter out None results in case a conversation detail fetch failed
+        conversations = [c for c in conversations if c]
+
+        return [
+            {
+                "id": c['conversation_id'],
+                "start_time": c['started_at'],
+                "last_activity": c['last_activity'],
+                "title": c.get('title', 'Untitled Conversation'),
+                "summary": c.get('summary', 'No summary available.'),
+                "message_count": c.get('message_count', 0),
+                "topic": c.get('topic', 'No Topic')
+            }
+            for c in conversations
+        ]
+    except Exception as e:
+        logger.error(f"Error retrieving conversations for user {user.username}: {e}")
+        raise HTTPException(status_code=500, detail="Failed to retrieve conversations")
 
 @router.get("/longterm/conversation/{conversation_id}/messages", response_model=List[dict])
 async def get_conversation_messages_endpoint(
