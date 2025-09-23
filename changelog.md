@@ -50,6 +50,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Authentication handling for automated testing workflows
   - Results exported as timestamped CSV files in tests directory for analysis
 
+- **Apple Silicon M1 Optimization**: Enhanced hardware classification for better M1 performance
+  - M1 processors specifically detected via `sysctl machdep.cpu.brand_string` and classified as low tier
+  - Apple Silicon systems with ≤16GB RAM now use low tier (phi4-mini) instead of medium tier
+  - M2/M3 systems with >16GB RAM continue to use medium tier (mistral:7b) for better performance
+  - Updated installation script with M1-specific detection logic matching runtime classification
+  - Updated documentation to reflect M1-specific low-tier classification for optimal performance
+
 ### Performance
 
 - **Response Time Improvements**:

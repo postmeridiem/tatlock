@@ -773,8 +773,8 @@ def classify_hardware_performance() -> Dict[str, Any]:
 
     Performance Tiers:
     - High: 8GB+ RAM, 4+ CPU cores, non-Apple Silicon → gemma3-cortex:latest
-    - Medium: 4-8GB RAM, 2-4 CPU cores, or Apple Silicon → mistral:7b
-    - Low: <4GB RAM or limited CPU → phi4-mini:3.8b-q4_K_M
+    - Medium: 4-8GB RAM, 2-4 CPU cores, or Apple Silicon M2/M3 with >16GB RAM → mistral:7b
+    - Low: <4GB RAM, limited CPU, M1 processors, or Apple Silicon ≤16GB RAM → phi4-mini:3.8b-q4_K_M
 
     Returns:
         dict: Hardware classification with recommended model
@@ -798,18 +798,40 @@ def classify_hardware_performance() -> Dict[str, Any]:
         reasoning = []
 
 
-        # Check for Apple Silicon (M1/M2) - these have performance quirks with certain models
+        # Check for Apple Silicon (M1/M2/M3) - these have performance quirks with certain models
         is_apple_silicon = architecture == "arm64" and os_type == "macOS"
+
+        # Try to detect M1 specifically (M1 has weaker performance than M2/M3)
+        is_m1_processor = False
+        if is_apple_silicon:
+            try:
+                # Get CPU brand string to identify M1 vs M2/M3
+                result = subprocess.run(["sysctl", "-n", "machdep.cpu.brand_string"],
+                                      capture_output=True, text=True, check=True)
+                cpu_brand = result.stdout.strip().lower()
+                if "m1" in cpu_brand:
+                    is_m1_processor = True
+                    reasoning.append(f"M1 processor detected: {cpu_brand}")
+            except:
+                # If we can't detect specific chip, assume older/weaker for safety
+                reasoning.append("Unable to detect specific Apple Silicon chip, assuming M1-level performance")
+                is_m1_processor = True
 
         # High performance criteria
         if total_ram_gb >= 8.0 and logical_cores >= 4:
             if is_apple_silicon:
-                # All Apple Silicon (M1/M2/M3) performs better with Mistral
-                performance_tier = "medium"
-                recommended_model = "mistral:7b"
-                reasoning.append(f"Apple Silicon detected - using Mistral for better compatibility")
-                reasoning.append(f"Apple Silicon specs: {total_ram_gb}GB RAM, {logical_cores} cores")
-                reasoning.append(f"M1/M2/M3 processors optimized for mistral:7b over gemma models")
+                # M1 or low RAM Apple Silicon should use low tier
+                if is_m1_processor or total_ram_gb <= 16.0:
+                    performance_tier = "low"
+                    recommended_model = "phi4-mini:3.8b-q4_K_M"
+                    reasoning.append(f"Apple Silicon M1 or ≤16GB RAM detected - using low tier for better performance")
+                    reasoning.append(f"M1 processors perform better with lighter models")
+                else:
+                    # M2/M3 with >16GB RAM can use medium tier
+                    performance_tier = "medium"
+                    recommended_model = "mistral:7b"
+                    reasoning.append(f"Apple Silicon M2/M3 with >16GB RAM - using medium tier")
+                    reasoning.append(f"Apple Silicon specs: {total_ram_gb}GB RAM, {logical_cores} cores")
             else:
                 performance_tier = "high"
                 recommended_model = "gemma3-cortex:latest"
@@ -854,8 +876,8 @@ def classify_hardware_performance() -> Dict[str, Any]:
             "reasoning": reasoning,
             "classification_criteria": {
                 "high": "8GB+ RAM, 4+ CPU cores, non-Apple Silicon → gemma3-cortex:latest",
-                "medium": "4-8GB RAM, 2-4 CPU cores, or Apple Silicon → mistral:7b",
-                "low": "<4GB RAM or limited CPU → phi4-mini:3.8b-q4_K_M"
+                "medium": "4-8GB RAM, 2-4 CPU cores, or Apple Silicon M2/M3 with >16GB RAM → mistral:7b",
+                "low": "<4GB RAM, limited CPU, M1 processors, or Apple Silicon ≤16GB RAM → phi4-mini:3.8b-q4_K_M"
             }
         }
 

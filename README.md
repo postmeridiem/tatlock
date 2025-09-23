@@ -9,7 +9,7 @@ Tatlock is a modular, brain-inspired conversational AI platform with built-in au
 ### Prerequisites
 
 - **Linux**: Ubuntu/Debian, CentOS/RHEL/Fedora, or Arch Linux
-- **macOS**: Intel or Apple Silicon (M1/M2)
+- **macOS**: Intel or Apple Silicon (M1/M2/M3)
 - Python 3.10 or higher
 - Git
 - Ollama (for local LLM inference)
@@ -150,7 +150,7 @@ Tatlock automatically detects your hardware capabilities and selects the optimal
 ### 🔧 **Key Benefits**
 
 - **Automatic Detection**: No manual configuration required
-- **Apple Silicon Optimized**: Special handling for M1/M2 compatibility
+- **Apple Silicon Optimized**: Special handling for M1/M2/M3 compatibility with M1-specific low-tier classification
 - **Tool Calling Focus**: All models selected for agent and function calling capabilities
 
 ### 🔧 **Manual Model Override (Advanced Users)**

@@ -726,13 +726,34 @@ def classify_hardware():
     # Check for Apple Silicon
     is_apple_silicon = architecture == "arm64" and os_type == "Darwin"
 
-    # Classification logic (matching our implementation)
+    # Try to detect M1 specifically (M1 has weaker performance than M2/M3)
+    is_m1_processor = False
+    if is_apple_silicon:
+        try:
+            import subprocess
+            # Get CPU brand string to identify M1 vs M2/M3
+            result = subprocess.run(["sysctl", "-n", "machdep.cpu.brand_string"],
+                                  capture_output=True, text=True, check=True)
+            cpu_brand = result.stdout.strip().lower()
+            if "m1" in cpu_brand:
+                is_m1_processor = True
+        except:
+            # If we can't detect specific chip, assume older/weaker for safety
+            is_m1_processor = True
+
+    # Classification logic (matching parietal/hardware.py implementation)
     if total_ram_gb >= 8.0 and logical_cores >= 4:
         if is_apple_silicon:
-            # Apple Silicon often performs better with Mistral than Gemma
-            tier = "medium"
-            model = "mistral:7b"
-            reason = "Apple Silicon detected - using Mistral for better compatibility"
+            # M1 or low RAM Apple Silicon should use low tier
+            if is_m1_processor or total_ram_gb <= 16.0:
+                tier = "low"
+                model = "phi4-mini:3.8b-q4_K_M"
+                reason = "Apple Silicon M1 or ≤16GB RAM detected - using low tier for better performance"
+            else:
+                # M2/M3 with >16GB RAM can use medium tier
+                tier = "medium"
+                model = "mistral:7b"
+                reason = f"Apple Silicon M2/M3 with >16GB RAM - using medium tier"
         else:
             tier = "high"
             model = "gemma3-cortex:latest"
@@ -743,7 +764,7 @@ def classify_hardware():
         reason = f"Medium performance hardware: {total_ram_gb}GB RAM, {logical_cores} cores"
     else:
         tier = "low"
-        model = "gemma2:2b"
+        model = "phi4-mini:3.8b-q4_K_M"
         reason = f"Limited resources: {total_ram_gb}GB RAM, {logical_cores} cores"
 
     return {

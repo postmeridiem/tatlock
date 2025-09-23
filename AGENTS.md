@@ -527,9 +527,9 @@ echo 'PERFORMANCE_TIER = "medium"' >> hardware_config.py
 
 #### Available Model Tiers
 
-- **Low**: `phi4-mini:3.8b-q4_K_M` - Quantized model with tool support for low-spec hardware
-- **Medium**: `mistral:7b` - Balanced performance, optimized for Apple Silicon
-- **High**: `gemma3-cortex:latest` - Maximum performance for high-spec non-Apple Silicon systems
+- **Low**: `phi4-mini:3.8b-q4_K_M` - Quantized model with tool support for low-spec hardware, M1 processors, or Apple Silicon ≤16GB RAM
+- **Medium**: `mistral:7b` - Balanced performance for mid-range systems or Apple Silicon M2/M3 with >16GB RAM
+- **High**: `gemma3-cortex:latest` - Maximum performance for high-spec non-Apple Silicon systems (8GB+ RAM, 4+ cores)
 
 #### Testing Performance
 
