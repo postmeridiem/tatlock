@@ -25,7 +25,7 @@ Tatlock is a modular, brain-inspired conversational AI platform with built-in au
    ./install_tatlock.sh
    ```
 
-   The installation script handles dependencies, Python packages, and Ollama setup.
+   The installation script handles dependencies, Python packages, Ollama setup, and automatically selects the optimal LLM model based on your hardware.
 
 2. **Update API Keys**:
 
@@ -122,7 +122,37 @@ Tatlock is organized into modules inspired by brain regions:
 - **Session-Based Authentication**: Secure session management with cookies
 - **Role-Based Access Control**: Fine-grained permissions and user management
 - **Local Processing**: All AI processing done locally with Ollama
+- **Hardware-Optimized Models**: Automatic selection of optimal LLM based on your system capabilities
 - **No External Data Transmission**: Sensitive data stays within your system
+
+## 🎯 Hardware-Optimized Model Selection
+
+Tatlock automatically detects your hardware capabilities and selects the optimal language model for your system:
+
+### 🏆 **High Performance** (8GB+ RAM, 4+ CPU cores, non-Apple Silicon)
+
+- **Model**: `gemma3-cortex:latest` (Enhanced Gemma 3)
+- **Features**: Maximum capability for complex reasoning and tool use
+- **Best for**: Workstations and high-end systems
+
+### ⚡ **Medium Performance** (4-8GB RAM, 2-4 CPU cores, or Apple Silicon)
+
+- **Model**: `mistral:7b` (Mistral 7B)
+- **Features**: Excellent tool calling with optimized Apple Silicon compatibility
+- **Best for**: Most modern laptops and Apple M1/M2 systems
+
+### 💡 **Low Performance** (<4GB RAM or limited CPU)
+
+- **Model**: `gemma2:2b` (Gemma 2 2B)
+- **Features**: Lightweight but capable, good tool calling support
+- **Best for**: Older hardware and resource-constrained environments
+
+### 🔧 **Key Benefits**
+
+- **Automatic Detection**: No manual configuration required
+- **Apple Silicon Optimized**: Special handling for M1/M2 compatibility
+- **Tool Calling Focus**: All models selected for agent and function calling capabilities
+- **Fallback Safety**: Robust error handling with safe defaults
 
 ## 📚 Documentation
 

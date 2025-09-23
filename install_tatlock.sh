@@ -61,7 +61,7 @@ echo -e "${BOLD}This script will perform the following steps:${NC}"
 echo -e "${CYAN}──────────────────────────────────────────────────────────────────────────────────${NC}"
 echo -e "  ${GREEN}1.${NC} Install required system packages (Python 3.10, pip, sqlite3)${NC}"
 echo -e "  ${GREEN}2.${NC} Create and activate Python virtual environment (.venv)${NC}"
-echo -e "  ${GREEN}3.${NC} Install and configure Ollama with Gemma3-enhanced model${NC}"
+echo -e "  ${GREEN}3.${NC} Install and configure Ollama with hardware-optimized model${NC}"
 echo -e "  ${GREEN}4.${NC} Install Python dependencies from requirements.txt${NC}"
 echo -e "  ${GREEN}5.${NC} Create .env configuration file with auto-generated secret key${NC}"
 echo -e "  ${GREEN}6.${NC} Download Material Icons for offline web interface${NC}"
@@ -674,19 +674,169 @@ else
     fi
 fi
 
-# Check if the model is already installed
-if ollama list | grep -q "gemma3-cortex:latest"; then
-    echo "Gemma3 model is already installed, skipping download."
+# Detect hardware and download appropriate model
+echo "Detecting hardware performance for optimal model selection..."
+
+# Create a temporary Python script to classify hardware and recommend model
+cat > /tmp/hardware_classifier.py << 'HARDWARE_EOF'
+import platform
+import os
+import json
+
+def get_memory_gb():
+    """Get total system memory in GB"""
+    try:
+        import psutil
+        return round(psutil.virtual_memory().total / (1024**3), 1)
+    except ImportError:
+        # Fallback methods if psutil not available
+        if platform.system() == "Darwin":  # macOS
+            try:
+                import subprocess
+                result = subprocess.run(['sysctl', '-n', 'hw.memsize'], capture_output=True, text=True)
+                return round(int(result.stdout.strip()) / (1024**3), 1)
+            except:
+                return 8.0  # Default fallback
+        elif platform.system() == "Linux":
+            try:
+                with open('/proc/meminfo', 'r') as f:
+                    for line in f:
+                        if line.startswith('MemTotal:'):
+                            kb = int(line.split()[1])
+                            return round(kb / (1024**2), 1)
+            except:
+                return 8.0  # Default fallback
+        return 8.0  # Default fallback
+
+def get_cpu_cores():
+    """Get number of logical CPU cores"""
+    try:
+        import psutil
+        return psutil.cpu_count(logical=True)
+    except ImportError:
+        return os.cpu_count() or 4
+
+def classify_hardware():
+    """Classify hardware and recommend appropriate model"""
+    total_ram_gb = get_memory_gb()
+    logical_cores = get_cpu_cores()
+    architecture = platform.machine()
+    os_type = platform.system()
+
+    # Check for Apple Silicon
+    is_apple_silicon = architecture == "arm64" and os_type == "Darwin"
+
+    # Classification logic (matching our implementation)
+    if total_ram_gb >= 8.0 and logical_cores >= 4:
+        if is_apple_silicon:
+            # Apple Silicon often performs better with Mistral than Gemma
+            tier = "medium"
+            model = "mistral:7b"
+            reason = "Apple Silicon detected - using Mistral for better compatibility"
+        else:
+            tier = "high"
+            model = "gemma3-cortex:latest"
+            reason = f"High performance hardware: {total_ram_gb}GB RAM, {logical_cores} cores"
+    elif total_ram_gb >= 4.0 and logical_cores >= 2:
+        tier = "medium"
+        model = "mistral:7b"
+        reason = f"Medium performance hardware: {total_ram_gb}GB RAM, {logical_cores} cores"
+    else:
+        tier = "low"
+        model = "gemma2:2b"
+        reason = f"Limited resources: {total_ram_gb}GB RAM, {logical_cores} cores"
+
+    return {
+        "tier": tier,
+        "model": model,
+        "reason": reason,
+        "hardware": {
+            "ram_gb": total_ram_gb,
+            "cpu_cores": logical_cores,
+            "architecture": architecture,
+            "os": os_type,
+            "apple_silicon": is_apple_silicon
+        }
+    }
+
+if __name__ == "__main__":
+    result = classify_hardware()
+    print(json.dumps(result, indent=2))
+HARDWARE_EOF
+
+# Run hardware classification
+HARDWARE_RESULT=$(python3 /tmp/hardware_classifier.py 2>/dev/null)
+if [ $? -ne 0 ]; then
+    echo "Warning: Hardware detection failed, using default model selection."
+    RECOMMENDED_MODEL="gemma2:2b"
+    HARDWARE_TIER="low"
+    HARDWARE_REASON="Hardware detection failed, using safe fallback"
 else
-    echo "Downloading and setting up ebdm/gemma3-enhanced:12b model..."
-    if ! ollama pull "ebdm/gemma3-enhanced:12b"; then
-        echo "Error: Failed to download Gemma3 model."
-        echo "Please check your internet connection and try again."
-        exit 1
+    # Parse JSON result
+    RECOMMENDED_MODEL=$(echo "$HARDWARE_RESULT" | python3 -c "import sys, json; data=json.load(sys.stdin); print(data['model'])" 2>/dev/null)
+    HARDWARE_TIER=$(echo "$HARDWARE_RESULT" | python3 -c "import sys, json; data=json.load(sys.stdin); print(data['tier'])" 2>/dev/null)
+    HARDWARE_REASON=$(echo "$HARDWARE_RESULT" | python3 -c "import sys, json; data=json.load(sys.stdin); print(data['reason'])" 2>/dev/null)
+
+    # Fallback if parsing failed
+    if [ -z "$RECOMMENDED_MODEL" ]; then
+        RECOMMENDED_MODEL="gemma2:2b"
+        HARDWARE_TIER="low"
+        HARDWARE_REASON="JSON parsing failed, using safe fallback"
     fi
-    ollama cp "ebdm/gemma3-enhanced:12b" "gemma3-cortex:latest"
-    ollama rm "ebdm/gemma3-enhanced:12b"
 fi
+
+# Clean up temporary file
+rm -f /tmp/hardware_classifier.py
+
+echo -e "${CYAN}Hardware Classification Results:${NC}"
+echo -e "${CYAN}──────────────────────────────────────────────────────────────────────────────────${NC}"
+echo -e "  ${GREEN}Performance Tier:${NC}    ${BOLD}$HARDWARE_TIER${NC}"
+echo -e "  ${GREEN}Recommended Model:${NC}   ${BOLD}$RECOMMENDED_MODEL${NC}"
+echo -e "  ${GREEN}Reasoning:${NC}           $HARDWARE_REASON"
+echo -e "${CYAN}──────────────────────────────────────────────────────────────────────────────────${NC}"
+echo ""
+
+# Check if the recommended model is already installed
+if ollama list | grep -q "$RECOMMENDED_MODEL"; then
+    echo "Recommended model ($RECOMMENDED_MODEL) is already installed, skipping download."
+else
+    echo "Downloading optimal model for your hardware: $RECOMMENDED_MODEL..."
+
+    # Handle special case for gemma3-cortex:latest
+    if [ "$RECOMMENDED_MODEL" = "gemma3-cortex:latest" ]; then
+        echo "Downloading and setting up enhanced Gemma3 model..."
+        if ! ollama pull "ebdm/gemma3-enhanced:12b"; then
+            echo "Error: Failed to download enhanced Gemma3 model."
+            echo "Falling back to standard gemma2:2b model..."
+            RECOMMENDED_MODEL="gemma2:2b"
+            if ! ollama pull "$RECOMMENDED_MODEL"; then
+                echo "Error: Failed to download fallback model."
+                echo "Please check your internet connection and try again."
+                exit 1
+            fi
+        else
+            ollama cp "ebdm/gemma3-enhanced:12b" "gemma3-cortex:latest"
+            ollama rm "ebdm/gemma3-enhanced:12b"
+            echo "Enhanced Gemma3 model installed as gemma3-cortex:latest"
+        fi
+    else
+        # Download the recommended model directly
+        if ! ollama pull "$RECOMMENDED_MODEL"; then
+            echo "Error: Failed to download $RECOMMENDED_MODEL."
+            echo "Falling back to lightweight gemma2:2b model..."
+            if ! ollama pull "gemma2:2b"; then
+                echo "Error: Failed to download fallback model."
+                echo "Please check your internet connection and try again."
+                exit 1
+            fi
+        else
+            echo "Model $RECOMMENDED_MODEL downloaded successfully"
+        fi
+    fi
+fi
+
+echo -e "${GREEN}[✓]${NC} Ollama model configuration complete"
+echo -e "    Your system will automatically use the optimal model: ${BOLD}$RECOMMENDED_MODEL${NC}"
 
 echo -e "${BLUE}[4/10] Installing Python dependencies...${NC}"
 
@@ -1297,7 +1447,7 @@ echo -e "${NC}"
 echo -e "${BOLD}${CYAN}Installation Summary:${NC}"
 echo -e "${CYAN}──────────────────────────────────────────────────────────────────────────────────${NC}"
 echo -e "  ${GREEN}[✓]${NC} Python virtual environment created in .venv directory"
-echo -e "  ${GREEN}[✓]${NC} Ollama with Gemma3-enhanced model is ready"
+echo -e "  ${GREEN}[✓]${NC} Ollama with hardware-optimized model is ready"
 echo -e "  ${GREEN}[✓]${NC} .env configuration file created with auto-generated secret key"
 echo -e "  ${GREEN}[✓]${NC} Material Icons included for offline web interface"
 echo -e "  ${GREEN}[✓]${NC} system.db and longterm.db are ready in the hippocampus/ directory"

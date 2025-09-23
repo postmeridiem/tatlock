@@ -15,7 +15,7 @@ The codebase is organized into modules inspired by brain regions:
 - **cortex/**: Core agent logic and decision-making with agentic loop
 - **hippocampus/**: Memory system with per-user databases and conversation storage
 - **stem/**: Authentication, admin dashboard, tools, utilities, and Jinja2 templating
-- **parietal/**: Hardware monitoring and performance analysis
+- **parietal/**: Hardware monitoring, performance analysis, and automatic model selection
 - **occipital/**: Visual processing and screenshot testing
 - **cerebellum/**: External API tools (web search, weather)
 - **temporal/**: Language processing and temporal context (voice disabled)
@@ -72,6 +72,15 @@ python -m pytest -v tests/
 - **Test cleanup**: Uses comprehensive cleanup system for user data isolation
 
 ## Key Development Patterns
+
+### Automatic Model Selection
+
+Tatlock automatically selects the optimal LLM model based on hardware:
+
+- **Hardware Detection**: `parietal/hardware.py` classifies system capabilities
+- **Model Selection**: Removes manual `ollama_model` database configuration
+- **Apple Silicon Optimized**: Special handling for M1/M2 compatibility
+- **Config Flow**: `config.py` → `classify_hardware_performance()` → optimal model
 
 ### Tool Development
 

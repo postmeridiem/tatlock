@@ -324,6 +324,30 @@ def migrate_users_table(cursor: sqlite3.Cursor) -> None:
         logger.error(f"Error during users table migration: {e}")
         raise
 
+def migrate_remove_ollama_model_setting(cursor: sqlite3.Cursor) -> None:
+    """
+    Remove the ollama_model setting from system_settings table.
+    This migration removes manual model selection since models are now auto-selected by hardware.
+    """
+    try:
+        # Check if ollama_model setting exists
+        cursor.execute("SELECT COUNT(*) FROM system_settings WHERE setting_key = 'ollama_model'")
+        count = cursor.fetchone()[0]
+
+        if count > 0:
+            # Remove the setting and its category mapping
+            cursor.execute("DELETE FROM system_setting_categories_map WHERE setting_key = 'ollama_model'")
+            cursor.execute("DELETE FROM settings_options WHERE setting_key = 'ollama_model'")
+            cursor.execute("DELETE FROM system_settings WHERE setting_key = 'ollama_model'")
+
+            logger.info("Removed ollama_model setting - models now auto-selected by hardware")
+        else:
+            logger.info("ollama_model setting not found, migration not needed")
+
+    except Exception as e:
+        logger.error(f"Error during ollama_model migration: {e}")
+        raise
+
 def check_and_run_migrations(db_path: str) -> None:
     """
     Check for and run any necessary database migrations.
@@ -354,6 +378,16 @@ def check_and_run_migrations(db_path: str) -> None:
         # Check if tools table migration has been applied
         cursor.execute("SELECT COUNT(*) FROM migrations WHERE migration_name = 'tools_module_split'")
         tools_migration_applied = cursor.fetchone()[0] > 0
+
+        # Check if ollama_model removal migration has been applied
+        cursor.execute("SELECT COUNT(*) FROM migrations WHERE migration_name = 'remove_ollama_model_setting'")
+        ollama_model_migration_applied = cursor.fetchone()[0] > 0
+
+        if not ollama_model_migration_applied:
+            logger.info("Running ollama_model removal migration...")
+            migrate_remove_ollama_model_setting(cursor)
+            cursor.execute("INSERT INTO migrations (migration_name) VALUES (?)", ('remove_ollama_model_setting',))
+            logger.info("ollama_model removal migration recorded.")
 
         if not tools_migration_applied:
             logger.info("Running tools table migration...")
@@ -571,7 +605,7 @@ def create_default_system_settings(cursor: sqlite3.Cursor) -> None:
     try:
         # Create default categories
         categories = [
-            ('llm', 'LLM Configuration', 'Ollama model and language model settings', 1),
+            ('llm', 'LLM Configuration', 'Ollama host and timeout settings (model auto-selected by hardware)', 1),
             ('api_keys', 'API Keys', 'External service API keys and credentials', 2),
             ('server', 'Server Configuration', 'Server and network settings', 3),
             ('security', 'Security Settings', 'Security and authentication configuration', 4)
@@ -589,10 +623,9 @@ def create_default_system_settings(cursor: sqlite3.Cursor) -> None:
         
         # Create default settings
         settings = [
-            # LLM Configuration
-            ('ollama_model', 'gemma3-cortex:latest', 'string', 'Ollama model to use for language processing', 0, 'llm', 1),
-            ('ollama_host', 'http://localhost:11434', 'string', 'Ollama server host and port', 0, 'llm', 2),
-            ('ollama_timeout', '30', 'integer', 'Timeout for Ollama requests in seconds', 0, 'llm', 3),
+            # LLM Configuration (model automatically selected based on hardware)
+            ('ollama_host', 'http://localhost:11434', 'string', 'Ollama server host and port', 0, 'llm', 1),
+            ('ollama_timeout', '30', 'integer', 'Timeout for Ollama requests in seconds', 0, 'llm', 2),
             
             # API Keys
             ('openweather_api_key', '', 'string', 'OpenWeather API key for weather forecasts', 1, 'api_keys', 1),

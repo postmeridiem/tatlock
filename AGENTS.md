@@ -809,6 +809,28 @@ Use the parietal module for:
 - Performance benchmarking
 - System health checks
 - Bottleneck identification
+- **Hardware classification for automatic model selection**
+
+#### Hardware-Dependent Model Selection
+
+The parietal module now includes `classify_hardware_performance()` which:
+
+- **Detects System Capabilities**: RAM, CPU cores, architecture, OS
+- **Classifies Performance Tiers**: High, Medium, Low based on resources
+- **Apple Silicon Optimization**: Special handling for M1/M2 compatibility
+- **Automatic Model Selection**: Returns optimal LLM model for the hardware
+
+**Usage Example**:
+
+```python
+from parietal.hardware import classify_hardware_performance
+
+result = classify_hardware_performance()
+print(f"Recommended model: {result['recommended_model']}")
+print(f"Performance tier: {result['performance_tier']}")
+```
+
+**API Endpoint**: `GET /parietal/hardware/classification`
 
 ### API Documentation
 
@@ -889,7 +911,7 @@ tatlock/
 ├── parietal/       # Hardware monitoring and performance analysis
 ├── tests/          # Comprehensive test suite
 ├── main.py         # Application entry point
-├── config.py       # Configuration and environment variables
+├── config.py       # Configuration with automatic hardware-dependent model selection
 └── requirements.txt # Python dependencies
 ```
 

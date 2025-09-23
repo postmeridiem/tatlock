@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Hardware-Dependent Model Selection**: Automatic LLM model selection based on system hardware capabilities
+  - Hardware classification system in `parietal/hardware.py` (`classify_hardware_performance()`)
+  - Automatic detection of Apple Silicon with Mistral optimization for M1/M2 compatibility
+  - Three performance tiers: High (gemma3-cortex:latest), Medium (mistral:7b), Low (gemma2:2b)
+  - Removed manual `ollama_model` database configuration in favor of automatic selection
+  - Updated installer to download optimal model during installation
+  - New API endpoint: `GET /parietal/hardware/classification`
+
+### Changed
+
+- **Configuration**: `config.py` now uses `get_automatic_ollama_model()` instead of database lookup
+- **Database Schema**: Removed `ollama_model` setting from system_settings with migration support
+- **Installer**: Hardware detection and model-specific downloads during `install_tatlock.sh`
+- **Documentation**: Updated README.md, AGENTS.md, CLAUDE.md, and parietal/readme.md with hardware selection info
+
 ## [0.3.18] - 2025-07-08
 
 ### Changed
