@@ -49,30 +49,42 @@ def get_setting_from_db_or_env(setting_key: str, env_key: str, default_value: st
     return os.getenv(env_key, default_value)
 
 # --- LLM Configuration ---
-# Model is now automatically selected based on hardware performance
-def get_automatic_ollama_model() -> str:
+# Model and hardware tier are pre-computed during installation for efficiency
+def load_hardware_configuration() -> tuple[str, str]:
     """
-    Automatically select Ollama model based on hardware performance.
-    Falls back to environment variable or safe default if hardware detection fails.
+    Load pre-computed hardware configuration from installation.
+    Returns tuple of (model, performance_tier).
     """
     try:
-        # Import here to avoid circular imports
-        from parietal.hardware import classify_hardware_performance
+        # Import the hardware config file created during installation
+        import hardware_config
 
-        classification = classify_hardware_performance()
-        model = classification.get("recommended_model", "gemma2:2b")
+        model = hardware_config.RECOMMENDED_MODEL
+        tier = hardware_config.PERFORMANCE_TIER
 
-        logger.info(f"Auto-selected model: {model} (tier: {classification.get('performance_tier', 'unknown')})")
-        return model
+        logger.info(f"Loaded hardware config: {model} (tier: {tier})")
+        return model, tier
 
+    except ImportError:
+        logger.warning("Hardware config file not found, falling back to runtime detection")
+        # Fallback to runtime hardware detection if config file missing
+        try:
+            from parietal.hardware import classify_hardware_performance
+            classification = classify_hardware_performance()
+            model = classification.get("recommended_model", "gemma2:2b")
+            tier = classification.get("performance_tier", "low")
+            return model, tier
+        except Exception as e:
+            logger.warning(f"Hardware classification failed: {e}")
+            fallback_model = os.getenv("OLLAMA_MODEL", "gemma2:2b")
+            return fallback_model, "unknown"
     except Exception as e:
-        logger.warning(f"Hardware classification failed, using fallback: {e}")
-        # Fallback to environment variable or safe default
+        logger.error(f"Error loading hardware config: {e}")
         fallback_model = os.getenv("OLLAMA_MODEL", "gemma2:2b")
-        logger.info(f"Using fallback model: {fallback_model}")
-        return fallback_model
+        return fallback_model, "unknown"
 
-OLLAMA_MODEL = get_automatic_ollama_model()
+# Global hardware configuration - loaded once at startup
+OLLAMA_MODEL, HARDWARE_PERFORMANCE_TIER = load_hardware_configuration()
 OLLAMA_HOST = get_setting_from_db_or_env("ollama_host", "OLLAMA_HOST", "http://localhost:11434")
 OLLAMA_TIMEOUT = int(get_setting_from_db_or_env("ollama_timeout", "OLLAMA_TIMEOUT", "30"))
 

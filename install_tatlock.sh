@@ -835,8 +835,28 @@ else
     fi
 fi
 
+# Create hardware configuration file for runtime efficiency
+echo "Creating hardware configuration file..."
+cat > hardware_config.py << EOF
+"""
+Hardware Configuration for Tatlock
+Generated automatically during installation - do not edit manually.
+This file contains pre-computed hardware classification to avoid
+runtime hardware detection overhead.
+"""
+
+# Hardware classification results
+RECOMMENDED_MODEL = "$RECOMMENDED_MODEL"
+PERFORMANCE_TIER = "$HARDWARE_TIER"
+HARDWARE_REASON = "$HARDWARE_REASON"
+
+# Hardware details (for reference)
+HARDWARE_SUMMARY = "$(echo "$HARDWARE_RESULT" | python3 -c "import sys, json; data=json.load(sys.stdin); print(json.dumps(data.get('hardware', {}), separators=(',', ':')))" 2>/dev/null || echo "{}")"
+EOF
+
 echo -e "${GREEN}[✓]${NC} Ollama model configuration complete"
 echo -e "    Your system will automatically use the optimal model: ${BOLD}$RECOMMENDED_MODEL${NC}"
+echo -e "    Hardware configuration saved to hardware_config.py"
 
 echo -e "${BLUE}[4/10] Installing Python dependencies...${NC}"
 

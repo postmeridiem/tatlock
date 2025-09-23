@@ -412,11 +412,12 @@ def run_llm_benchmark() -> Dict[str, Any]:
         dict: Benchmark results including response times and analysis.
     """
     import time
-    from config import OLLAMA_MODEL
-    
+    from config import OLLAMA_MODEL, HARDWARE_PERFORMANCE_TIER
+
     benchmark_results = {
         "timestamp": datetime.now().isoformat(),
         "model": OLLAMA_MODEL,
+        "hardware_tier": HARDWARE_PERFORMANCE_TIER,
         "tests": {},
         "summary": {},
         "analysis": {}
@@ -802,11 +803,12 @@ def classify_hardware_performance() -> Dict[str, Any]:
         # High performance criteria
         if total_ram_gb >= 8.0 and logical_cores >= 4:
             if is_apple_silicon:
-                # Apple Silicon often performs better with Mistral than Gemma
+                # All Apple Silicon (M1/M2/M3) performs better with Mistral
                 performance_tier = "medium"
                 recommended_model = "mistral:7b"
                 reasoning.append(f"Apple Silicon detected - using Mistral for better compatibility")
-                reasoning.append(f"High specs: {total_ram_gb}GB RAM, {logical_cores} cores")
+                reasoning.append(f"Apple Silicon specs: {total_ram_gb}GB RAM, {logical_cores} cores")
+                reasoning.append(f"M1/M2/M3 processors optimized for mistral:7b over gemma models")
             else:
                 performance_tier = "high"
                 recommended_model = "gemma3-cortex:latest"

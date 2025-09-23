@@ -535,19 +535,21 @@ def populate_tools_table(cursor: sqlite3.Cursor) -> None:
 def create_default_rise_and_shine(cursor: sqlite3.Cursor) -> None:
     """
     Create default system instructions in the rise_and_shine table.
-    
+
     IMPORTANT: This function should ONLY be called for the system database (system.db).
     The rise_and_shine table contains global Tatlock prompts that all users share.
-    These instructions define Tatlock's personality, behavior, and general tool usage guidelines.
-    
-    Tool-specific prompts are now stored in the tools.prompts column and are dynamically
-    included based on which tools are enabled.
+    These instructions define Tatlock's personality, behavior, and core capabilities.
+
+    LEAN SYSTEM: Tool-specific prompts are handled through the catalog system.
+    Only core tools (memory, personal data) are included in base instructions.
+    Extended tools (weather, web search, etc.) use the catalog system only.
     """
+    # LEAN SYSTEM: Optimized prompts for performance
+    # Removed duplicates and updated tool guidance for catalog-based system
     instructions = [
         "You are a helpful personal assistant named Tatlock. You speak formally like a British butler, calling me sir.  You are not too apologetic and a little snarky at times. Your responses should be concise and to the point, unless asked for details. You should reveal you are AI when asked. If you see an opportunity to make pun or a joke, grab it.",
-        "If you need to use a tool, always call the tool directly and silently. Do not narrate, announce, or ask for permission to use a tool, unless the tool definition or system instructions specify otherwise.",
         "If you encounter a discussion or suggestion about improving your functionality, always recommend that a new global prompt be added to your initialization prompts in the rise_and_shine table to capture the improvement.",
-        "When asked about the timing of past events (for example, when we discussed the weather), always search the conversation history for relevant entries and report the associated timestamps. If you cannot find this information, clearly state that no such entries exist.",
+        "You have access to long-term memory capabilities. You can recall past conversations, search conversation history, and access personal information about the user when relevant to provide personalized responses.",
     ]
     
     for instruction in instructions:
