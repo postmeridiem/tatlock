@@ -9,18 +9,21 @@ This section provides guidelines for AI assistants (like Cursor, GitHub Copilot,
 **Primary Directive**: Always adhere to the coding standards, patterns, and development practices described in this file. If a request conflicts with these standards, ask for clarification or permission before deviating.
 
 ### Core Workflows
+
 - **Versioning**: When asked to update the application version, you must follow the full "Versioning and Releases" workflow. This includes updating `changelog.md` with all changes since the last version, committing it with the `pyproject.toml` update, and creating a Git tag.
 - **Troubleshooting**: When a fix resolves a common installation or runtime issue, suggest an addition to `troubleshooting.md` to help future users.
 - **Testing**: All new code, whether adding features or fixing bugs, must be accompanied by corresponding tests to ensure correctness and prevent regressions.
 - **Code Organization**: Keep the codebase clean and maintainable. If code is used in multiple places, refactor it into a new shared file, following the Don't Repeat Yourself (DRY) principle. When creating new files, place them in the appropriate module directory, adhering to the existing filesystem structure patterns.
 
 ### General Guidance
-1.  **Always Include Standards**: When using coding AI assistants, always include the Tatlock coding standards from this `developer.md` file as part of your prompt.
-2.  **Reference Specific Sections**: Reference relevant sections like "Python Coding Standards", "JavaScript Coding Standards", or "Security Standards" based on the task.
-3.  **Validate Generated Code**: Review AI-generated code to ensure it follows our established patterns and conventions.
-4.  **Update Standards**: If AI suggests improvements to our coding standards, evaluate and update this document accordingly.
+
+1. **Always Include Standards**: When using coding AI assistants, always include the Tatlock coding standards from this `AGENTS.md` file as part of your prompt.
+2. **Reference Specific Sections**: Reference relevant sections like "Python Coding Standards", "JavaScript Coding Standards", or "Security Standards" based on the task.
+3. **Validate Generated Code**: Review AI-generated code to ensure it follows our established patterns and conventions.
+4. **Update Standards**: If AI suggests improvements to our coding standards, evaluate and update this document accordingly.
 
 **Example AI Prompt:**
+
 ```
 Please help me implement [specific feature] following the Tatlock coding standards:
 
@@ -134,6 +137,7 @@ Tatlock includes a comprehensive logging system integrated with FastAPI for debu
 ### Log Levels
 
 The application uses standard Python logging levels:
+
 - **DEBUG**: Detailed information for debugging
 - **INFO**: General information about tool execution and requests
 - **WARNING**: Warning messages for potential issues
@@ -166,6 +170,7 @@ logging.basicConfig(
 ```
 
 **Note**: The actual format used in Tatlock is:
+
 - `%(levelname)s:\t  %(name)s - %(message)s %(asctime)s`
 - This places the timestamp at the end of the log message
 - Uses tab characters for alignment
@@ -183,11 +188,13 @@ logging.basicConfig(level=logging.DEBUG)
 ### Environment-Specific Logging
 
 **Development Mode:**
+
 - Set log level to DEBUG for maximum information
 - All tool calls and parameters are logged
 - Error stack traces are included
 
 **Production Mode:**
+
 - Set log level to INFO or WARNING
 - Reduce log verbosity for performance
 - Focus on errors and warnings
@@ -195,15 +202,18 @@ logging.basicConfig(level=logging.DEBUG)
 ### Log Output Locations
 
 **Manual Mode:**
+
 - Logs appear in the console where you run `./wakeup.sh`
 
 **Service Mode:**
+
 - **Linux**: `sudo journalctl -u tatlock -f`
 - **macOS**: `tail -f /tmp/tatlock.log`
 
 ### Debugging Tool Issues
 
 If tools are failing, check the logs for:
+
 1. **Tool call parameters**: Verify the arguments being passed
 2. **Error messages**: Look for specific error details
 3. **API key issues**: Check if external APIs are accessible
@@ -212,6 +222,7 @@ If tools are failing, check the logs for:
 ### Performance Monitoring
 
 The logs include:
+
 - Tool execution times
 - Number of iterations per request
 - Success/failure rates
@@ -242,25 +253,28 @@ This project uses **Semantic Versioning (SemVer)** and a `changelog.md` to track
 
 When preparing a new release, follow these steps:
 
-1.  **Update the Changelog**: Before bumping the version, you must update `changelog.md`.
-    *   Create a new release section (e.g., `## [0.2.0] - YYYY-MM-DD`).
-    *   Move all changes from the `[Unreleased]` section to this new version.
-    *   **Separate changes by type**: Place major new features under `### Added` or `### Changed`, while smaller bugfixes go under `### Fixed`. This separation is important for release notes.
+1. **Update the Changelog**: Before bumping the version, you must update `changelog.md`.
+    - Create a new release section (e.g., `## [0.2.0] - YYYY-MM-DD`).
+    - Move all changes from the `[Unreleased]` section to this new version.
+    - **Separate changes by type**: Place major new features under `### Added` or `### Changed`, while smaller bugfixes go under `### Fixed`. This separation is important for release notes.
 
-2.  **Update the Version**: Modify the `version` field in `pyproject.toml`.
+2. **Update the Version**: Modify the `version` field in `pyproject.toml`.
 
-3.  **Commit the Changes**: Commit both `changelog.md` and `pyproject.toml` together.
+3. **Commit the Changes**: Commit both `changelog.md` and `pyproject.toml` together.
+
     ```bash
     git add changelog.md pyproject.toml
     git commit -m "Bump version to 0.2.0"
     ```
 
-4.  **Tag the Release**: Create an annotated Git tag for the new version.
+4. **Tag the Release**: Create an annotated Git tag for the new version.
+
     ```bash
     git tag -a v0.2.0 -m "Release version 0.2.0"
     ```
 
-5.  **Push to GitHub**: Push your commits and the new tag to the remote repository.
+5. **Push to GitHub**: Push your commits and the new tag to the remote repository.
+
     ```bash
     git push origin main --tags
     ```
@@ -408,8 +422,8 @@ Next, you must add the tool's definition to the canonical list in the database s
 
 Open `stem/installation/database_setup.py` and update the `populate_tools_table` function:
 
-1.  **Add to `tools_to_insert`**: Add a new tuple for your tool with its `tool_key`, `description`, and `module`.
-2.  **Add to `params_to_insert`**: Add tuples for each of your tool's parameters, specifying the `tool_key`, `parameter_name`, `type`, `description`, and whether it is `required` (1 for true, 0 for false).
+1. **Add to `tools_to_insert`**: Add a new tuple for your tool with its `tool_key`, `description`, and `module`.
+2. **Add to `params_to_insert`**: Add tuples for each of your tool's parameters, specifying the `tool_key`, `parameter_name`, `type`, `description`, and whether it is `required` (1 for true, 0 for false).
 
 ```python
 # stem/installation/database_setup.py
@@ -434,8 +448,8 @@ params_to_insert = [
 
 Now, make the function available to the agent by adding it to the master function map in `stem/tools.py`.
 
-1.  Import your new `execute_` function.
-2.  Add a new entry to the `ALL_TOOL_FUNCTIONS` dictionary.
+1. Import your new `execute_` function.
+2. Add a new entry to the `ALL_TOOL_FUNCTIONS` dictionary.
 
 ```python
 # stem/tools.py
@@ -455,6 +469,7 @@ ALL_TOOL_FUNCTIONS = {
 By default, all tools are disabled when first added to the database. To enable your new tool, you must manually update its entry in the `system.db`.
 
 You can do this using a SQLite client:
+
 ```sql
 UPDATE tools
 SET enabled = 1
@@ -780,6 +795,7 @@ This pattern ensures that `main.py` remains clean and focused on application con
 ### Debug Console
 
 Access the debug console at `http://localhost:8000/conversation` for:
+
 - Real-time JSON logging
 - System performance monitoring
 - Tool execution tracking
@@ -788,6 +804,7 @@ Access the debug console at `http://localhost:8000/conversation` for:
 ### System Monitoring
 
 Use the parietal module for:
+
 - Hardware resource monitoring
 - Performance benchmarking
 - System health checks
@@ -796,6 +813,7 @@ Use the parietal module for:
 ### API Documentation
 
 Access interactive API documentation at:
+
 - **Swagger UI**: `http://localhost:8000/docs`
 
 ## Contributing
@@ -855,12 +873,14 @@ This section outlines the coding standards and patterns used throughout the Tatl
 ### Project Organization
 
 #### Brain-Inspired Architecture
+
 - **Module Naming**: Modules are named after brain regions (cortex, hippocampus, stem, parietal, etc.)
 - **Clear Separation**: Core logic, authentication, memory, and utilities in separate modules
 - **Consistent Structure**: Each module has `__init__.py`, `readme.md`, and relevant functionality
 - **Test Organization**: Comprehensive test suite in `tests/` directory
 
 #### File Structure
+
 ```
 tatlock/
 ├── cortex/          # Core agent logic and decision-making
@@ -876,6 +896,7 @@ tatlock/
 ### Python Coding Standards
 
 #### File Structure & Documentation
+
 ```python
 """
 module_name.py
@@ -894,6 +915,7 @@ logger = logging.getLogger(__name__)
 ```
 
 #### Type Hints & Modern Python
+
 - **Required Python 3.10+**: Uses modern type hints like `list[dict]`, `str | None`
 - **Comprehensive Type Hints**: All functions have parameter and return type annotations
 - **Optional Parameters**: Uses `Optional[Type]` for nullable parameters
@@ -912,6 +934,7 @@ def function_name(param1: str, param2: Optional[int] = None) -> bool:
 ```
 
 #### Error Handling
+
 - **Try-Catch Blocks**: Comprehensive exception handling
 - **Logging**: Structured logging with appropriate levels (info, warning, error)
 - **Graceful Degradation**: Functions return safe defaults on errors
@@ -931,6 +954,7 @@ except Exception as e:
 ```
 
 #### Database Patterns
+
 ```python
 def database_operation(self, param: str) -> List[Dict[str, Any]]:
     """Standard database operation pattern."""
@@ -956,6 +980,7 @@ def database_operation(self, param: str) -> List[Dict[str, Any]]:
 ```
 
 ### JavaScript Coding Standards
+
 - **library maintenance**: Keep javascript in javascript files, making sure to used shared libraries where code duplicates
 
 #### JavaScript File Naming Patterns
@@ -965,6 +990,7 @@ Tatlock follows a structured naming convention for JavaScript files to ensure cl
 ##### File Type Categories
 
 **Page-Specific Scripts**
+
 - **Pattern**: `page.{pagename}.js`
 - **Purpose**: Functionality specific to individual pages
 - **Examples**:
@@ -976,6 +1002,7 @@ Tatlock follows a structured naming convention for JavaScript files to ensure cl
 - **Scope**: Page-specific DOM manipulation, event handlers, and business logic
 
 **Component Scripts**
+
 - **Pattern**: `component.{componentname}.js`
 - **Purpose**: Reusable UI component functionality
 - **Examples**:
@@ -984,6 +1011,7 @@ Tatlock follows a structured naming convention for JavaScript files to ensure cl
 - **Scope**: Component-specific behavior, state management, and interactions
 
 **Shared Scripts**
+
 - **Pattern**: `{functionality}.js` (for core shared functionality)
 - **Purpose**: Common functionality used across multiple pages
 - **Examples**:
@@ -992,6 +1020,7 @@ Tatlock follows a structured naming convention for JavaScript files to ensure cl
 - **Scope**: Global utilities, authentication handling, theme management, snackbar system
 
 **Plugin Scripts**
+
 - **Pattern**: `plugin.{library}.js`
 - **Purpose**: Third-party libraries and external dependencies
 - **Examples**:
@@ -1012,6 +1041,7 @@ Templates follow a consistent script loading order to ensure proper dependency r
 4. **Plugin scripts** - External libraries as needed
 
 **Example Loading Pattern:**
+
 ```html
 {% block scripts %}
 <script src="/static/js/common.js"></script>
@@ -1024,16 +1054,19 @@ Templates follow a consistent script loading order to ensure proper dependency r
 ##### Naming Guidelines
 
 **Consistency**
+
 - Use lowercase with hyphens for multi-word names
 - Follow established patterns exactly
 - Maintain clear separation between categories
 
 **Descriptive Names**
+
 - Page names should match the route/functionality
 - Component names should describe the UI element
 - Plugin names should match the library name
 
 **Avoid Confusion**
+
 - Don't mix patterns (e.g., don't use `page.` prefix for components)
 - Don't use generic names that could apply to multiple categories
 - Don't create exceptions to established patterns
@@ -1060,11 +1093,13 @@ When renaming or reorganizing JavaScript files:
 ##### Exception Handling
 
 **Login Page Isolation**
+
 - The login page is an exception that duplicates `togglePassword` function from `common.js`
 - This isolation prevents unnecessary dependencies on unauthenticated pages
 - Document exceptions clearly in code comments and changelog
 
 **Legacy Files**
+
 - Some files may not follow current patterns
 - Legacy files should be renamed when practical
 - Document why legacy naming exists
@@ -1076,6 +1111,7 @@ Tatlock follows consistent naming patterns across all file types to ensure clari
 ##### HTML Template Files
 
 **Page Templates**
+
 - **Pattern**: `page.{pagename}.html`
 - **Purpose**: Main page templates for different application sections
 - **Examples**:
@@ -1087,6 +1123,7 @@ Tatlock follows consistent naming patterns across all file types to ensure clari
 - **Scope**: Complete page layouts with navigation, content areas, and script loading
 
 **Component Templates**
+
 - **Pattern**: `{componentname}.html`
 - **Purpose**: Reusable UI component templates
 - **Examples**:
@@ -1097,6 +1134,7 @@ Tatlock follows consistent naming patterns across all file types to ensure clari
 - **Scope**: Modular UI components included in page templates
 
 **Base Templates**
+
 - **Pattern**: `{purpose}.html`
 - **Purpose**: Foundation templates for inheritance
 - **Examples**:
@@ -1107,6 +1145,7 @@ Tatlock follows consistent naming patterns across all file types to ensure clari
 ##### JavaScript Files
 
 **Page-Specific Scripts**
+
 - **Pattern**: `page.{pagename}.js`
 - **Purpose**: Functionality specific to individual pages
 - **Examples**:
@@ -1118,6 +1157,7 @@ Tatlock follows consistent naming patterns across all file types to ensure clari
 - **Scope**: Page-specific DOM manipulation, event handlers, and business logic
 
 **Component Scripts**
+
 - **Pattern**: `component.{componentname}.js`
 - **Purpose**: Reusable UI component functionality
 - **Examples**:
@@ -1126,6 +1166,7 @@ Tatlock follows consistent naming patterns across all file types to ensure clari
 - **Scope**: Component-specific behavior, state management, and interactions
 
 **Shared Scripts**
+
 - **Pattern**: `{functionality}.js` (for core shared functionality)
 - **Purpose**: Common functionality used across multiple pages
 - **Examples**:
@@ -1134,6 +1175,7 @@ Tatlock follows consistent naming patterns across all file types to ensure clari
 - **Scope**: Global utilities, authentication handling, theme management, snackbar system
 
 **Plugin Scripts**
+
 - **Pattern**: `plugin.{library}.js`
 - **Purpose**: Third-party libraries and external dependencies
 - **Examples**:
@@ -1147,6 +1189,7 @@ Tatlock follows consistent naming patterns across all file types to ensure clari
 ##### CSS Files
 
 **Main Stylesheets**
+
 - **Pattern**: `{purpose}.css`
 - **Purpose**: Main application styling
 - **Examples**:
@@ -1159,6 +1202,7 @@ Tatlock follows consistent naming patterns across all file types to ensure clari
 ##### Asset Files
 
 **Images**
+
 - **Pattern**: `{purpose}.{format}`
 - **Purpose**: Application images and graphics
 - **Examples**:
@@ -1168,6 +1212,7 @@ Tatlock follows consistent naming patterns across all file types to ensure clari
 - **Scope**: Logos, icons, and other visual assets
 
 **Favicon Files**
+
 - **Pattern**: `{size}-{format}` or `{purpose}.{format}`
 - **Purpose**: Browser favicon and app icons
 - **Examples**:
@@ -1178,6 +1223,7 @@ Tatlock follows consistent naming patterns across all file types to ensure clari
 - **Scope**: Browser and mobile app icons
 
 **Fonts**
+
 - **Pattern**: `{fontname}.{format}`
 - **Purpose**: Custom fonts and icon fonts
 - **Examples**:
@@ -1189,6 +1235,7 @@ Tatlock follows consistent naming patterns across all file types to ensure clari
 ##### Configuration Files
 
 **Application Config**
+
 - **Pattern**: `{purpose}.{format}`
 - **Purpose**: Application configuration and metadata
 - **Examples**:
@@ -1201,18 +1248,21 @@ Tatlock follows consistent naming patterns across all file types to ensure clari
 ##### Benefits of Consistent Naming
 
 **Organization**
+
 - **Clear Purpose**: File names immediately indicate their purpose and scope
 - **Easy Navigation**: Developers can quickly locate files by type and function
 - **Logical Grouping**: Related files follow similar naming patterns
 - **Scalability**: Easy to add new files following established patterns
 
 **Maintainability**
+
 - **Consistent Structure**: Uniform naming across the entire codebase
 - **Reduced Confusion**: Clear distinction between different types of files
 - **Easier Refactoring**: Predictable naming makes reorganization straightforward
 - **Documentation**: File names serve as self-documenting code
 
 **Development Workflow**
+
 - **Quick Identification**: Developers can immediately understand file purpose
 - **Dependency Management**: Clear loading order and relationships
 - **Code Reviews**: Easier to review changes when file purposes are clear
@@ -1221,18 +1271,21 @@ Tatlock follows consistent naming patterns across all file types to ensure clari
 ##### Migration and Maintenance
 
 **When Adding New Files**
+
 1. **Follow Established Patterns**: Use the appropriate prefix for the file type
 2. **Be Descriptive**: Choose names that clearly indicate purpose
 3. **Maintain Consistency**: Don't create exceptions to established patterns
 4. **Update Documentation**: Keep naming pattern documentation current
 
 **When Renaming Files**
+
 1. **Update All References**: Update all template files, imports, and documentation
 2. **Maintain Backward Compatibility**: Ensure existing functionality continues to work
 3. **Test Thoroughly**: Verify all pages and functionality work after changes
 4. **Update Changelog**: Document significant naming changes
 
 **Exception Handling**
+
 - **Legacy Files**: Some files may not follow current patterns
 - **Third-Party Libraries**: External libraries may have their own naming conventions
 - **Documentation**: Always document why exceptions exist
@@ -1243,6 +1296,7 @@ Tatlock follows consistent naming patterns across all file types to ensure clari
 **IMPORTANT**: Follow the proper Jinja2 templating pattern for dynamic content:
 
 **✅ Correct Pattern:**
+
 - **HTML Structure in Templates**: Keep all HTML structure, table headers, and static content in Jinja2 templates
 - **Always Present DOM**: HTML structure should always be present in the DOM, not conditionally created
 - **JavaScript for Dynamic Updates**: Use JavaScript only to populate dynamic content (table rows, form values, etc.)
@@ -1250,6 +1304,7 @@ Tatlock follows consistent naming patterns across all file types to ensure clari
 - **Visibility Control**: Use CSS display properties to show/hide sections, not conditional HTML creation
 
 **❌ Incorrect Pattern:**
+
 - Building complete HTML strings in JavaScript
 - Replacing entire container content with HTML strings
 - Mixing template logic with JavaScript HTML generation
@@ -1357,6 +1412,7 @@ async function loadUsers() {
 #### When to Use Each Approach
 
 **Use Jinja2 Templates For:**
+
 - Page structure and layout
 - Static content and headers
 - Form structures
@@ -1365,6 +1421,7 @@ async function loadUsers() {
 - **All HTML structure that should always be present**
 
 **Use JavaScript For:**
+
 - Populating dynamic table rows
 - Updating form values
 - Real-time data updates
@@ -1373,6 +1430,7 @@ async function loadUsers() {
 - **Controlling visibility with CSS display properties**
 
 #### Class-Based Architecture
+
 ```javascript
 class ModuleName {
     constructor(options = {}) {
@@ -1395,12 +1453,14 @@ class ModuleName {
 ```
 
 #### Modern JavaScript Features
+
 - **ES6+ Syntax**: Arrow functions, destructuring, template literals
 - **Async/Await**: Consistent use for all asynchronous operations
 - **Fetch API**: Standard HTTP requests with proper error handling
 - **Class Syntax**: Object-oriented approach for complex functionality
 
 #### Error Handling & Logging
+
 ```javascript
 async function apiCall(data) {
     try {
@@ -1422,6 +1482,7 @@ async function apiCall(data) {
 ```
 
 #### Event Handling
+
 ```javascript
 function setupEventListeners() {
     // Auto-resize textarea
@@ -1441,9 +1502,11 @@ function setupEventListeners() {
 ```
 
 ### CSS/UI Standards
+
 - **library maintenance**: Keep css in css files
 
 #### CSS Variables & Theming
+
 ```css
 :root {
     --bg-primary: #f5f5f5;
@@ -1462,6 +1525,7 @@ function setupEventListeners() {
 ```
 
 #### Responsive Design
+
 - **Mobile-First**: Responsive breakpoints for different screen sizes
 - **Flexbox/Grid**: Modern CSS layout techniques
 - **Consistent Spacing**: Standardized padding, margins, and gaps
@@ -1489,6 +1553,7 @@ function setupEventListeners() {
 ```
 
 #### Component Styling
+
 ```css
 .component {
     background: var(--bg-secondary);
@@ -1508,6 +1573,7 @@ function setupEventListeners() {
 ### Security Standards
 
 #### Authentication & Authorization
+
 - **Session-Based**: Secure session management with cookies
 - **Password Hashing**: PBKDF2 with unique salts
 - **Input Validation**: Pydantic models for all inputs
@@ -1522,6 +1588,7 @@ def require_admin_role(current_user: dict = Depends(get_current_user)):
 ```
 
 #### Input Validation
+
 ```python
 from pydantic import BaseModel, EmailStr
 
@@ -1533,6 +1600,7 @@ class UserCreateRequest(BaseModel):
 ```
 
 #### Database Security
+
 ```python
 # ✅ Correct: Parameterized queries
 cursor.execute("SELECT * FROM users WHERE username = ?", (username,))
@@ -1544,6 +1612,7 @@ cursor.execute(f"SELECT * FROM users WHERE username = '{username}'")
 ### Testing Standards
 
 #### Test Organization
+
 - **Comprehensive Coverage**: Tests for all modules and functionality
 - **Fixtures**: Reusable test data and setup
 - **Mocking**: Proper isolation of external dependencies
@@ -1580,6 +1649,7 @@ def test_create_user(sample_user):
 ```
 
 #### Test File Naming
+
 - **Pattern**: `test_module_name.py`
 - **Location**: `tests/` directory
 - **Coverage**: Unit tests, integration tests, and end-to-end tests
@@ -1587,12 +1657,14 @@ def test_create_user(sample_user):
 ### Documentation Standards
 
 #### README Files
+
 - **Module Purpose**: Clear description of functionality
 - **API Documentation**: Endpoint descriptions and examples
 - **Integration Guide**: How modules work together
 - **Future Plans**: Roadmap for planned features
 
 #### Code Comments
+
 - **Complex Logic**: Comments for non-obvious code
 - **Business Logic**: Explanation of business rules
 - **TODO Comments**: Marked future improvements
@@ -1613,6 +1685,7 @@ def expensive_operation():
 ### Performance Standards
 
 #### Database Optimization
+
 - **Indexing**: Appropriate database indexes for common queries
 - **Connection Management**: Proper connection pooling
 - **Query Efficiency**: Optimized SQL queries
@@ -1634,6 +1707,7 @@ cursor.execute("SELECT * FROM user_roles WHERE username = ?", (username,))
 ```
 
 #### Frontend Performance
+
 - **Asset Optimization**: Minified CSS/JS
 - **Lazy Loading**: On-demand resource loading
 - **Efficient DOM**: Minimal DOM manipulation
@@ -1658,6 +1732,7 @@ document.querySelectorAll('.delete-btn').forEach(btn => {
 Before submitting code for review, ensure:
 
 #### Python Code
+
 - [ ] Type hints for all function parameters and return values
 - [ ] Comprehensive docstrings for all public functions
 - [ ] Proper error handling with logging
@@ -1666,6 +1741,7 @@ Before submitting code for review, ensure:
 - [ ] Unit tests for new functionality
 
 #### JavaScript Code
+
 - [ ] Modern ES6+ syntax used appropriately
 - [ ] Async/await for all asynchronous operations
 - [ ] Proper error handling with user feedback
@@ -1674,6 +1750,7 @@ Before submitting code for review, ensure:
 - [ ] Accessibility features included
 
 #### General
+
 - [ ] Code follows established patterns
 - [ ] No security vulnerabilities introduced
 - [ ] Performance considerations addressed
@@ -1683,18 +1760,21 @@ Before submitting code for review, ensure:
 ### Best Practices
 
 #### Code Organization
+
 1. **Single Responsibility**: Each function/class has one clear purpose
 2. **DRY Principle**: Don't repeat yourself - extract common functionality
 3. **Separation of Concerns**: Keep business logic, data access, and presentation separate
 4. **Consistent Naming**: Use clear, descriptive names for variables, functions, and classes
 
 #### Error Handling
+
 1. **Fail Fast**: Detect and handle errors as early as possible
 2. **User-Friendly Messages**: Provide clear error messages to users
 3. **Logging**: Log errors with appropriate context for debugging
 4. **Graceful Degradation**: Provide fallback behavior when possible
 
 #### Security
+
 1. **Input Validation**: Validate all user inputs
 2. **Output Encoding**: Properly encode output to prevent XSS
 3. **Authentication**: Verify user identity for protected operations
@@ -1702,18 +1782,21 @@ Before submitting code for review, ensure:
 4. **Package Versions**: Always use the most current version of packages that don't cause dependency conflicts. Comment if that is not possible and why.
 
 #### Performance
+
 1. **Database Optimization**: Use efficient queries and proper indexing
 2. **Caching**: Cache frequently accessed data
 3. **Lazy Loading**: Load resources only when needed
 4. **Monitoring**: Track performance metrics and optimize bottlenecks
 
 #### AI-Assisted Development
-1. **Always Include Standards**: When using coding AI assistants (like Cursor, GitHub Copilot, Claude, GPT, etc.), always include the Tatlock coding standards from this `developer.md` file as part of your prompt
+
+1. **Always Include Standards**: When using coding AI assistants (like Cursor, GitHub Copilot, Claude, GPT, etc.), always include the Tatlock coding standards from this `AGENTS.md` file as part of your prompt
 2. **Reference Specific Sections**: Reference relevant sections like "Python Coding Standards", "JavaScript Coding Standards", or "Security Standards" based on the task
 3. **Validate Generated Code**: Review AI-generated code to ensure it follows our established patterns and conventions
 4. **Update Standards**: If AI suggests improvements to our coding standards, evaluate and update this document accordingly
 
 **Example AI Prompt:**
+
 ```
 Please help me implement [specific feature] following the Tatlock coding standards:
 
@@ -1741,9 +1824,11 @@ Following these coding standards ensures consistent, maintainable, and secure co
 Tatlock now uses a context-based, per-request user model for all authentication and user info access. This ensures type safety, eliminates the need to pass usernames/roles through function calls, and makes user access DRY and consistent across the codebase.
 
 #### How it Works
+
 - The dependency `Depends(get_current_user)` sets the current user in a context variable for the duration of the request.
 - The user is stored as a Pydantic `UserModel` (see `stem/models.py`), which matches the `users` table (excluding password and salt).
 - You can access the current user anywhere in the request using:
+
   ```python
   from stem.current_user_context import get_current_user_ctx
   user = get_current_user_ctx()
@@ -1753,12 +1838,15 @@ Tatlock now uses a context-based, per-request user model for all authentication 
   username = user.username
   roles = security_manager.get_user_roles(user.username)
   ```
+
 - When passing the user to a template function (e.g., `get_chat_page`, `get_profile_page`), convert the user to a dict:
+
   ```python
   return get_chat_page(request, user.model_dump())
   ```
 
 #### Endpoint Example
+
 ```python
 @app.get("/profile")
 async def profile_page(request: Request, _: None = Depends(get_current_user)):
@@ -1769,6 +1857,7 @@ async def profile_page(request: Request, _: None = Depends(get_current_user)):
 ```
 
 #### Security/Admin Example
+
 ```python
 def require_admin_role():
     user = current_user
@@ -1777,28 +1866,33 @@ def require_admin_role():
 ```
 
 #### Benefits
+
 - **Type Safety:** All user access is via a Pydantic model, not a dict.
 - **No More Passing Usernames:** No need to pass username/roles through function calls.
 - **Per-Request Isolation:** Each request gets its own user context, safe for async/concurrent code.
 - **Consistent Template Usage:** Always pass `user.model_dump()` to templates.
 
 #### When Adding New Endpoints
+
 - Use `_: None = Depends(get_current_user)` in the signature.
 - Use `user = current_user` in the body.
 - Raise 401 if user is None.
 - Pass `user.model_dump()` to templates.
 
 #### Legacy Pattern Removal
+
 - All legacy `current_user: dict = Depends(get_current_user)` and dict key access have been removed. Do not use dict-based user access in new code.
 
 ## Voice Input Implementation
 
 ### Overview
+
 The voice input system integrates real-time audio capture with the chat interface, providing a natural way to interact with Tatlock using speech.
 
 **Note**: Voice processing (audio transcription) has been removed from this version. The system operates in text-only mode.
 
 ### Architecture
+
 - **Frontend**: Microphone button in chat interface with WebSocket audio streaming
 - **Backend**: FastAPI WebSocket endpoint (voice processing disabled)
 - **Processing**: Temporal context and language understanding pipeline (text-only)
@@ -1806,6 +1900,7 @@ The voice input system integrates real-time audio capture with the chat interfac
 ### Key Components
 
 #### Frontend (JavaScript)
+
 ```javascript
 // Voice capture class in chat.js
 class TatlockChat {
@@ -1830,6 +1925,7 @@ class TatlockChat {
 ```
 
 #### Backend (Python)
+
 ```python
 # WebSocket endpoint in main.py
 @app.websocket("/ws/voice")
@@ -1855,27 +1951,32 @@ class VoiceService:
 ### Coding Patterns
 
 #### WebSocket Audio Streaming
+
 - **Binary Protocol**: Audio chunks sent with "audio:" prefix (returns error response)
 - **Chunked Processing**: 250ms audio chunks for real-time processing
 - **Session Authentication**: WebSocket requires valid session cookie
 
 #### Keyword Detection
+
 - **Client-side Processing**: JavaScript checks for "tatlock" keyword
 - **Prompt Extraction**: Extracts text after keyword for chat input
 - **Auto-pause**: 5-second timeout for natural conversation flow
 
 #### Error Handling
+
 - **Graceful Degradation**: Falls back to text input if voice unavailable
 - **User Feedback**: Visual indicators for recording state
 - **Connection Recovery**: Automatic WebSocket reconnection
 
 ### Security Considerations
+
 - **Session Validation**: WebSocket endpoints require authentication
 - **Audio Privacy**: Audio processed server-side, not stored
 - **User Consent**: Microphone access requires explicit permission
 - **Input Sanitization**: All voice input processed through language processor
 
 ### Testing
+
 ```bash
 # Test voice components
 python temporal/test_voice.py
@@ -1888,6 +1989,7 @@ python temporal/integration_example.py server
 ```
 
 ### Future Enhancements
+
 - **Voice Processing**: Re-enable audio transcription with alternative libraries
 - **Always-on Detection**: Background keyword spotting
 - **Voice Synthesis**: Text-to-speech responses
@@ -1899,22 +2001,27 @@ python temporal/integration_example.py server
 ### System Database (system.db)
 
 The system database contains global, shared data:
+
 - **User authentication**: users, passwords, roles, groups
 - **Tool registry**: tools, tool_parameters
 - **Global system prompts**: rise_and_shine table
 
 ### User Databases ({username}_longterm.db)
+
 Each user has their own isolated database containing:
+
 - **Conversation memories**: memories, topics, memory_topics
 - **Conversation metadata**: conversations, conversation_topics
 - **Personal variables**: personal_variables_keys, personal_variables, personal_variables_join
 
 ### Critical: rise_and_shine Table Location
+
 **IMPORTANT**: The `rise_and_shine` table MUST be in the system database (system.db), NOT in user databases.
 
 **Purpose**: Contains Tatlock's global base system prompts and instructions that all users share.
 
-**Why system database**: 
+**Why system database**:
+
 - All users should have the same base instructions
 - Ensures consistency across the system
 - Simplifies prompt management and updates
@@ -1923,6 +2030,7 @@ Each user has their own isolated database containing:
 **Access**: The `get_base_instructions()` function reads from the system database and combines base prompts with enabled tool prompts.
 
 **Dynamic System Prompts Architecture**:
+
 - Base system prompts are stored in the `rise_and_shine` table
 - Tool-specific prompts are stored in the `prompts` column of the `tools` table
 - The `get_base_instructions()` function dynamically combines:
@@ -2113,12 +2221,14 @@ When adding new database changes:
 ## **Logging Standards**
 
 ### **Log Level Guidelines**
+
 - **Use `logger.debug()` by default** for all logging unless specified otherwise
 - **Use `logger.error()` inside exception handlers** - always use error level for exceptions
 - **Use `logger.info()` only for important business events** (user actions, system state changes, etc.)
 - **Use `logger.warning()` for recoverable issues** that don't prevent normal operation
 
 ### **Logging Best Practices**
+
 ```python
 # ✅ Good - Debug level by default
 logger.debug(f"Processing user request: {user_id}")
@@ -2137,6 +2247,7 @@ logger.info(f"Processing request: {request_data}")  # Should be debug
 ```
 
 ### **Exception Logging Pattern**
+
 ```python
 try:
     # Operation code
@@ -2150,13 +2261,16 @@ except Exception as e:
 ```
 
 ### **Context in Log Messages**
+
 - Include relevant context (user ID, operation name, parameters)
 - Use structured logging when possible
 - Avoid logging sensitive information (passwords, tokens, etc.)
 
 ### **Performance Considerations**
+
 - Use `logger.isEnabledFor(logging.DEBUG)` for expensive debug operations
 - Avoid string formatting in debug calls that might not be logged
+
 ```
 
 ### Preferred Dynamic Content Rendering Pattern (All Authenticated/Admin Pages)
@@ -2178,7 +2292,8 @@ except Exception as e:
 </table>
 ```
 
-#### Example (Jinja2 Template - List):
+#### Example (Jinja2 Template - List)
+
 ```html
 <div class="card-list-container">
   <ul id="user-list">
@@ -2187,7 +2302,8 @@ except Exception as e:
 </div>
 ```
 
-#### Example (JavaScript):
+#### Example (JavaScript)
+
 ```javascript
 // For tables
 const usersTableBody = document.getElementById('users-table-body');
@@ -2216,8 +2332,10 @@ Update the JavaScript Coding Standards and Jinja2 Template Integration Pattern s
 ### UI/UX and Frontend Coding Standards
 
 #### Add/Create Button Placement
+
 - **Standard Placement:** For table sections, always place the add/create button above the section header/title and right-aligned using flexbox. This ensures a clear, consistent, and user-friendly UI.
 - **Pattern:**
+
   ```html
   <div class="add-btn-row" style="display: flex; justify-content: flex-end; padding: 0 24px; margin-bottom: 0.5em;">
       <button class="add-btn">Add New</button>
@@ -2225,7 +2343,9 @@ Update the JavaScript Coding Standards and Jinja2 Template Integration Pattern s
   <div class="section-title">Section Name</div>
   <table>...</table>
   ```
+
 - **CSS:**
+
   ```css
   .add-btn-row {
       display: flex;
@@ -2253,5 +2373,6 @@ Update the JavaScript Coding Standards and Jinja2 Template Integration Pattern s
       z-index: 0;
   }
   ```
+
 - **Apply to:** All tables with create functionality (users, roles, groups, etc.)
 - **Rationale:** Ensures a consistent, modern, and user-friendly UI across all admin sections.

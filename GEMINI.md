@@ -2,7 +2,7 @@
 
 This guide provides instructions for AI assistants to contribute to the Tatlock project, ensuring adherence to its coding standards, patterns, and development practices.
 
-**IMPORTANT**: The `developer.md` file contains the authoritative instruction set for all developers and LLMs working on this project. Any conflicting guidance between this file and `developer.md` should defer to `developer.md`, which supersedes all other instruction files including this one.
+**IMPORTANT**: The `AGENTS.md` file contains the authoritative instruction set for all developers and LLMs working on this project. Any conflicting guidance between this file and `AGENTS.md` should defer to `AGENTS.md`, which supersedes all other instruction files including this one.
 
 ### Core Workflows
 
@@ -185,7 +185,7 @@ To ensure I can correctly diagnose issues with web applications, I will now foll
 ## Documentation
 
 - **`README.md`**: Project overview and installation.
-- **`developer.md`**: The source of truth for all development standards. Do not alter coding standards or AI instructions without permission.
+- **`AGENTS.md`**: The source of truth for all development standards. Do not alter coding standards or AI instructions without permission.
 - **`GEMINI.md`**: This file. Your guide for contributing to the project.
 - **`moreinfo.md`**: In-depth technical project description.
 - **`troubleshooting.md`**: Common installation and runtime issues. Suggest updates when applicable.

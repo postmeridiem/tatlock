@@ -5,6 +5,7 @@
 The Cortex module contains the core agent logic for Tatlock, orchestrating all subsystems and exposing the FastAPI interface for chat interactions.
 
 ## Core Features
+
 - Agentic loop with tool dispatch and execution
 - LLM integration (Ollama) with context management
 - Topic classification and conversation tracking
@@ -12,6 +13,7 @@ The Cortex module contains the core agent logic for Tatlock, orchestrating all s
 - Session-based authentication integration
 
 ## Process Flow
+
 1. Load base instructions from user's database
 2. Build conversation context with history
 3. Send to LLM with available tools
@@ -21,6 +23,7 @@ The Cortex module contains the core agent logic for Tatlock, orchestrating all s
 7. Return response with updated history
 
 ## Integration
+
 - **Stem**: Authentication, tools, and utilities
 - **Hippocampus**: Memory storage and retrieval
 - **Cerebellum**: External API tools (web search, weather)
@@ -28,12 +31,15 @@ The Cortex module contains the core agent logic for Tatlock, orchestrating all s
 - **Main.py**: API endpoint exposure
 
 ## Standards & Patterns
-All coding, tool, and security standards are defined in [developer.md](../developer.md). Refer to it for:
+
+All coding, tool, and security standards are defined in [AGENTS.md](../AGENTS.md). Refer to it for:
+
 - Tool integration patterns
 - Error handling and logging
 - User context management
 - Database operations
 
 ## See Also
-- [Developer Guide](../developer.md) – All standards and patterns
+
+- [Developer Guide](../AGENTS.md) – All standards and patterns
 - [Module Docs](../README.md)

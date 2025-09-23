@@ -5,38 +5,44 @@
 The Stem module provides authentication, admin dashboard, tool registration, static file serving, and shared utilities for Tatlock. It is the backbone for user management, session security, and system-wide services.
 
 ## Core Features
+
 - Session-based authentication and user management
 - Role and group management
 - Admin dashboard and profile management
-- Tool registration and dispatch (see developer.md for tool patterns)
+- Tool registration and dispatch (see AGENTS.md for tool patterns)
 - Static file and template serving
 - Shared utility modules (logging, text, JSON, time awareness)
 
 ## Integration
+
 - All authentication and admin endpoints are routed through Stem
-- Tools are registered and dispatched via Stem, following the patterns in developer.md
+- Tools are registered and dispatched via Stem, following the patterns in AGENTS.md
 - Static assets and templates are managed here for the web interface
 
 ## Standards & Patterns
-- All coding, tool, and security standards are defined in [developer.md](../developer.md). Refer to it for:
+
+- All coding, tool, and security standards are defined in [AGENTS.md](../AGENTS.md). Refer to it for:
   - Tool implementation and registration
   - Logging and error handling
   - Pydantic models and validation
   - Security and user isolation
 
 ## API & Endpoints
+
 - Admin: `/admin/dashboard`, `/admin/users`, `/admin/roles`, `/admin/groups`, `/admin/tools`, `/admin/settings`
 - Profile: `/profile`
 - Static: `/static/`, `/templates/`
 
 ## See Also
-- [Developer Guide](../developer.md) – All standards and patterns
+
+- [Developer Guide](../AGENTS.md) – All standards and patterns
 - [Troubleshooting](../troubleshooting.md)
 - [Module Docs](../README.md)
 
 ## ✅ **Core Features**
 
 ### 🔐 **Authentication & Security** (`security.py`)
+
 Comprehensive user management and security system with session-based authentication:
 
 - **User Management**: Create, authenticate, update, and delete users
@@ -50,6 +56,7 @@ Comprehensive user management and security system with session-based authenticat
 - **User Context**: Provides user information to other modules for personalization
 
 ### 🛠️ **Admin Dashboard** (`admin.py`)
+
 Complete administrative interface with FastAPI router:
 
 - **Admin Dashboard Page**: `/admin/dashboard` endpoint for web interface
@@ -65,6 +72,7 @@ Complete administrative interface with FastAPI router:
 - **Real-time Updates**: Dynamic interface updates without page refresh
 
 ### 👤 **Profile Management** (`profile.py`)
+
 User self-service profile management:
 
 - **Profile Information**: Display user details, roles, and groups
@@ -75,6 +83,7 @@ User self-service profile management:
 - **Security Validation**: Ensures users can only modify their own profiles
 
 ### 🧠 **Tool System** (`tools.py`)
+
 Defines and implements all available tools for the Tatlock agent:
 
 - **External API Tools**: Web search, weather, etc.
@@ -82,6 +91,7 @@ Defines and implements all available tools for the Tatlock agent:
 - **Visual Tools**: Screenshot, file analysis
 
 ### 📄 **Static File Serving & Templates** (`static.py`)
+
 Handles web interface and static file management:
 
 - **Template Naming**: All main page templates use the `page.*.html` pattern (e.g., `page.admin.html`, `page.profile.html`, `page.conversation.html`, `page.login.html`)
@@ -90,6 +100,7 @@ Handles web interface and static file management:
 - **Static Assets**: Fonts, favicons, images, modular JS files
 
 ### 💻 **JavaScript Modules** (`static/js/`)
+
 - **Naming Conventions**:
   - Page-specific scripts: `page.[pagename].js` (e.g., `page.admin.js`, `page.profile.js`, `page.login.js`, `page.conversation.js`)
   - Component scripts: `component.[componentname].js` (e.g., `component.chatbar.js`)
@@ -104,6 +115,7 @@ Handles web interface and static file management:
 - **Removed/Merged**: Old files like `chat.js`, `debug.js`, and `sidebar_chat.js` have been removed or merged into the new structure.
 
 ### 🖼️ **Static Assets** (`static/`)
+
 - **Fonts**: Material Icons font files
 - **Favicons**: Complete favicon and app icon set
 - **Images**: Logo and branding assets
@@ -112,41 +124,48 @@ Handles web interface and static file management:
 ## 🧰 **Utility Modules**
 
 ### **JSON Utilities** (`jsonutils.py`)
+
 - JSON serialization/deserialization utilities
 - Error handling for JSON operations
 - Safe JSON parsing with fallback handling
 
 ### **Text Utilities** (`textutils.py`)
+
 - Text cleaning and formatting functions
 - String manipulation utilities
 - Text normalization and sanitization
 
 ### **Logging** (`logging.py`)
+
 - Structured logging setup with FastAPI integration
 - Log formatting and output management
 - Configurable log levels and handlers
 - `get_logger()`: Standardized logger creation for all modules
 
 ### **Time Awareness** (`timeawareness.py`)
+
 - Natural language date parsing and range extraction
 - Supports various date formats and relative time expressions
 - Returns ISO date strings for database queries
 
 ### **HTML Controller** (`htmlcontroller.py`)
+
 - Jinja2 template management and rendering
 - Automatic template/component discovery and loading
 
 ## 🚀 **Installation Support** (`installation/`)
+
 - Database setup and initialization utilities
 - Automated tools backup and restore
 
 ---
 
-**For all coding standards, architectural patterns, and development workflows, see [developer.md](../developer.md).**
+**For all coding standards, architectural patterns, and development workflows, see [AGENTS.md](../AGENTS.md).**
 
 ## 🎨 **Web Interface Components**
 
 ### **HTML Templates** (`templates/`)
+
 Jinja2-based server-side templating system:
 
 - **`page.login.html`**: Session-based login page
@@ -155,6 +174,7 @@ Jinja2-based server-side templating system:
 - **`page.admin.html`**: Complete admin dashboard with user, role, and group management
 
 ### **Reusable Components** (`templates/components/`)
+
 - **`header.html`**: Site header with navigation and user menu
 - **`navigation.html`**: Left sidebar navigation
 - **`chat_sidebar.html`**: Chat interface sidebar
@@ -163,6 +183,7 @@ Jinja2-based server-side templating system:
 - **`snackbar.html`**: Notification system component
 
 ### **Styling** (`static/`)
+
 - **`style.css`**: Consolidated CSS with dark/light mode support
 - **`material-icons.css`**: Material Design Icons font definitions
 - **`json-highlight.css`**: JSON syntax highlighting styles
@@ -171,6 +192,7 @@ Jinja2-based server-side templating system:
 - **Modern UI**: Material Design principles throughout
 
 ### **JavaScript Modules** (`static/js/`)
+
 - **`common.js`**: Shared functionality (snackbar, dark mode, chat sidepane)
 - **`page.admin.js`**: Admin dashboard functionality
 - **`page.profile.js`**: Profile management functionality
@@ -179,6 +201,7 @@ Jinja2-based server-side templating system:
 - **Page-specific scripts**: All scripts that are only used for a single page must follow the naming pattern `page.[pagename].js` (e.g., `page.admin.js`, `page.profile.js`, `page.login.js`, `page.conversation.js`). This ensures clarity and consistency across the codebase.
 
 ### **Static Assets** (`static/`)
+
 - **`fonts/`**: Material Icons font files for offline use
 - **`favicon/`**: Complete favicon and app icon set
 - **`images/`**: Logo and branding assets
@@ -187,39 +210,50 @@ Jinja2-based server-side templating system:
 ## 🔧 **Utility Modules**
 
 ### **JSON Utilities** (`jsonutils.py`)
+
 JSON manipulation and validation helpers:
+
 - JSON serialization/deserialization utilities
 - Error handling for JSON operations
 - Safe JSON parsing with fallback handling
 
 ### **Text Utilities** (`textutils.py`)
+
 Text processing and manipulation:
+
 - Text cleaning and formatting functions
 - String manipulation utilities
 - Text normalization and sanitization
 
 ### **Logging** (`logging.py`)
+
 Logging configuration and utilities:
+
 - Structured logging setup with FastAPI integration
 - Log formatting and output management
 - Configurable log levels and handlers
 - **`get_logger()`**: Standardized logger creation for all modules
 
 ### **Time Awareness** (`timeawareness.py`)
+
 Natural language date parsing:
+
 - **`parse_natural_date_range()`**: Converts expressions like "yesterday", "last week" to date ranges
 - Supports various date formats and relative time expressions
 - Returns ISO date strings for database queries
 - Handles complex temporal expressions
 
 ### **HTML Controller** (`htmlcontroller.py`)
+
 Jinja2 template management:
+
 - **`get_template_manager()`**: Creates and configures Jinja2 environment
 - **`render_template()`**: Renders templates with context data
 - **Template Loading**: Automatic template discovery and loading
 - **Component System**: Support for reusable template components
 
 ## 🚀 **Installation Support** (`installation/`)
+
 Database setup and initialization utilities:
 
 - **`database_setup.py`**: Creates and populates system.db and user longterm.db templates
@@ -232,6 +266,7 @@ Database setup and initialization utilities:
 ## 🌐 **API Endpoints**
 
 ### **Admin Endpoints** (Require Admin Role)
+
 - `GET /admin/dashboard` - Admin dashboard page
 - `GET /admin/stats` - System statistics
 - `GET /admin/users` - List all users
@@ -248,28 +283,33 @@ Database setup and initialization utilities:
 - `DELETE /admin/groups/{id}` - Delete group
 
 ### **Profile Endpoints** (Require Authentication)
+
 - `GET /profile` - User profile page
 - `PUT /profile` - Update profile information
 - `PUT /profile/password` - Change password
 
 ### **Authentication Endpoints**
+
 - `GET /login` - Login page
 - `POST /login` - Authenticate user
 - `GET /logout` - Logout user
 
 ### **Conversation Endpoints**
+
 - `GET /conversation` - Conversation page
 - `POST /cortex` - Process conversation messages
 
 ## 🧪 **Testing**
 
 ### **Unit Tests**
+
 ```bash
 # Run stem-specific tests
 python -m pytest tests/test_stem_*.py -v
 ```
 
 ### **Integration Tests**
+
 ```bash
 # Test authentication and admin functionality
 python -m pytest tests/test_security.py -v
@@ -305,6 +345,7 @@ python -m pytest tests/test_admin_frontend.py -v
 ## 🔮 **Future Enhancements**
 
 ### **Planned Features**
+
 - **Two-Factor Authentication**: Additional security layer
 - **API Rate Limiting**: Prevent abuse of API endpoints
 - **Audit Logging**: Comprehensive audit trail for all operations
@@ -312,6 +353,7 @@ python -m pytest tests/test_admin_frontend.py -v
 - **User Sessions**: Multiple concurrent session support
 
 ### **Performance Improvements**
+
 - **Template Optimization**: Further template caching and optimization
 - **Static Asset Optimization**: Asset compression and CDN integration
 - **Database Optimization**: Additional database indexing and query optimization
@@ -320,7 +362,7 @@ python -m pytest tests/test_admin_frontend.py -v
 ## 📚 **Related Documentation**
 
 - **[README.md](../README.md)** - General overview and installation
-- **[developer.md](../developer.md)** - Developer guide and practices
+- **[AGENTS.md](../AGENTS.md)** - Developer guide and practices
 - **[moreinfo.md](../moreinfo.md)** - In-depth technical information
 - **[cortex/readme.md](../cortex/readme.md)** - Core agent logic documentation
 - **[hippocampus/readme.md](../hippocampus/readme.md)** - Memory system documentation
@@ -331,6 +373,7 @@ python -m pytest tests/test_admin_frontend.py -v
 Tatlock uses a global user variable system for all authentication and user info access. All memory and user operations in the Stem module are type-safe and use the current user context, which is set automatically for each request.
 
 - The current user is available as a Pydantic `UserModel` via:
+
   ```python
   from stem.security import current_user
   user = current_user
@@ -338,15 +381,17 @@ Tatlock uses a global user variable system for all authentication and user info 
       raise HTTPException(status_code=401, detail="Not authenticated")
   # Access fields as attributes, e.g. user.username
   ```
+
 - All memory and recall functions are scoped to the current user, ensuring privacy and isolation.
 - When passing the user to templates or tools, use `user.model_dump()` to convert to a dict if needed.
-- See the [developer.md](../developer.md) for full details and examples of the global user variable pattern.
+- See the [AGENTS.md](../AGENTS.md) for full details and examples of the global user variable pattern.
 
 **Note:** All legacy patterns using `current_user` as a dict have been removed. Always use the global UserModel variable for user access in new code.
 
 ## Core Components
 
 ### Authentication & Security (`security.py`)
+
 Comprehensive user management and security system with session-based authentication:
 
 - **User Management**: Create, authenticate, update, and delete users

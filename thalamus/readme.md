@@ -5,6 +5,7 @@
 The Thalamus module is planned for routing, filtering, and relaying information between subsystems in Tatlock. Named after the brain's thalamus responsible for sensory relay and information routing, this module will help the agent coordinate and manage information flow between different brain regions.
 
 ## Planned Features
+
 - **Information Routing**: Direct information to appropriate brain regions
 - **Priority Filtering**: Prioritize and filter incoming information
 - **Load Balancing**: Distribute processing load across modules
@@ -12,6 +13,7 @@ The Thalamus module is planned for routing, filtering, and relaying information 
 - **Conflict Resolution**: Handle conflicts between different modules
 
 ## Integration Points
+
 - **Cortex**: Coordinate with the main decision-making center
 - **Hippocampus**: Route memory-related information
 - **Temporal**: Handle linguistic and auditory routing
@@ -22,10 +24,12 @@ The Thalamus module is planned for routing, filtering, and relaying information 
 - **Stem**: Coordinate with core system utilities
 
 ## Development Phases
+
 1. **Foundation**: Basic message routing and state tracking
 2. **Intelligence**: Smart routing and load balancing
 3. **Advanced Features**: Predictive routing and adaptive coordination
 
 ## See Also
-- [Developer Guide](../developer.md) – All standards and patterns
+
+- [Developer Guide](../AGENTS.md) – All standards and patterns
 - [Module Docs](../README.md)
