@@ -287,6 +287,8 @@ When preparing a new release, follow these steps:
 
 Tatlock follows a modular tool organization pattern where each tool is implemented in its own file within the appropriate brain module. **Tools belong in the root of their respective modules, not in subdirectories.** This promotes maintainability, testability, and clear separation of concerns.
 
+**Lean System Note**: Tools are now categorized as **Core** (always available) or **Extended** (catalog-based). See the [Lean Agent System Architecture](#lean-agent-system-architecture) section for details on this performance optimization.
+
 #### Tool File Structure
 
 ```
@@ -881,6 +883,78 @@ Access interactive API documentation at:
 - **Debug Console**: Use the debug console for real-time monitoring
 - **API Documentation**: Review API documentation for endpoint details
 - **Module READMEs**: Check individual module documentation
+
+## Lean Agent System Architecture
+
+Tatlock implements a **two-phase lean agent system** optimized for performance and maintainability. This system reduces prompt overhead from 27+ prompts to 6 prompts (78% reduction) while maintaining full functionality.
+
+### Two-Tier Tool Architecture
+
+**Core Tools (Always Available)**:
+- **Memory Tools**: `recall_memories`, `recall_memories_with_time`
+- **Personal Data**: `find_personal_variables`
+- **Loading**: Included in base instructions for immediate access
+- **Purpose**: Essential capabilities that should always be available
+
+**Extended Tools (Catalog-Based)**:
+- **External Services**: Weather, web search, screenshots
+- **Advanced Memory**: Analytics, exports, cleanup, insights
+- **Visual Processing**: File analysis, website testing
+- **Loading**: Loaded only when needed via capability assessment
+- **Purpose**: Specialized capabilities accessed through catalog system
+
+### Performance Benefits
+
+- **Reduced Overhead**: From 27 prompts to 6 prompts per request
+- **Faster Response**: Capability assessment uses minimal context
+- **Smart Routing**: Direct responses for knowledge-based questions
+- **Tool Efficiency**: Only relevant tools loaded when needed
+- **Memory Preserved**: Core memory functionality always accessible
+
+### Implementation Details
+
+**Phase 1: Capability Assessment**
+```python
+# Minimal context for fast assessment
+capability_messages = [
+    {'role': 'system', 'content': f'Current date: {date}, Location: {location}'},
+    {'role': 'system', 'content': capability_prompt},
+    {'role': 'user', 'content': user_message}
+]
+```
+
+**Phase 2: Tool-Enabled Processing**
+```python
+# Only if tools needed - uses full context + selected tools
+if assessment.assessment == "TOOLS_NEEDED":
+    selected_tools = get_selected_tools(assessment.tools)
+    response = ollama.chat(messages=full_messages, tools=selected_tools)
+```
+
+**Core Tools Configuration**
+```python
+# hippocampus/database.py
+CORE_TOOLS = [
+    'recall_memories',
+    'recall_memories_with_time',
+    'find_personal_variables'
+]
+```
+
+### Structured Output Parsing
+
+Uses industry-standard **Instructor + Pydantic** approach:
+- **Primary**: Instructor with JSON Schema validation
+- **Fallback**: Enhanced parsing for reliability
+- **Benefits**: Works across Mistral, Gemma2, Gemma3 models
+- **Reliability**: Graceful fallback prevents parsing failures
+
+```python
+class CapabilityAssessment(BaseModel):
+    assessment: Literal["DIRECT", "TOOLS_NEEDED"]
+    tools: List[str] = Field(default=[])
+    response: str
+```
 
 ## Related Documentation
 

@@ -527,6 +527,15 @@ function renderComprehensiveBenchmark(data) {
 
 function renderLLMBenchmark(data) {
     let html = '';
+    if (data.hardware_tier) {
+        const tierColors = {
+            'high': '#4CAF50',
+            'medium': '#FF9800',
+            'low': '#2196F3'
+        };
+        const tierColor = tierColors[data.hardware_tier.toLowerCase()] || '#666';
+        html += `<p><strong>Hardware Performance Tier:</strong> <span style="color: ${tierColor}; font-weight: bold; text-transform: capitalize;">${data.hardware_tier}</span></p>`;
+    }
     if (data.model) {
         html += `<p><strong>Model:</strong> ${data.model}</p>`;
     }
