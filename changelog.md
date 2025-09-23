@@ -30,7 +30,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Middleware Architecture Refactoring**: Clean separation following FastAPI best practices
   - New `stem/middleware.py` for request timing, exception handling, and logging
   - Enhanced `stem/security.py` with modular security middleware setup
-  - Beautiful startup logging with emoji status indicators
+  - Clean startup logging with minimal emoji usage (keeping only status indicators)
   - WebSocket authentication middleware
 
 ### Changed
@@ -48,6 +48,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Automated testing of Phase 1 (simple) and Phase 2 (tool-assisted) queries on all three models
   - Incremental CSV output with timing data, response content, and quality analysis
   - Authentication handling for automated testing workflows
+
+- **Agent Response Optimization**: Fixed system prompts to reduce verbosity and tool bias
+  - Updated personality prompt to preserve British butler character while emphasizing conciseness
+  - Modified memory tool prompts to be conditional and specific, reducing unnecessary tool usage
+  - Added explicit guidance to answer name questions directly without memory checks
+  - Fixed overly verbose responses for simple questions like "what is your name?"
+  - Updated database setup script (`stem/installation/database_setup.py`) with improved prompts for fresh installations
+
+- **Logging Cleanup**: Removed decorative emoji characters from server logging output
+  - Removed rockets (🚀), sparkles (✨), locks (🔒), and document (📝) emojis from logging
+  - Kept functional status emojis (✅⚠️❌) for request success/failure indication
+  - Cleaner server terminal output while maintaining useful visual status indicators
   - Results exported as timestamped CSV files in tests directory for analysis
 
 - **Apple Silicon M1 Optimization**: Enhanced hardware classification for better M1 performance

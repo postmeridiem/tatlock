@@ -36,7 +36,7 @@ async def request_timing_middleware(request: Request, call_next: Callable) -> No
     start_time = time.perf_counter()
 
     # Log request start with method and path
-    logger.info(f"🚀 {request.method} {request.url.path} - Request started")
+    logger.info(f"[REQUEST] {request.method} {request.url.path} - Request started")
 
     # Process the request
     response = await call_next(request)
@@ -186,7 +186,7 @@ def setup_logging_config():
         ]
     )
 
-    logger.info("📝 Application logging configured with human-readable timestamps")
+    logger.info("Application logging configured with human-readable timestamps")
 
 
 def setup_middleware(app):
@@ -213,4 +213,4 @@ def setup_middleware(app):
     async def id_middleware(request: Request, call_next):
         return await request_id_middleware(request, call_next)
 
-    logger.info("✨ Request timing, ID, and exception handling middleware configured")
+    logger.info("Request timing, ID, and exception handling middleware configured")

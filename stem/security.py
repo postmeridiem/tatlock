@@ -68,7 +68,7 @@ def setup_security_middleware(app):
         allow_headers=["*"],
     )
 
-    logger.info("🔒 Security middleware configured (Session, TrustedHost, CORS)")
+    logger.info("Security middleware configured (Session, TrustedHost, CORS)")
 
 class SecurityManager:
     """Manages authentication, authorization, and user management."""
