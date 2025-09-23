@@ -143,8 +143,8 @@ Tatlock automatically detects your hardware capabilities and selects the optimal
 
 ### 💡 **Low Performance** (<4GB RAM or limited CPU)
 
-- **Model**: `gemma2:2b` (Gemma 2 2B)
-- **Features**: Lightweight but capable, good tool calling support
+- **Model**: `phi4-mini:3.8b-q4_K_M` (Microsoft Phi-4 Mini Quantized)
+- **Features**: Quantized model with tool support, optimized for speed and low memory usage
 - **Best for**: Older hardware and resource-constrained environments
 
 ### 🔧 **Key Benefits**
@@ -152,7 +152,25 @@ Tatlock automatically detects your hardware capabilities and selects the optimal
 - **Automatic Detection**: No manual configuration required
 - **Apple Silicon Optimized**: Special handling for M1/M2 compatibility
 - **Tool Calling Focus**: All models selected for agent and function calling capabilities
-- **Fallback Safety**: Robust error handling with safe defaults
+
+### 🔧 **Manual Model Override (Advanced Users)**
+
+For testing or specific use cases, you can manually override the automatic model selection by editing the `hardware_config.py` file:
+
+```bash
+# Switch to low-spec model for testing
+echo 'RECOMMENDED_MODEL = "phi4-mini:3.8b-q4_K_M"' > hardware_config.py
+echo 'PERFORMANCE_TIER = "low"' >> hardware_config.py
+
+# Switch to high-spec model for maximum performance
+echo 'RECOMMENDED_MODEL = "gemma3-cortex:latest"' > hardware_config.py
+echo 'PERFORMANCE_TIER = "high"' >> hardware_config.py
+
+# Restart application to use new model
+./wakeup.sh
+```
+
+**Note**: Manual edits will be overwritten during the next installation. This feature is intended for testing and advanced configuration only.
 
 ## 📚 Documentation
 

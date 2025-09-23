@@ -495,6 +495,65 @@ python -m pytest tests/test_cortex_agent.py
 python -m pytest -v tests/
 ```
 
+### Hardware Configuration Testing
+
+Tatlock automatically selects the optimal model based on hardware detection during installation. For testing different models or performance tiers, you can manually override the hardware configuration.
+
+#### Manual Model Override
+
+The `hardware_config.py` file controls which model is used:
+
+```python
+# hardware_config.py
+RECOMMENDED_MODEL = "mistral:7b"        # Current model
+PERFORMANCE_TIER = "medium"             # Current tier
+```
+
+To test different models, simply edit this file:
+
+```bash
+# Test low-spec model (phi4-mini with tool support)
+echo 'RECOMMENDED_MODEL = "phi4-mini:3.8b-q4_K_M"' > hardware_config.py
+echo 'PERFORMANCE_TIER = "low"' >> hardware_config.py
+
+# Test high-spec model (gemma3-cortex)
+echo 'RECOMMENDED_MODEL = "gemma3-cortex:latest"' > hardware_config.py
+echo 'PERFORMANCE_TIER = "high"' >> hardware_config.py
+
+# Test medium-spec model (mistral for Apple Silicon)
+echo 'RECOMMENDED_MODEL = "mistral:7b"' > hardware_config.py
+echo 'PERFORMANCE_TIER = "medium"' >> hardware_config.py
+```
+
+#### Available Model Tiers
+
+- **Low**: `phi4-mini:3.8b-q4_K_M` - Quantized model with tool support for low-spec hardware
+- **Medium**: `mistral:7b` - Balanced performance, optimized for Apple Silicon
+- **High**: `gemma3-cortex:latest` - Maximum performance for high-spec non-Apple Silicon systems
+
+#### Testing Performance
+
+After changing the model, restart the application to test performance:
+
+```bash
+# Restart with new model
+./wakeup.sh
+
+# Test simple query performance
+time curl -X POST http://localhost:8000/cortex \
+  -b cookies.txt \
+  -H "Content-Type: application/json" \
+  -d '{"message": "What is 2+2?", "history": [], "conversation_id": "test"}'
+
+# Test tool-assisted query performance
+time curl -X POST http://localhost:8000/cortex \
+  -b cookies.txt \
+  -H "Content-Type: application/json" \
+  -d '{"message": "What did we discuss before?", "history": [], "conversation_id": "test"}'
+```
+
+**Note**: Manual edits to `hardware_config.py` will be overwritten on next installation. This approach is intended for testing and development only.
+
 ### Test Cleanup System
 
 Tatlock includes a comprehensive test cleanup system to ensure tests don't leave behind user data or interfere with each other.

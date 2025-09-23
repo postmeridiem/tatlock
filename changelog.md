@@ -12,11 +12,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Hardware-Dependent Model Selection**: Automatic LLM model selection based on system hardware capabilities
   - Hardware classification system in `parietal/hardware.py` (`classify_hardware_performance()`)
   - Automatic detection of Apple Silicon with Mistral optimization for M1/M2 compatibility
-  - Three performance tiers: High (gemma3-cortex:latest), Medium (mistral:7b), Low (gemma2:2b)
+  - Three performance tiers: High (gemma3-cortex:latest), Medium (mistral:7b), Low (phi4-mini:3.8b-q4_K_M)
+  - Upgraded low-tier model from gemma2:2b to phi4-mini for better tool support with smaller size
   - Removed manual `ollama_model` database configuration in favor of automatic selection
   - Updated installer to download optimal model during installation
   - New API endpoint: `GET /parietal/hardware/classification`
   - Installation-time hardware config file generation (`hardware_config.py`)
+  - Manual override documentation for testing different models via `hardware_config.py` editing
 
 - **Lean Agent System**: Two-phase architecture for performance optimization
   - **Phase 1**: Capability assessment with minimal tool context (2-3 prompts vs 27)

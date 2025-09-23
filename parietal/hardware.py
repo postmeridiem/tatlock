@@ -774,7 +774,7 @@ def classify_hardware_performance() -> Dict[str, Any]:
     Performance Tiers:
     - High: 8GB+ RAM, 4+ CPU cores, non-Apple Silicon → gemma3-cortex:latest
     - Medium: 4-8GB RAM, 2-4 CPU cores, or Apple Silicon → mistral:7b
-    - Low: <4GB RAM or limited CPU → gemma2:2b
+    - Low: <4GB RAM or limited CPU → phi4-mini:3.8b-q4_K_M
 
     Returns:
         dict: Hardware classification with recommended model
@@ -794,8 +794,9 @@ def classify_hardware_performance() -> Dict[str, Any]:
 
         # Classification logic
         performance_tier = "low"
-        recommended_model = "gemma2:2b"
+        recommended_model = "phi4-mini:3.8b-q4_K_M"
         reasoning = []
+
 
         # Check for Apple Silicon (M1/M2) - these have performance quirks with certain models
         is_apple_silicon = architecture == "arm64" and os_type == "macOS"
@@ -820,9 +821,11 @@ def classify_hardware_performance() -> Dict[str, Any]:
             recommended_model = "mistral:7b"
             reasoning.append(f"Medium RAM ({total_ram_gb}GB) and CPU cores ({logical_cores})")
 
-        # Low performance (default)
+        # Low performance (default) - use phi4-mini for tool support with better speed
         else:
+            recommended_model = "phi4-mini:3.8b-q4_K_M"
             reasoning.append(f"Limited resources: {total_ram_gb}GB RAM, {logical_cores} cores")
+            reasoning.append("Using phi4-mini for tool support with smaller model size")
 
         # Additional considerations
         if architecture == "arm64" and os_type == "macOS":
@@ -834,6 +837,7 @@ def classify_hardware_performance() -> Dict[str, Any]:
         memory_usage_percent = memory_info.get("ram", {}).get("usage_percent", 0)
         if memory_usage_percent > 80:
             reasoning.append(f"High memory usage ({memory_usage_percent}%) may affect performance")
+
 
         classification_result = {
             "timestamp": datetime.now().isoformat(),
@@ -851,7 +855,7 @@ def classify_hardware_performance() -> Dict[str, Any]:
             "classification_criteria": {
                 "high": "8GB+ RAM, 4+ CPU cores, non-Apple Silicon → gemma3-cortex:latest",
                 "medium": "4-8GB RAM, 2-4 CPU cores, or Apple Silicon → mistral:7b",
-                "low": "<4GB RAM or limited CPU → gemma2:2b"
+                "low": "<4GB RAM or limited CPU → phi4-mini:3.8b-q4_K_M"
             }
         }
 
