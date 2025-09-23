@@ -7,62 +7,99 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.3.18] - 2025-07-08
+### Added
+
+- **Hardware-Dependent Model Selection**: Automatic LLM model selection based on system hardware capabilities
+  - Hardware classification system in `parietal/hardware.py` (`classify_hardware_performance()`)
+  - Automatic detection of Apple Silicon with Mistral optimization for M1/M2 compatibility
+  - Three performance tiers: High (gemma3-cortex:latest), Medium (mistral:7b), Low (gemma2:2b)
+  - Removed manual `ollama_model` database configuration in favor of automatic selection
+  - Updated installer to download optimal model during installation
+  - New API endpoint: `GET /parietal/hardware/classification`
+
 ### Changed
+
+- **Configuration**: `config.py` now uses `get_automatic_ollama_model()` instead of database lookup
+- **Database Schema**: Removed `ollama_model` setting from system_settings with migration support
+- **Installer**: Hardware detection and model-specific downloads during `install_tatlock.sh`
+- **Documentation**: Updated README.md, AGENTS.md, CLAUDE.md, and parietal/readme.md with hardware selection info
+
+## [0.3.18] - 2025-07-08
+
+### Changed
+
 - **Development**: Updated `GEMINI.md` with a mandatory, detailed protocol for Git workflow and a safer, more reliable debugging process for web applications. This includes using a dedicated `ide_debugging` directory for all temporary files, which is now ignored by Git.
 
 ## [0.3.17] - 2025-07-08
+
 ### Added
+
 - **Development**: Added a dedicated `ide_debugging` directory for temporary debugging files and added it to `.gitignore`.
 
 ### Changed
+
 - **Development**: Updated the debugging protocol to use a dedicated log file and to place all temporary files in the `ide_debugging` directory.
 
 ## [0.3.16] - 2025-07-08
+
 ### Fixed
+
 - **UI**: Corrected the CSS to properly center the login box on the login page.
 - **UI**: Fixed an issue where the navigation indicator was not updating when switching sections in the user profile and admin pages.
 - **Memory Management**: Fixed a bug where the topic and summary were not being displayed in the memory management section of the profile page.
 - **Memory Management**: Fixed an error that occurred when viewing a conversation from the memory management section.
 
 ## [0.3.15] - 2025-07-08
+
 ### Fixed
+
 - Corrected several failing tests in the test suite.
 - Fixed logout functionality by changing the HTTP method from POST to GET.
 - Updated the website tester configuration to include the debug console.
 - Corrected the mocked process count in the hardware monitoring tests.
 
-
 ## [0.3.14] - 2025-07-08
+
 ### Changed
+
 - **Memory Management**: Restyled the memory management section in the profile page to use a table for a cleaner and more organized layout.
 - **Admin Dashboard**: Aligned the styling of the 'Edit' button in the User Management section with other action buttons for visual consistency.
 
 ### Fixed
+
 - **CSS Spacing**: Corrected the spacing for the network card in the system info section.
 
 ## [0.3.13] - 2025-07-08
+
 ### Added
+
 - **Screenshot Tool**: Improved the screenshot tool to take full-page, high-resolution screenshots and handle authenticated sessions.
 - **Developer Workflow**: Updated `GEMINI.md` with instructions for a visual changes workflow, including taking before and after screenshots to verify UI changes.
 
 ### Fixed
+
 - **CSS Cleanup**: Performed a major cleanup and restructuring of the main stylesheet (`style.css`) to improve organization, remove redundancy, and restore missing styles.
 
 ## [0.3.12] - 2025-07-08
+
 ### Fixed
+
 - **CSS Cleanup**: Refactored and cleaned up the main stylesheet (`style.css`) for better organization and maintainability. Restored all missing styles for the benchmark section, admin dashboard, profile page, and action buttons.
 
 ### Added
+
 - **Screenshot Tool**: Added a new tool to take screenshots of web pages, which can be used to visually verify UI changes.
 
 ## [0.3.11] - 2025-07-08
+
 ### Fixed
+
 - **CSS Alignment**: Corrected the CSS for the main layout on the conversation page to properly align the left and right menu bars.
 
 ## [0.3.10] - 2024-06-27
 
 ### Changed
+
 - **System Settings Simplification**: Removed complex Ollama model dropdown functionality from system settings page
   - Converted ollama_model setting to use standard text input like other settings
   - Removed model downloader, refresh function, and progress tracking from backend
@@ -76,6 +113,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Improved the raw system data display: always shows pretty-printed JSON in a monospace block, with syntax highlighting if available.
 
 ### Fixed
+
 - Removed hardcoded 'Rotterdam' reference in agent system message; now dynamically uses the user's actual location from their personal profile (falls back to 'unknown location' if not set)
 - Various UI and data display improvements for the System Info section on the conversation page.
 - Network card in System Info now stretches the entire row and displays sent/recv in one line with two centered columns for improved clarity and consistency.
@@ -86,6 +124,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.3.9] - 2024-06-27
 
 ### Changed
+
 - **System Settings Simplification**: Removed complex Ollama model dropdown functionality from system settings page
   - Converted ollama_model setting to use standard text input like other settings
   - Removed model downloader, refresh function, and progress tracking from backend
@@ -99,6 +138,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Improved the raw system data display: always shows pretty-printed JSON in a monospace block, with syntax highlighting if available.
 
 ### Fixed
+
 - Removed hardcoded 'Rotterdam' reference in agent system message; now dynamically uses the user's actual location from their personal profile (falls back to 'unknown location' if not set)
 - Various UI and data display improvements for the System Info section on the conversation page.
 - Network card in System Info now stretches the entire row and displays sent/recv in one line with two centered columns for improved clarity and consistency.
@@ -106,17 +146,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.3.8] - 2024-06-26
 
 ### Changed
+
 - **System Info Section UI/UX:**
   - Grouped the first four metric tiles (CPU, RAM, Disk, Uptime) on a single row and moved the Network tile to a new row for better visual grouping.
   - Fixed the system info graphs to display live CPU and RAM usage history (last 60s) with proper data buffering and Chart.js integration.
   - Improved the raw system data display: always shows pretty-printed JSON in a monospace block, with syntax highlighting if available.
 
 ### Fixed
+
 - Various UI and data display improvements for the System Info section on the conversation page.
 
 ## [0.3.7] - 2024-06-24
 
 ### Added
+
 - **Admin Dashboard Ollama Model Selector**: Fixed issues with Ollama model selection in admin dashboard
   - Fixed backend `refresh_ollama_model_options()` to return all available Ollama models instead of filtering by tool keys
   - Fixed frontend current value detection to properly fetch setting value from API instead of DOM text
@@ -152,6 +195,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Startup model validation to ensure system uses a working model
 
 ### Improved
+
 - **Ollama Model Refresh**: Enhanced model refresh to show major models from Ollama library
   - Added curated list of major models (Gemma2, Llama3.2, Mistral, Code Llama, Phi-3, Qwen2.5, etc.)
   - Focuses on well-known models that support function calling/tools
@@ -161,13 +205,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Avoids overwhelming users with hundreds of language-specific variants
 
 ### Changed
+
 - **HTML Template Naming Convention**: Renamed main page templates to follow consistent `page.` prefix pattern
   - `admin.html` → `page.admin.html`
   - `conversation.html` → `page.conversation.html` (already renamed from chat.html)
   - `login.html` → `page.login.html`
   - `profile.html` → `page.profile.html`
   - Updated all Python code references in static.py to use new template names
-  - Updated all documentation references in developer.md, templates/README.md, and stem/readme.md
+  - Updated all documentation references in AGENTS.md, templates/README.md, and stem/readme.md
   - Maintains consistency with JavaScript file naming patterns (page.*.js)
   - Improves code organization and makes page templates easily identifiable
 - **JavaScript File Organization**: Merged debug.js functionality into page.conversation.js for unified conversation page management
@@ -227,7 +272,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Renamed `sidebar_chat.js` to `component.chatbar.js` for consistent component naming convention
 - Updated all template references to use new component.chatbar.js filename
 - Updated template documentation to include component script naming patterns
-- Comprehensive documentation of JavaScript file naming patterns in developer.md:
+- Comprehensive documentation of JavaScript file naming patterns in AGENTS.md:
   - Page-specific scripts: `page.{pagename}.js`
   - Component scripts: `component.{componentname}.js`
   - Shared scripts: `{functionality}.js`
@@ -244,6 +289,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Updated naming conventions and removed references to deleted or merged files
 
 ### Fixed
+
 - **Profile Page JavaScript Error Fix**: Removed incomplete settings section registration that was causing `loadProfileSettings is not defined` error
   - Removed `registerSectionLoader('settings-section', loadProfileSettings)` registration from page.profile.js
   - Removed `'settings-section'` from valid sections array in navigation handler
@@ -325,6 +371,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Ensures dropdown only shows models verified to support tools
 
 ### Technical
+
 - Added new tables: `system_settings`, `system_setting_categories`, `system_setting_categories_map`, and `settings_options` to `system.db`.
 - Updated `stem/installation/database_setup.py` to create and populate default settings and categories.
 - Added new Pydantic models for system settings and categories in `stem/models.py`.

@@ -48,8 +48,31 @@ def get_setting_from_db_or_env(setting_key: str, env_key: str, default_value: st
     # Fallback to environment variable
     return os.getenv(env_key, default_value)
 
-# --- LLM and API Keys ---
-OLLAMA_MODEL = get_setting_from_db_or_env("ollama_model", "OLLAMA_MODEL", "gemma3-cortex:latest")
+# --- LLM Configuration ---
+# Model is now automatically selected based on hardware performance
+def get_automatic_ollama_model() -> str:
+    """
+    Automatically select Ollama model based on hardware performance.
+    Falls back to environment variable or safe default if hardware detection fails.
+    """
+    try:
+        # Import here to avoid circular imports
+        from parietal.hardware import classify_hardware_performance
+
+        classification = classify_hardware_performance()
+        model = classification.get("recommended_model", "gemma2:2b")
+
+        logger.info(f"Auto-selected model: {model} (tier: {classification.get('performance_tier', 'unknown')})")
+        return model
+
+    except Exception as e:
+        logger.warning(f"Hardware classification failed, using fallback: {e}")
+        # Fallback to environment variable or safe default
+        fallback_model = os.getenv("OLLAMA_MODEL", "gemma2:2b")
+        logger.info(f"Using fallback model: {fallback_model}")
+        return fallback_model
+
+OLLAMA_MODEL = get_automatic_ollama_model()
 OLLAMA_HOST = get_setting_from_db_or_env("ollama_host", "OLLAMA_HOST", "http://localhost:11434")
 OLLAMA_TIMEOUT = int(get_setting_from_db_or_env("ollama_timeout", "OLLAMA_TIMEOUT", "30"))
 

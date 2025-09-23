@@ -5,6 +5,7 @@
 The Amygdala module is planned for mood and emotional context processing in Tatlock. Named after the brain's amygdala responsible for emotional processing and memory, this module will help the agent understand and respond to emotional context, sentiment analysis, and mood-aware interactions.
 
 ## Planned Features
+
 - **Sentiment Analysis**: Analyze user messages for emotional content
 - **Mood Tracking**: Monitor and respond to user emotional states
 - **Response Modulation**: Adjust response tone based on user mood
@@ -12,6 +13,7 @@ The Amygdala module is planned for mood and emotional context processing in Tatl
 - **External Integration**: Weather, news, and time-based mood influences
 
 ## Integration Points
+
 - **Cortex**: Provide emotional context for decision making
 - **Hippocampus**: Store emotional patterns and mood history
 - **Temporal**: Process emotional language and context
@@ -19,10 +21,12 @@ The Amygdala module is planned for mood and emotional context processing in Tatl
 - **Stem**: Access user preferences and personal information
 
 ## Development Phases
+
 1. **Foundation**: Basic sentiment detection and mood state tracking
 2. **Advanced Features**: Emotional memory and contextual analysis
 3. **Intelligence**: Predictive mood analysis and emotional learning
 
 ## See Also
-- [Developer Guide](../developer.md) – All standards and patterns
+
+- [Developer Guide](../AGENTS.md) – All standards and patterns
 - [Module Docs](../README.md)

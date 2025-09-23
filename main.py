@@ -41,8 +41,7 @@ from fastapi.openapi.utils import get_openapi
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.middleware.cors import CORSMiddleware
 from config import (
-    OPENWEATHER_API_KEY, GOOGLE_API_KEY, GOOGLE_CSE_ID, 
-    OLLAMA_MODEL, SYSTEM_DB_PATH, PORT, ALLOWED_ORIGINS, HOSTNAME, APP_VERSION
+    OLLAMA_MODEL, PORT, ALLOWED_ORIGINS, HOSTNAME, APP_VERSION
 )
 from temporal.voice_service import VoiceService
 from contextlib import asynccontextmanager

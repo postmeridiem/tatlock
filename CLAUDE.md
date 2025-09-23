@@ -2,7 +2,7 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-**IMPORTANT**: The `developer.md` file contains the authoritative instruction set for all developers and LLMs working on this project. Any conflicting guidance between this file and `developer.md` should defer to `developer.md`, which supersedes all other instruction files including this one.
+**IMPORTANT**: The `AGENTS.md` file contains the authoritative instruction set for all developers and LLMs working on this project. Any conflicting guidance between this file and `AGENTS.md` should defer to `AGENTS.md`, which supersedes all other instruction files including this one.
 
 ## Project Overview
 
@@ -15,7 +15,7 @@ The codebase is organized into modules inspired by brain regions:
 - **cortex/**: Core agent logic and decision-making with agentic loop
 - **hippocampus/**: Memory system with per-user databases and conversation storage
 - **stem/**: Authentication, admin dashboard, tools, utilities, and Jinja2 templating
-- **parietal/**: Hardware monitoring and performance analysis
+- **parietal/**: Hardware monitoring, performance analysis, and automatic model selection
 - **occipital/**: Visual processing and screenshot testing
 - **cerebellum/**: External API tools (web search, weather)
 - **temporal/**: Language processing and temporal context (voice disabled)
@@ -23,6 +23,7 @@ The codebase is organized into modules inspired by brain regions:
 - **amygdala/**: Emotional processing (planned)
 
 Key architectural principles:
+
 - **User Isolation**: Each user has their own database (`{username}_longterm.db`) for complete privacy
 - **Tool-Driven**: Modular tool system with database-driven registration
 - **Session Authentication**: Secure session-based authentication with cookies
@@ -31,6 +32,7 @@ Key architectural principles:
 ## Common Development Commands
 
 ### Application Management
+
 ```bash
 # Start the application
 ./wakeup.sh
@@ -43,6 +45,7 @@ Key architectural principles:
 ```
 
 ### Development Workflow
+
 ```bash
 # Activate virtual environment
 source .venv/bin/activate
@@ -61,6 +64,7 @@ python -m pytest -v tests/
 ```
 
 ### Testing
+
 - **Main test command**: `python -m pytest tests/`
 - **Single test**: `python -m pytest tests/test_[module_name].py`
 - **Verbose output**: `python -m pytest -v tests/`
@@ -69,14 +73,26 @@ python -m pytest -v tests/
 
 ## Key Development Patterns
 
+### Automatic Model Selection
+
+Tatlock automatically selects the optimal LLM model based on hardware:
+
+- **Hardware Detection**: `parietal/hardware.py` classifies system capabilities
+- **Model Selection**: Removes manual `ollama_model` database configuration
+- **Apple Silicon Optimized**: Special handling for M1/M2 compatibility
+- **Config Flow**: `config.py` → `classify_hardware_performance()` → optimal model
+
 ### Tool Development
+
 Tools are implemented following a specific pattern:
+
 1. Create tool function in appropriate brain module (e.g., `cerebellum/weather_tool.py`)
 2. Add to database schema in `stem/installation/database_setup.py`
 3. Register function in `stem/tools.py` AVAILABLE_TOOLS dictionary
 4. Enable in database by updating `enabled = 1` in tools table
 
 ### User Context Management
+
 ```python
 from stem.security import current_user
 
@@ -89,6 +105,7 @@ username = user.username
 ```
 
 ### Database Patterns
+
 ```python
 # Standard database operation with error handling
 try:
@@ -104,6 +121,7 @@ except Exception as e:
 ```
 
 ### Frontend Development
+
 - **Jinja2 Templating**: Server-side rendering with shared components
 - **Material Design**: Clean, responsive web interface
 - **JavaScript Patterns**: ES6+, async/await, class-based architecture
@@ -112,24 +130,28 @@ except Exception as e:
 ## Important Files and Locations
 
 ### Configuration
+
 - `pyproject.toml`: Project metadata and version (single source of truth)
 - `requirements.txt`: Python dependencies
 - `config.py`: Application configuration and environment variables
 - `.env`: API keys and environment settings (not in repo)
 
 ### Core Application Files
+
 - `main.py`: FastAPI application entry point and routing
 - `wakeup.sh`: Application startup script
 - `install_tatlock.sh`: Complete installation and setup script
 
 ### Documentation
-- `developer.md`: Comprehensive developer guide with all standards and patterns
+
+- `AGENTS.md`: Comprehensive developer guide with all standards and patterns
 - `README.md`: Installation instructions and project overview
 - `troubleshooting.md`: Installation and runtime issue resolution
 - `moreinfo.md`: In-depth technical information
 - Module `readme.md` files in each brain module directory
 
 ### Database Schema
+
 - `stem/installation/database_setup.py`: Database schema and migration functions
 - System database (`system.db`): Users, roles, tools, global system prompts
 - User databases (`{username}_longterm.db`): Per-user conversations, memories, topics

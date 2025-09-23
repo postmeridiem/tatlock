@@ -5,12 +5,14 @@ This document contains detailed technical information about Tatlock's architectu
 ## Current Implementation Status
 
 ### Fully Implemented Modules
+
 - **cortex**: Core agent logic with tool dispatch and agentic loop
 - **hippocampus**: Complete memory system with user-specific databases
 - **stem**: Authentication, admin dashboard, tools, and utilities
 - **parietal**: Hardware monitoring and performance analysis
 
 ### Planned Modules (Future Development)
+
 - **amygdala**: Emotional processing and mood awareness
 - **cerebellum**: Procedural memory and task automation
 - **occipital**: Visual processing and image analysis
@@ -20,6 +22,7 @@ This document contains detailed technical information about Tatlock's architectu
 ## Core AI Capabilities
 
 ### Conversational AI API
+
 - **FastAPI-based HTTP interface** for chat and tool use with authentication
 - **Agentic Loop**: The agent can call external tools (weather, web search, memory recall, etc.) as part of its reasoning process
 - **Persistent Memory**: Long-term storage and recall of conversations, topics, and user data
@@ -27,6 +30,7 @@ This document contains detailed technical information about Tatlock's architectu
 - **Topic Classification**: Automatic categorization of conversations for better memory organization
 
 ### Authentication & Security
+
 - **Session-Based Authentication**: Modern session management with secure cookies
 - **Comprehensive User Management**: Create, authenticate, and manage users with roles and groups
 - **Password Security**: PBKDF2 hashing with unique salts for each user
@@ -36,6 +40,7 @@ This document contains detailed technical information about Tatlock's architectu
 - **User Data Isolation**: Each user has their own memory database for complete privacy
 
 ### Web Interface
+
 - **Modern Admin Dashboard**: Complete user, role, and group management interface
 - **User Profile Management**: Self-service profile editing and password changes
 - **Debug Console**: Real-time JSON logging of server interactions for development
@@ -46,6 +51,7 @@ This document contains detailed technical information about Tatlock's architectu
 - **Jinja2 Templating**: Server-side rendering with reusable components and consistent layouts
 
 ### Frontend Architecture
+
 - **Template System**: Jinja2-based templating with `stem/htmlcontroller.py`
 - **Shared Components**: Reusable UI components in `stem/templates/components/`
 - **Base Layout**: Consistent page structure with `stem/templates/base.html`
@@ -59,6 +65,7 @@ This document contains detailed technical information about Tatlock's architectu
 Tatlock's architecture is inspired by the human brain, with each module representing a specific brain region:
 
 #### **Cortex** - Executive Functions
+
 - **Location**: `cortex/`
 - **Purpose**: Core decision-making and reasoning
 - **Key Components**:
@@ -68,6 +75,7 @@ Tatlock's architecture is inspired by the human brain, with each module represen
   - Tool dispatch and execution coordination
 
 #### **Hippocampus** - Memory System
+
 - **Location**: `hippocampus/`
 - **Purpose**: Long-term memory storage and retrieval
 - **Key Components**:
@@ -77,6 +85,7 @@ Tatlock's architecture is inspired by the human brain, with each module represen
   - Memory recall and search functionality
 
 #### **Stem** - Core Infrastructure
+
 - **Location**: `stem/`
 - **Purpose**: Authentication, utilities, and core services
 - **Key Components**:
@@ -87,6 +96,7 @@ Tatlock's architecture is inspired by the human brain, with each module represen
   - Jinja2 templating system
 
 #### **Parietal** - Sensory Processing
+
 - **Location**: `parietal/`
 - **Purpose**: Hardware monitoring and performance analysis
 - **Key Components**:
@@ -98,6 +108,7 @@ Tatlock's architecture is inspired by the human brain, with each module represen
 ### Planned Brain Regions
 
 #### **Amygdala** - Emotional Processing
+
 - **Status**: Planned
 - **Purpose**: Mood awareness and emotional context
 - **Planned Features**:
@@ -106,6 +117,7 @@ Tatlock's architecture is inspired by the human brain, with each module represen
   - Emotional memory and patterns
 
 #### **Cerebellum** - Procedural Memory
+
 - **Status**: Planned
 - **Purpose**: Task automation and learned behaviors
 - **Planned Features**:
@@ -114,6 +126,7 @@ Tatlock's architecture is inspired by the human brain, with each module represen
   - Skill acquisition and optimization
 
 #### **Occipital** - Visual Processing
+
 - **Status**: Planned
 - **Purpose**: Image analysis and visual understanding
 - **Planned Features**:
@@ -122,6 +135,7 @@ Tatlock's architecture is inspired by the human brain, with each module represen
   - Visual context understanding
 
 #### **Temporal** - Language Processing
+
 - **Status**: Planned
 - **Purpose**: Language understanding and temporal context
 - **Planned Features**:
@@ -130,6 +144,7 @@ Tatlock's architecture is inspired by the human brain, with each module represen
   - Temporal reasoning
 
 #### **Thalamus** - Information Routing
+
 - **Status**: Planned
 - **Purpose**: Coordination and information flow
 - **Planned Features**:
@@ -142,6 +157,7 @@ Tatlock's architecture is inspired by the human brain, with each module represen
 ### Database Architecture
 
 #### User Isolation System
+
 - **Per-User Databases**: Each user has their own `{username}_longterm.db`
 - **Shared System Database**: `system.db` for authentication and user management
 - **Complete Privacy**: No cross-user data access possible
@@ -150,6 +166,7 @@ Tatlock's architecture is inspired by the human brain, with each module represen
 #### Database Schema
 
 **User Database (`{username}_longterm.db`)**:
+
 ```sql
 -- Memories table
 CREATE TABLE memories (
@@ -196,6 +213,7 @@ CREATE TABLE rise_and_shine (
 ```
 
 **System Database (`system.db`)**:
+
 ```sql
 -- Users table
 CREATE TABLE users (
@@ -219,12 +237,14 @@ CREATE TABLE user_groups (username TEXT, group_id INTEGER);
 ### Authentication System
 
 #### Session Management
+
 - **Secure Cookies**: Session-based authentication with secure cookie settings
 - **PBKDF2 Hashing**: Password hashing with unique salts per user
 - **Session Expiration**: Configurable session timeouts
 - **CSRF Protection**: Built-in CSRF protection for forms
 
 #### Security Features
+
 - **Input Validation**: All inputs validated through Pydantic models
 - **SQL Injection Prevention**: Parameterized queries throughout
 - **XSS Protection**: Output encoding and sanitization
@@ -233,12 +253,14 @@ CREATE TABLE user_groups (username TEXT, group_id INTEGER);
 ### Tool System Architecture
 
 #### Tool Integration
+
 - **Dynamic Tool Loading**: Tools automatically available to the agent
 - **User Context Injection**: Current user automatically injected into tool calls
 - **Error Handling**: Graceful error handling for tool failures
 - **Performance Monitoring**: Tool execution timing and success tracking
 
 #### Available Tools
+
 1. **web_search**: Google Custom Search API integration
 2. **find_personal_variables**: User-specific information lookup
 3. **get_weather_forecast**: OpenWeather API integration
@@ -255,12 +277,14 @@ CREATE TABLE user_groups (username TEXT, group_id INTEGER);
 ### LLM Integration
 
 #### Ollama Integration
+
 - **Local Inference**: Uses Ollama for local LLM inference
 - **Model Configuration**: Configurable via `OLLAMA_MODEL` environment variable
 - **Tool Calling**: Supports both structured and legacy JSON tool calls
 - **Response Processing**: Handles various response formats and error conditions
 
 #### Agentic Loop
+
 - **Maximum Iterations**: Up to 5 tool call iterations per user message
 - **Context Management**: Maintains full conversation history including tool calls
 - **Topic Classification**: Automatic topic assignment using LLM
@@ -269,18 +293,21 @@ CREATE TABLE user_groups (username TEXT, group_id INTEGER);
 ### Web Interface Architecture
 
 #### Frontend Components
+
 - **Material Design**: Consistent Material Design aesthetics throughout
 - **Responsive Design**: Works on desktop and mobile devices
 - **Dark/Light Mode**: User preference for theme switching
 - **Real-time Updates**: Dynamic interface updates without page refresh
 
 #### JavaScript Architecture
+
 - **Modular Design**: Separate JavaScript files for different functionalities
 - **Common Utilities**: Shared functionality in `common.js`
 - **Chart Integration**: Chart.js for data visualization
 - **Real-time Logging**: WebSocket-like real-time logging display
 
 #### Static Asset Management
+
 - **Offline Capability**: Material Icons and fonts work without internet
 - **Asset Optimization**: Efficient asset delivery and caching
 - **Favicon Set**: Complete favicon and app icon set
@@ -289,12 +316,14 @@ CREATE TABLE user_groups (username TEXT, group_id INTEGER);
 ### Performance Monitoring
 
 #### Hardware Monitoring
+
 - **Real-time Metrics**: CPU, RAM, disk, and network usage
 - **System Health**: Automatic health checks and warnings
 - **Performance Grading**: Automatic performance assessment
 - **Bottleneck Identification**: Performance issue detection and recommendations
 
 #### Benchmarking System
+
 - **LLM Benchmark**: Response time testing for different scenarios
 - **Tools Benchmark**: Tool execution performance testing
 - **Comprehensive Analysis**: Combined performance analysis
@@ -303,12 +332,14 @@ CREATE TABLE user_groups (username TEXT, group_id INTEGER);
 ## API Architecture
 
 ### FastAPI Integration
+
 - **Automatic Documentation**: Swagger UI and ReDoc integration
 - **Request Validation**: Pydantic model validation
 - **Response Serialization**: Automatic JSON serialization
 - **Error Handling**: Comprehensive error handling and responses
 
 ### Endpoint Structure
+
 - **Authentication Endpoints**: Login, logout, session management
 - **Admin Endpoints**: User, role, and group management
 - **Profile Endpoints**: User profile management
@@ -316,6 +347,7 @@ CREATE TABLE user_groups (username TEXT, group_id INTEGER);
 - **System Endpoints**: Hardware monitoring and performance
 
 ### Data Models
+
 - **Request Models**: Validated input models with Pydantic
 - **Response Models**: Structured response models
 - **Error Models**: Standardized error responses
@@ -324,18 +356,21 @@ CREATE TABLE user_groups (username TEXT, group_id INTEGER);
 ## Security Architecture
 
 ### Data Protection
+
 - **User Isolation**: Complete data separation between users
 - **Database Security**: Secure database connections and queries
 - **Session Security**: Secure session management
 - **Input Sanitization**: Comprehensive input validation and sanitization
 
 ### Access Control
+
 - **Role-Based Access**: Fine-grained role-based permissions
 - **Group Management**: Flexible group-based access control
 - **Admin Protection**: Prevents deletion of critical system components
 - **User Boundaries**: Tools respect user permissions and data boundaries
 
 ### Privacy Features
+
 - **Data Minimization**: Collect only necessary data
 - **Local Processing**: All processing done locally
 - **No External Transmission**: Sensitive data stays within the application
@@ -344,18 +379,21 @@ CREATE TABLE user_groups (username TEXT, group_id INTEGER);
 ## Deployment Architecture
 
 ### Service Management
+
 - **Systemd Integration**: Linux systemd service support
 - **LaunchAgent Integration**: macOS LaunchAgent support
 - **Auto-start**: Optional automatic startup on system boot
 - **Service Monitoring**: Service status and health monitoring
 
 ### Environment Configuration
+
 - **Environment Variables**: Comprehensive environment variable configuration
 - **API Key Management**: Secure API key storage and management
 - **Port Configuration**: Configurable port settings
 - **Logging Configuration**: Flexible logging configuration
 
 ### Cross-Platform Support
+
 - **Linux Support**: Ubuntu/Debian, CentOS/RHEL/Fedora, Arch Linux
 - **macOS Support**: Intel and Apple Silicon (M1/M2)
 - **Package Management**: Automatic dependency installation
@@ -364,18 +402,21 @@ CREATE TABLE user_groups (username TEXT, group_id INTEGER);
 ## Future Development Roadmap
 
 ### Phase 1: Core Enhancements
+
 - **Streaming Responses**: Real-time response streaming
 - **Advanced Tool System**: Plugin architecture for custom tools
 - **Enhanced Security**: Two-factor authentication support
 - **Performance Optimization**: Advanced caching and optimization
 
 ### Phase 2: Brain Region Expansion
+
 - **Amygdala Implementation**: Emotional processing and mood awareness
 - **Cerebellum Implementation**: Procedural memory and task automation
 - **Occipital Implementation**: Visual processing and image analysis
 - **Temporal Implementation**: Language processing and temporal context
 
 ### Phase 3: Advanced Features
+
 - **Thalamus Implementation**: Information routing and coordination
 - **Advanced AI Features**: More sophisticated AI capabilities
 - **Integration APIs**: External system integration capabilities
@@ -384,7 +425,7 @@ CREATE TABLE user_groups (username TEXT, group_id INTEGER);
 ## Related Documentation
 
 - [README.md](README.md) - General overview and installation
-- [developer.md](developer.md) - Developer guide and practices
+- [AGENTS.md](AGENTS.md) - Developer guide and practices
 - [troubleshooting.md](troubleshooting.md) - Common installation issues and solutions
 - [cortex/readme.md](cortex/readme.md) - Core agent logic documentation
 - [hippocampus/readme.md](hippocampus/readme.md) - Memory system documentation
@@ -394,4 +435,4 @@ CREATE TABLE user_groups (username TEXT, group_id INTEGER);
 - [cerebellum/readme.md](cerebellum/readme.md) - Procedural memory (planned)
 - [occipital/readme.md](occipital/readme.md) - Visual processing (planned)
 - [temporal/readme.md](temporal/readme.md) - Language processing (planned)
-- [thalamus/readme.md](thalamus/readme.md) - Information routing (planned) 
+- [thalamus/readme.md](thalamus/readme.md) - Information routing (planned)

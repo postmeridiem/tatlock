@@ -7,6 +7,7 @@ Tatlock is a modular, brain-inspired conversational AI platform with built-in au
 ## 🚀 Quick Start
 
 ### Prerequisites
+
 - **Linux**: Ubuntu/Debian, CentOS/RHEL/Fedora, or Arch Linux
 - **macOS**: Intel or Apple Silicon (M1/M2)
 - Python 3.10 or higher
@@ -14,16 +15,20 @@ Tatlock is a modular, brain-inspired conversational AI platform with built-in au
 - Ollama (for local LLM inference)
 
 ### Installation
+
 1. **Clone and Install**:
+
    ```bash
    git clone https://github.com/postmeridiem/tatlock.git
    cd tatlock
    chmod +x install_tatlock.sh
    ./install_tatlock.sh
    ```
-   The installation script handles dependencies, Python packages, and Ollama setup.
+
+   The installation script handles dependencies, Python packages, Ollama setup, and automatically selects the optimal LLM model based on your hardware.
 
 2. **Update API Keys**:
+
    ```bash
    # Edit .env and update the following variables:
    # OPENWEATHER_API_KEY - Get from https://openweathermap.org/api
@@ -32,6 +37,7 @@ Tatlock is a modular, brain-inspired conversational AI platform with built-in au
    ```
 
 3. **Start the Application**:
+
    ```bash
    ./wakeup.sh
    ```
@@ -48,6 +54,7 @@ Tatlock is a modular, brain-inspired conversational AI platform with built-in au
 ## 🧠 Architecture Overview
 
 Tatlock is organized into modules inspired by brain regions:
+
 - **Cortex**: Core agent logic
 - **Hippocampus**: Memory system
 - **Stem**: Authentication, admin, tools
@@ -59,6 +66,7 @@ Tatlock is organized into modules inspired by brain regions:
 - **Amygdala**: Emotional context (planned)
 
 ### ✅ **Production Ready Modules**
+
 - **🧠 Cortex**: Core agent logic with tool dispatch and agentic loop
 - **🧠 Hippocampus**: Complete memory system with user-specific databases
 - **🧠 Stem**: Authentication, admin dashboard, tools, and utilities
@@ -67,21 +75,25 @@ Tatlock is organized into modules inspired by brain regions:
 - **🧠 Cerebellum**: External API tools (web search, weather)
 
 ### 🔄 **In Development**
+
 - **🧠 Temporal**: Language processing and temporal context
 - **🧠 Thalamus**: Information routing and coordination
 
 ### 📋 **Planned Modules**
+
 - **🧠 Amygdala**: Emotional processing and mood awareness
 
 ## ✨ Key Features
 
 ### 🤖 **AI Agent System**
+
 - **Conversational AI**: Natural language processing with context awareness
 - **Tool Integration**: Access to system information, weather, web search, and more
 - **Memory System**: Persistent conversation history and user data
 - **Multi-user Support**: Role-based access control and user management
 
 ### 🎤 **Voice Input System** ⚠️ **Not Available**
+
 - **Microphone Button**: Click to start voice recording in the chat interface
 - **Keyword Detection**: Say "Tatlock" followed by your command
 - **Real-time Processing**: 5-second auto-pause with instant transcription
@@ -90,12 +102,14 @@ Tatlock is organized into modules inspired by brain regions:
 - **⚠️ Note**: Voice processing has been removed from this version. The system operates in text-only mode.
 
 ### 🔧 **System Management**
+
 - **Admin Dashboard**: User, role, and group management
 - **System Monitoring**: Real-time hardware and performance metrics
 - **Benchmark Tools**: LLM and tool performance testing
 - **Debug Console**: Comprehensive logging and troubleshooting
 
 ### 🎨 **Modern Interface**
+
 - **Material Design**: Clean, responsive web interface
 - **Dark/Light Themes**: Customizable appearance
 - **Mobile Responsive**: Works on desktop and mobile devices
@@ -103,21 +117,53 @@ Tatlock is organized into modules inspired by brain regions:
 - **Jinja2 Templating**: Server-side rendering with shared components and layouts
 
 ### 🛡️ **Security & Privacy**
+
 - **Complete User Isolation**: Each user has their own database for complete privacy
 - **Session-Based Authentication**: Secure session management with cookies
 - **Role-Based Access Control**: Fine-grained permissions and user management
 - **Local Processing**: All AI processing done locally with Ollama
+- **Hardware-Optimized Models**: Automatic selection of optimal LLM based on your system capabilities
 - **No External Data Transmission**: Sensitive data stays within your system
 
+## 🎯 Hardware-Optimized Model Selection
+
+Tatlock automatically detects your hardware capabilities and selects the optimal language model for your system:
+
+### 🏆 **High Performance** (8GB+ RAM, 4+ CPU cores, non-Apple Silicon)
+
+- **Model**: `gemma3-cortex:latest` (Enhanced Gemma 3)
+- **Features**: Maximum capability for complex reasoning and tool use
+- **Best for**: Workstations and high-end systems
+
+### ⚡ **Medium Performance** (4-8GB RAM, 2-4 CPU cores, or Apple Silicon)
+
+- **Model**: `mistral:7b` (Mistral 7B)
+- **Features**: Excellent tool calling with optimized Apple Silicon compatibility
+- **Best for**: Most modern laptops and Apple M1/M2 systems
+
+### 💡 **Low Performance** (<4GB RAM or limited CPU)
+
+- **Model**: `gemma2:2b` (Gemma 2 2B)
+- **Features**: Lightweight but capable, good tool calling support
+- **Best for**: Older hardware and resource-constrained environments
+
+### 🔧 **Key Benefits**
+
+- **Automatic Detection**: No manual configuration required
+- **Apple Silicon Optimized**: Special handling for M1/M2 compatibility
+- **Tool Calling Focus**: All models selected for agent and function calling capabilities
+- **Fallback Safety**: Robust error handling with safe defaults
+
 ## 📚 Documentation
-- **[Developer Guide](developer.md)** – Coding standards, tool patterns, and development practices (single source of truth)
+
+- **[Developer Guide](AGENTS.md)** – Coding standards, tool patterns, and development practices (single source of truth)
 - **[In-Depth Technical Information](moreinfo.md)** – Architecture and advanced features
 - **[Troubleshooting](troubleshooting.md)** – Installation and runtime help
 - **Module Docs**: See each module's `readme.md` for purpose and integration
 
 ## 🤝 Contributing
 
-Tatlock is designed with a modular, brain-inspired architecture that makes it easy to extend and contribute to. See the [Developer Guide](developer.md) for detailed information on:
+Tatlock is designed with a modular, brain-inspired architecture that makes it easy to extend and contribute to. See the [Developer Guide](AGENTS.md) for detailed information on:
 
 - **Development Practices**: Coding standards, testing, and deployment
 - **Tool Organization**: How to add new tools and integrate them

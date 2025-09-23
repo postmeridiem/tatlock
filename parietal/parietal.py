@@ -52,4 +52,14 @@ async def tools_benchmark_api(user: UserModel = Depends(get_current_user)):
     """
     if not user:
         raise HTTPException(status_code=401, detail="Not authenticated")
-    return hardware.run_tool_benchmark() 
+    return hardware.run_tool_benchmark()
+
+@router.get("/hardware/classification")
+async def hardware_classification_api(user: UserModel = Depends(get_current_user)):
+    """
+    Returns hardware performance classification and recommended Ollama model.
+    Requires authentication.
+    """
+    if not user:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    return hardware.classify_hardware_performance()

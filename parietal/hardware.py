@@ -1,7 +1,7 @@
 """
 parietal/hardware.py
 Hardware and system information utilities for Tatlock.
-Provides functions to query operating system, disk space, memory status, 
+Provides functions to query operating system, disk space, memory status,
 network statistics, and other system information.
 Supports both macOS and Linux systems.
 """
@@ -10,8 +10,12 @@ import psutil
 import subprocess
 import os
 import ollama
+import logging
 from typing import Dict, List, Optional, Any
 from datetime import datetime
+
+# Set up logging for this module
+logger = logging.getLogger(__name__)
 def get_operating_system_info() -> Dict[str, Any]:
     """
     Get detailed operating system information.
@@ -759,4 +763,107 @@ def run_comprehensive_benchmark() -> Dict[str, Any]:
         
     except Exception as e:
         comprehensive_results["error"] = f"Comprehensive benchmark failed: {str(e)}"
-        return comprehensive_results 
+        return comprehensive_results
+
+def classify_hardware_performance() -> Dict[str, Any]:
+    """
+    Classify hardware performance tier for automatic model selection.
+    Returns hardware classification and recommended Ollama model.
+
+    Performance Tiers:
+    - High: 8GB+ RAM, 4+ CPU cores, non-Apple Silicon → gemma3-cortex:latest
+    - Medium: 4-8GB RAM, 2-4 CPU cores, or Apple Silicon → mistral:7b
+    - Low: <4GB RAM or limited CPU → gemma2:2b
+
+    Returns:
+        dict: Hardware classification with recommended model
+    """
+    try:
+        # Get system information
+        memory_info = get_memory_status()
+        cpu_info = get_cpu_info()
+        os_info = get_operating_system_info()
+
+        # Extract key metrics
+        total_ram_gb = memory_info.get("ram", {}).get("total_gb", 0)
+        logical_cores = cpu_info.get("count", {}).get("logical", 0)
+        physical_cores = cpu_info.get("count", {}).get("physical", 0)
+        architecture = os_info.get("machine", "unknown")  # Use machine instead of architecture for arm64 detection
+        os_type = os_info.get("os_type", "unknown")
+
+        # Classification logic
+        performance_tier = "low"
+        recommended_model = "gemma2:2b"
+        reasoning = []
+
+        # Check for Apple Silicon (M1/M2) - these have performance quirks with certain models
+        is_apple_silicon = architecture == "arm64" and os_type == "macOS"
+
+        # High performance criteria
+        if total_ram_gb >= 8.0 and logical_cores >= 4:
+            if is_apple_silicon:
+                # Apple Silicon often performs better with Mistral than Gemma
+                performance_tier = "medium"
+                recommended_model = "mistral:7b"
+                reasoning.append(f"Apple Silicon detected - using Mistral for better compatibility")
+                reasoning.append(f"High specs: {total_ram_gb}GB RAM, {logical_cores} cores")
+            else:
+                performance_tier = "high"
+                recommended_model = "gemma3-cortex:latest"
+                reasoning.append(f"High RAM ({total_ram_gb}GB) and CPU cores ({logical_cores})")
+
+        # Medium performance criteria
+        elif total_ram_gb >= 4.0 and logical_cores >= 2:
+            performance_tier = "medium"
+            recommended_model = "mistral:7b"
+            reasoning.append(f"Medium RAM ({total_ram_gb}GB) and CPU cores ({logical_cores})")
+
+        # Low performance (default)
+        else:
+            reasoning.append(f"Limited resources: {total_ram_gb}GB RAM, {logical_cores} cores")
+
+        # Additional considerations
+        if architecture == "arm64" and os_type == "macOS":
+            reasoning.append("Apple Silicon architecture detected")
+        elif architecture == "x86_64":
+            reasoning.append("x86_64 architecture detected")
+
+        # Check available memory percentage
+        memory_usage_percent = memory_info.get("ram", {}).get("usage_percent", 0)
+        if memory_usage_percent > 80:
+            reasoning.append(f"High memory usage ({memory_usage_percent}%) may affect performance")
+
+        classification_result = {
+            "timestamp": datetime.now().isoformat(),
+            "performance_tier": performance_tier,
+            "recommended_model": recommended_model,
+            "hardware_summary": {
+                "total_ram_gb": total_ram_gb,
+                "logical_cores": logical_cores,
+                "physical_cores": physical_cores,
+                "architecture": architecture,
+                "os_type": os_type,
+                "memory_usage_percent": memory_usage_percent
+            },
+            "reasoning": reasoning,
+            "classification_criteria": {
+                "high": "8GB+ RAM, 4+ CPU cores, non-Apple Silicon → gemma3-cortex:latest",
+                "medium": "4-8GB RAM, 2-4 CPU cores, or Apple Silicon → mistral:7b",
+                "low": "<4GB RAM or limited CPU → gemma2:2b"
+            }
+        }
+
+        logger.debug(f"Hardware classified as {performance_tier} tier, recommending {recommended_model}")
+        return classification_result
+
+    except Exception as e:
+        logger.error(f"Hardware classification failed: {e}")
+        # Safe fallback to low performance
+        return {
+            "timestamp": datetime.now().isoformat(),
+            "performance_tier": "low",
+            "recommended_model": "gemma2:2b",
+            "hardware_summary": {},
+            "reasoning": [f"Classification failed: {str(e)}, using safe fallback"],
+            "error": str(e)
+        }
