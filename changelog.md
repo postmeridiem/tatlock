@@ -43,6 +43,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Installer**: Hardware detection and model-specific downloads during `install_tatlock.sh`
 - **Documentation**: Updated README.md, AGENTS.md, CLAUDE.md, and parietal/readme.md with hardware selection info
 
+- **Performance Testing**: Added comprehensive benchmark testing capability
+  - New `tests/benchmark_all_tiers.py` script for systematic performance testing across all hardware tiers
+  - Automated testing of Phase 1 (simple) and Phase 2 (tool-assisted) queries on all three models
+  - Incremental CSV output with timing data, response content, and quality analysis
+  - Authentication handling for automated testing workflows
+  - Results exported as timestamped CSV files in tests directory for analysis
+
 ### Performance
 
 - **Response Time Improvements**:

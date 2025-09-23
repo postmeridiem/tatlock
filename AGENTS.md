@@ -554,6 +554,33 @@ time curl -X POST http://localhost:8000/cortex \
 
 **Note**: Manual edits to `hardware_config.py` will be overwritten on next installation. This approach is intended for testing and development only.
 
+#### Comprehensive Performance Benchmarking
+
+For systematic performance testing across all hardware tiers, use the comprehensive benchmark script:
+
+```bash
+# Run complete benchmark across all three hardware tiers
+python tests/benchmark_all_tiers.py
+
+# This will test:
+# - Phase 1 queries (simple responses without tools)
+# - Phase 2 queries (tool-assisted responses)
+# - All three hardware tiers (low/medium/high)
+# - Generate CSV output with timing and response data
+```
+
+The benchmark script automatically:
+- Tests each tier with appropriate models (phi4-mini, mistral:7b, gemma3-cortex)
+- Handles authentication and session management
+- Outputs incremental results to CSV for real-time monitoring
+- Provides comprehensive performance and quality analysis
+
+Sample benchmark commands tested:
+- **Phase 1**: "What is 2+2?" (simple mathematical query)
+- **Phase 2**: "What did we discuss before?" (memory/tool-assisted query)
+
+Results are saved as `benchmark_results_[timestamp].csv` in the tests directory for analysis.
+
 ### Test Cleanup System
 
 Tatlock includes a comprehensive test cleanup system to ensure tests don't leave behind user data or interfere with each other.
