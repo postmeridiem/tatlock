@@ -40,25 +40,33 @@ def get_base_instructions(username: str = "") -> list[str]:
     """)
     base_prompts = [row[0] for row in cursor.fetchall()]
     
-    # Get enabled tool prompts
-    cursor.execute("""
-        SELECT prompts 
-        FROM tools 
+    # LEAN SYSTEM: Separate core vs extended capabilities
+    # Core tools (always available): memory, personal data
+    # Extended tools (catalog-based): weather, web search, screenshots, etc.
+
+    # Define core tools that should always be immediately accessible
+    CORE_TOOLS = [
+        'recall_memories',
+        'recall_memories_with_time',
+        'find_personal_variables'
+    ]
+
+    # Get core tool prompts (always loaded for immediate access)
+    placeholders = ','.join(['?' for _ in CORE_TOOLS])
+    cursor.execute(f"""
+        SELECT prompts FROM tools
         WHERE enabled = 1 AND prompts IS NOT NULL AND prompts != ''
+        AND tool_key IN ({placeholders})
         ORDER BY tool_key
-    """)
-    tool_prompts = [row[0] for row in cursor.fetchall()]
-    
+    """, CORE_TOOLS)
+    core_tool_prompts = [row[0] for row in cursor.fetchall()]
+
     conn.close()
-    
-    # Combine all prompts
-    all_prompts = base_prompts + tool_prompts
-    
-    # Add explicit guidance for topic analysis
-    all_prompts.append(
-        "When the user asks about what topics are discussed most, trending subjects, what we talk about a lot, or what are our main discussion themes, use the memory_insights tool with analysis_type='topics'."
-    )
-    
+
+    # Combine base prompts with core tool prompts only
+    # This reduces overhead from 27 prompts to ~7 prompts (4 base + 3 core tools)
+    all_prompts = base_prompts + core_tool_prompts
+
     return all_prompts
 
 

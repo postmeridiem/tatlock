@@ -13,10 +13,15 @@ from datetime import date, datetime
 import uuid
 import asyncio
 import inspect
+from typing import List, Literal
+import instructor
+from openai import OpenAI
+from pydantic import BaseModel, Field
 
 # Import from our new, organized modules
 from config import OLLAMA_MODEL
 from hippocampus.database import get_base_instructions
+from hippocampus.reference_frame import get_tool_catalog_for_selection, get_selected_tools
 from stem.tools import (
     TOOLS,
     execute_find_personal_variables,
@@ -57,6 +62,28 @@ AVAILABLE_TOOLS = {
     "analyze_file": execute_analyze_file
 }
 
+# Pydantic model for structured capability assessment
+class CapabilityAssessment(BaseModel):
+    assessment: Literal["DIRECT", "TOOLS_NEEDED"] = Field(
+        description="Whether the question can be answered directly or needs tools"
+    )
+    tools: List[str] = Field(
+        default=[],
+        description="List of specific tool keys needed, empty if none required"
+    )
+    response: str = Field(
+        description="Direct answer if DIRECT, or 'PROCESSING WITH TOOLS' if tools needed"
+    )
+
+# Initialize instructor client for structured output
+instructor_client = instructor.from_openai(
+    OpenAI(
+        base_url="http://localhost:11434/v1",
+        api_key="ollama",  # required but unused for local Ollama
+    ),
+    mode=instructor.Mode.JSON,
+)
+
 def run_async(coro):
     try:
         loop = asyncio.get_running_loop()
@@ -84,8 +111,11 @@ def process_chat_interaction(user_message: str, history: list[dict], username: s
         dict: The agent's response, topic, updated history, and processing time.
     """
     start_time = time.time()
+    logger.info(f"[BENCHMARK] Starting process_chat_interaction for: '{user_message[:50]}...'")
 
     base_instructions = get_base_instructions(username)
+    setup_time = time.time()
+    logger.info(f"[BENCHMARK] Setup/instructions: {setup_time - start_time:.3f}s")
 
     # Get user location from personal variables
     location = "unknown location"
@@ -132,7 +162,11 @@ Do not attempt to call any more tools - provide a final response analyzing the s
             messages_for_ollama.append({'role': 'system', 'content': failure_analysis_prompt})
         
         logger.info(f"LLM_TOOL_CALL | Tool: chat_completion | CallID: chat_{uuid.uuid4().hex[:8]} | Args: {{'model': '{OLLAMA_MODEL}', 'messages_count': {len(messages_for_ollama)}, 'tools_count': {len(TOOLS)}}}")
+        llm_start = time.time()
+        logger.info(f"[BENCHMARK] Starting LLM call #{i+1}")
         response = ollama.chat(model=OLLAMA_MODEL, messages=messages_for_ollama, tools=TOOLS)
+        llm_end = time.time()
+        logger.info(f"[BENCHMARK] LLM call #{i+1} completed: {llm_end - llm_start:.3f}s")
         response_message = dict(response['message'])
         
         # Add debugging for LLM response (only in debug mode)
@@ -350,6 +384,267 @@ Do not attempt to call any more tools - provide a final response analyzing the s
         "response": final_content,
         "topic": topic_str,
         "history": final_history,
+        "conversation_id": conversation_id or datetime.now().strftime('%Y-%m-%d-%H-%M-%S'),
+        "processing_time": processing_time
+    }
+
+def process_chat_interaction_lean(user_message: str, history: list[dict], username: str = "admin", conversation_id: str | None = None) -> dict:
+    """
+    NEW LEAN TOOL SELECTION: Two-phase approach for faster LLM responses.
+    Phase 1: Ask LLM if it needs tools and which ones
+    Phase 2: If tools needed, call LLM again with only selected tools
+    This dramatically reduces the tool schema overhead from 17 tools to 0-5 tools.
+    """
+    start_time = time.time()
+    logger.info(f"[BENCHMARK] Starting LEAN process_chat_interaction for: '{user_message[:50]}...'")
+
+    base_instructions = get_base_instructions(username)
+    setup_time = time.time()
+    logger.info(f"[BENCHMARK] Setup/instructions: {setup_time - start_time:.3f}s")
+
+    # Get user location from personal variables
+    location = "unknown location"
+    try:
+        location_result = execute_find_personal_variables(searchkey="location")
+        if location_result.get("status") == "success" and location_result.get("data"):
+            location = location_result["data"][0]["value"]
+    except Exception as e:
+        logger.warning(f"Could not retrieve user location: {e}")
+
+    # Build base messages for main processing
+    messages_for_ollama = []
+    messages_for_ollama.append({'role': 'system',
+                                'content': f'The current date is {date.today().isoformat()}. The user is in {location}.'})
+    for instruction in base_instructions:
+        messages_for_ollama.append({'role': 'system', 'content': instruction})
+
+    messages_for_ollama.extend(history)
+    messages_for_ollama.append({"role": "user", "content": user_message})
+
+    # PHASE 1: Capability Assessment - Ask LLM if it needs tools
+    phase1_start = time.time()
+
+    tool_catalog = get_tool_catalog_for_selection()
+
+    capability_prompt = f"""
+CAPABILITY ASSESSMENT: Before providing your response, determine if you can answer the user's question with your existing knowledge, or if you need additional capabilities through tools.
+
+Available tool categories:
+• PERSONAL DATA: {[tool['key'] for tool in tool_catalog.get('personal_data', [])]}
+• MEMORY/RECALL: {[tool['key'] for tool in tool_catalog.get('memory_recall', [])]}
+• EXTERNAL DATA: {[tool['key'] for tool in tool_catalog.get('external_data', [])]}
+• VISUAL ANALYSIS: {[tool['key'] for tool in tool_catalog.get('visual_analysis', [])]}
+• CONVERSATION ANALYSIS: {[tool['key'] for tool in tool_catalog.get('conversation_analysis', [])]}
+
+Respond with EXACTLY this format:
+ASSESSMENT: [DIRECT or TOOLS_NEEDED]
+TOOLS: [comma-separated list of specific tool keys needed, or NONE]
+RESPONSE: [if DIRECT, provide your complete answer here; if TOOLS_NEEDED, write "PROCESSING WITH TOOLS"]
+
+Examples:
+- For "What is the capital of France?" → ASSESSMENT: DIRECT, TOOLS: NONE, RESPONSE: The capital of France is Paris.
+- For "What's the weather like?" → ASSESSMENT: TOOLS_NEEDED, TOOLS: get_weather_forecast, RESPONSE: PROCESSING WITH TOOLS
+- For "What did we discuss yesterday?" → ASSESSMENT: TOOLS_NEEDED, TOOLS: recall_memories, RESPONSE: PROCESSING WITH TOOLS
+
+You can always ask to see the tool catalog again by saying "show tools" if you need to reconsider your capabilities.
+"""
+
+    # Create minimal capability assessment messages (NO heavy system instructions)
+    capability_messages = [
+        {'role': 'system', 'content': f'The current date is {date.today().isoformat()}. The user is in {location}.'},
+        {'role': 'system', 'content': capability_prompt}
+    ]
+
+    # Add only the user message and recent history (not all system instructions)
+    if history:
+        capability_messages.extend(history[-3:])  # Only last 3 messages for context
+    capability_messages.append({"role": "user", "content": user_message})
+
+    logger.info(f"[BENCHMARK] Starting Phase 1 (capability assessment with structured parsing)")
+
+    try:
+        # Use instructor for structured output parsing
+        # Convert messages for instructor (it expects OpenAI format)
+        instructor_messages = []
+        for msg in capability_messages:
+            instructor_messages.append({
+                "role": msg["role"],
+                "content": msg["content"]
+            })
+
+        assessment: CapabilityAssessment = instructor_client.chat.completions.create(
+            model=OLLAMA_MODEL,
+            response_model=CapabilityAssessment,
+            messages=instructor_messages,
+            max_retries=2,
+            timeout=30
+        )
+        phase1_end = time.time()
+        logger.info(f"[BENCHMARK] Phase 1 completed: {phase1_end - phase1_start:.3f}s")
+        logger.debug(f"Structured assessment: {assessment.model_dump()}")
+
+    except Exception as e:
+        logger.error(f"Instructor structured parsing failed: {e}")
+        # Fallback to basic ollama call
+        capability_response = ollama.chat(model=OLLAMA_MODEL, messages=capability_messages, tools=[])
+        phase1_end = time.time()
+        logger.info(f"[BENCHMARK] Phase 1 fallback completed: {phase1_end - phase1_start:.3f}s")
+
+        # Create assessment from fallback response
+        capability_content = capability_response['message']['content']
+        logger.debug(f"Fallback capability assessment response: {capability_content[:200]}...")
+
+        # Simple parsing as fallback
+        if "direct" in capability_content.lower() or "no tools" in capability_content.lower():
+            assessment = CapabilityAssessment(
+                assessment="DIRECT",
+                tools=[],
+                response=capability_content
+            )
+        else:
+            assessment = CapabilityAssessment(
+                assessment="TOOLS_NEEDED",
+                tools=["recall_memories"],  # Default fallback tool
+                response="PROCESSING WITH TOOLS"
+            )
+
+    # Use structured assessment result instead of regex parsing
+    if assessment.assessment == "DIRECT" and len(assessment.tools) == 0:
+        final_response = assessment.response
+        logger.info(f"[BENCHMARK] Direct response path - no tools needed")
+
+        # Save interaction and generate topic
+        topic_str = "general_conversation"
+        final_history = messages_for_ollama[2:] + [{"role": "assistant", "content": final_response}]
+
+        try:
+            save_interaction(username, user_message, final_response, topic_str, conversation_id)
+        except Exception as e:
+            logger.error(f"Error saving interaction: {e}")
+
+        processing_time = round(time.time() - start_time, 1)
+        return {
+            "response": final_response,
+            "topic": topic_str,
+            "history": final_history,
+            "conversation_id": conversation_id or datetime.now().strftime('%Y-%m-%d-%H-%M-%S'),
+            "processing_time": processing_time
+        }
+
+    # PHASE 2: Tool-enabled processing
+    elif assessment.assessment == "TOOLS_NEEDED" and len(assessment.tools) > 0:
+        requested_tools = assessment.tools
+
+        # Get only the selected tools from database
+        selected_tools = get_selected_tools(requested_tools)
+
+        phase2_start = time.time()
+        logger.info(f"[BENCHMARK] Starting Phase 2 (tool-enabled processing)")
+
+        # Add tool usage instructions
+        tool_instructions = "Use the provided tools as needed to answer the user's question. Call tools directly without asking permission."
+        tool_messages = messages_for_ollama + [{'role': 'system', 'content': tool_instructions}]
+
+        response = ollama.chat(model=OLLAMA_MODEL, messages=tool_messages, tools=selected_tools)
+        phase2_end = time.time()
+        logger.info(f"[BENCHMARK] Phase 2 completed: {phase2_end - phase2_start:.3f}s")
+
+        response_message = dict(response['message'])
+
+        # Process tool calls with full agentic loop
+        if response_message.get('tool_calls'):
+            # Add the assistant's message with tool calls to conversation
+            messages_for_ollama.append({"role": "assistant", "content": response_message.get('content', ''), "tool_calls": response_message['tool_calls']})
+
+            # Execute tool calls
+            tool_outputs = []
+            failed_tools = []
+
+            for tool_call_obj in response_message['tool_calls']:
+                tool_call_id = tool_call_obj.get('id', 'unknown')
+                function_obj = tool_call_obj.get('function', {})
+                function_name = getattr(function_obj, 'name', None) if hasattr(function_obj, 'name') else function_obj.get('name')
+                function_args = getattr(function_obj, 'arguments', {}) if hasattr(function_obj, 'arguments') else function_obj.get('arguments', {})
+
+                # Ensure arguments is a dict
+                if isinstance(function_args, str):
+                    try:
+                        function_args = json.loads(function_args)
+                    except json.JSONDecodeError:
+                        function_args = {}
+
+                logger.info(f"LLM_TOOL_CALL | Tool: {function_name} | CallID: {tool_call_id} | Args: {json.dumps(function_args, default=str)}")
+
+                if not function_name or not isinstance(function_args, dict):
+                    failed_tools.append(f"Invalid tool call format for {function_name}")
+                    continue
+
+                if function_name in AVAILABLE_TOOLS:
+                    tool_function = AVAILABLE_TOOLS[function_name]
+
+                    # Add username to memory-related tools
+                    if function_name in ['recall_memories', 'recall_memories_with_time', 'find_personal_variables', 'get_conversations_by_topic', 'get_topics_by_conversation', 'get_conversation_summary', 'get_topic_statistics', 'get_user_conversations', 'get_conversation_details', 'search_conversations']:
+                        function_args['username'] = username
+
+                    try:
+                        # Check if the tool function is async
+                        if inspect.iscoroutinefunction(tool_function):
+                            output = run_async(tool_function(**function_args))
+                        else:
+                            output = tool_function(**function_args)
+                        tool_outputs.append({"role": "tool", "tool_call_id": tool_call_id, "content": json.dumps(output)})
+                    except Exception as e:
+                        failed_tools.append(f"{function_name}: {str(e)}")
+                        tool_outputs.append({"role": "tool", "tool_call_id": tool_call_id, "content": json.dumps({
+                            "status": "error",
+                            "message": f"Tool {function_name} failed: {str(e)}"
+                        })})
+                else:
+                    failed_tools.append(f"Unknown tool: {function_name}")
+                    logger.warning(f"Warning: LLM tried to call an unknown tool: {function_name}")
+
+            # Add tool outputs to conversation
+            if tool_outputs:
+                messages_for_ollama.extend(tool_outputs)
+
+                # Get final response from LLM after tool execution
+                final_llm_response = ollama.chat(model=OLLAMA_MODEL, messages=messages_for_ollama, tools=selected_tools)
+                final_response = final_llm_response['message'].get('content', 'Processing completed.')
+            else:
+                if response_message.get('tool_calls'):
+                    final_response = "Could not execute any of the requested tools or no valid tools were called."
+                else:
+                    final_response = response_message.get('content', 'Processing completed.')
+        else:
+            final_response = response_message.get('content', 'Unable to process request.')
+
+        # Save interaction and generate topic
+        topic_str = "tool_assisted_conversation"
+        final_history = messages_for_ollama[2:] + [{"role": "assistant", "content": final_response}]
+
+        try:
+            save_interaction(username, user_message, final_response, topic_str, conversation_id)
+        except Exception as e:
+            logger.error(f"Error saving interaction: {e}")
+
+        processing_time = round(time.time() - start_time, 1)
+        return {
+            "response": final_response,
+            "topic": topic_str,
+            "history": final_history,
+            "conversation_id": conversation_id or datetime.now().strftime('%Y-%m-%d-%H-%M-%S'),
+            "processing_time": processing_time
+        }
+
+    # Fallback: if parsing fails, use direct response
+    logger.warning("Failed to parse capability assessment, using direct response")
+    fallback_response = "I apologize, but I encountered an issue processing your request. Please try again."
+
+    processing_time = round(time.time() - start_time, 1)
+    return {
+        "response": fallback_response,
+        "topic": "error_fallback",
+        "history": messages_for_ollama[2:] + [{"role": "assistant", "content": fallback_response}],
         "conversation_id": conversation_id or datetime.now().strftime('%Y-%m-%d-%H-%M-%S'),
         "processing_time": processing_time
     }
