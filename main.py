@@ -24,9 +24,10 @@ from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Depends, Request, Form, status, WebSocket, WebSocketDisconnect
 from fastapi.responses import HTMLResponse, RedirectResponse, FileResponse, JSONResponse
 import uvicorn
-from cortex.agent import process_chat_interaction
+from cortex.agent import process_chat_interaction_lean
 from stem.static import mount_static_files, get_conversation_page, get_profile_page, get_login_page
-from stem.security import get_current_user, require_admin_role, security_manager, login_user, logout_user, current_user
+from stem.security import get_current_user, require_admin_role, security_manager, login_user, logout_user, current_user, setup_security_middleware
+from stem.middleware import setup_middleware, setup_logging_config, websocket_auth_middleware
 from stem.models import (
     ChatRequest, ChatResponse, UserModel
 )
@@ -34,14 +35,9 @@ from stem.admin import admin_router
 from stem.profile import profile_router
 from hippocampus.hippocampus import router as hippocampus_router
 from parietal.parietal import router as parietal_router
-from fastapi.security import HTTPBasicCredentials
-from fastapi.security import HTTPBasic
-from starlette.middleware.sessions import SessionMiddleware
 from fastapi.openapi.utils import get_openapi
-from fastapi.middleware.trustedhost import TrustedHostMiddleware
-from fastapi.middleware.cors import CORSMiddleware
 from config import (
-    OLLAMA_MODEL, PORT, ALLOWED_ORIGINS, HOSTNAME, APP_VERSION
+    OLLAMA_MODEL, PORT, HOSTNAME, APP_VERSION
 )
 from temporal.voice_service import VoiceService
 from contextlib import asynccontextmanager
@@ -54,25 +50,11 @@ from stem.system_settings import system_settings_manager
 # Load environment variables from .env file
 load_dotenv()
 
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(levelname)s:\t  %(name)s - %(message)s %(asctime)s',
-    handlers=[
-        logging.StreamHandler(),  # Console handler
-    ]
-)
+# Configure application logging
+setup_logging_config()
 
 # Set up logger for this module
 logger = logging.getLogger(__name__)
-
-# Get secret key from environment variable with fallback
-SECRET_KEY = os.getenv("STARLETTE_SECRET")
-if not SECRET_KEY:
-    raise ValueError(
-        "STARLETTE_SECRET environment variable must be set. "
-        "Please run ./install_tatlock.sh or create a .env file with STARLETTE_SECRET."
-    )
 
 # Initialize voice service
 voice_service = VoiceService()
@@ -146,28 +128,9 @@ def custom_openapi():
 
 app.openapi = custom_openapi
 
-# Add session middleware for session-based authentication
-app.add_middleware(
-    SessionMiddleware, 
-    secret_key=SECRET_KEY, 
-    max_age=3600,  # 1 hour session timeout
-    same_site="lax",
-    https_only=False  # Allow HTTP for local development
-)
-
-# Add security headers middleware
-app.add_middleware(
-    TrustedHostMiddleware, 
-    allowed_hosts=["localhost", "127.0.0.1", "testserver"]
-)
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=ALLOWED_ORIGINS,
-    allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE"],
-    allow_headers=["*"],
-)
+# Setup all middleware (order matters - outermost first)
+setup_security_middleware(app)  # Security middleware (outermost)
+setup_middleware(app)           # Request timing, ID, exception handling
 
 # Mount static files directory (HTML, CSS, JS, Material Icons)
 mount_static_files(app)
@@ -208,24 +171,24 @@ async def read_root(request: Request):
 async def chat_endpoint(request: ChatRequest, user: UserModel = Depends(get_current_user)):
     """
     Main chat endpoint for the AI. Processes user messages and returns AI responses.
-    Requires authentication.
+    Requires authentication. Request timing is handled by middleware.
     """
     try:
         if not user:
             raise HTTPException(status_code=401, detail="User not authenticated")
-        
+
         # Pydantic models in a list are not automatically converted to dicts,
         # so we do it manually before passing to the agent.
         history_dicts = [msg.model_dump(exclude_none=True) for msg in request.history]
 
         # Process the chat interaction
-        result_dict = process_chat_interaction(
+        result_dict = process_chat_interaction_lean(
             user_message=request.message,
             history=history_dicts,
             username=user.username,
             conversation_id=request.conversation_id
         )
-        
+
         if result_dict is None:
             raise HTTPException(status_code=500, detail="Agent processing returned an unexpected null result.")
 
@@ -328,59 +291,21 @@ async def websocket_voice_endpoint(websocket: WebSocket):
     Only allows authenticated users.
     Receives audio chunks, transcribes, processes, and returns results.
     """
-    # Authenticate user
+    # Authenticate user using middleware
+    user = await websocket_auth_middleware(websocket, get_current_user)
+    if not user:
+        return
+
     try:
-        await websocket.accept()
-        # Use session cookie for authentication
-        session_cookie = websocket.cookies.get("session")
-        if not session_cookie:
-            await websocket.close(code=4401)
-            return
-        # Use the same logic as get_current_user
-        from starlette.requests import Request
-        request = Request({'type': 'websocket', 'headers': websocket.headers.raw, 'cookies': websocket.cookies})
-        try:
-            user = get_current_user(request)
-        except Exception:
-            await websocket.close(code=4401)
-            return
         # Now handle audio streaming
         await voice_service.handle_websocket_connection(websocket, path="/ws/voice")
     except WebSocketDisconnect:
         pass
     except Exception as e:
-        import logging
-        logging.getLogger(__name__).error(f"WebSocket error: {e}")
+        logger.error(f"WebSocket error: {e}")
         await websocket.close(code=1011)
 
-# --- Exception Handlers ---
-@app.exception_handler(HTTPException)
-async def http_exception_handler(request: Request, exc: HTTPException):
-    """
-    Custom exception handler to redirect to login for 401 Unauthorized errors
-    on browser navigation (GET requests). Returns JSON for API requests.
-    """
-    if exc.status_code == 401:
-        # Check if this is a browser navigation (GET request) or API call
-        if request.method == "GET":
-            # Browser navigation - redirect to login with original path
-            original_path = str(request.url.path)
-            if request.url.query:
-                original_path += f"?{request.url.query}"
-            login_url = f"/login?redirect={original_path}"
-            return RedirectResponse(url=login_url, status_code=302)
-        else:
-            # API call - return JSON
-            return JSONResponse(
-                status_code=exc.status_code,
-                content={"detail": exc.detail}
-            )
-    
-    # Default behavior for other HTTP errors
-    return JSONResponse(
-        status_code=exc.status_code,
-        content={"detail": exc.detail}
-    )
+# Exception handling is now managed by middleware in stem/middleware.py
 
 # This allows running the app directly with `python main.py`
 if __name__ == "__main__":

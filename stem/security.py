@@ -22,6 +22,54 @@ logger = logging.getLogger(__name__)
 #global variable for the current user
 current_user = None
 
+def setup_security_middleware(app):
+    """
+    Setup all security-related middleware for the FastAPI application.
+    Call this from main.py after app creation.
+
+    Args:
+        app: FastAPI application instance
+    """
+    import os
+    from starlette.middleware.sessions import SessionMiddleware
+    from fastapi.middleware.trustedhost import TrustedHostMiddleware
+    from fastapi.middleware.cors import CORSMiddleware
+    from config import ALLOWED_ORIGINS
+
+    # Get secret key from environment variable
+    SECRET_KEY = os.getenv("STARLETTE_SECRET")
+    if not SECRET_KEY:
+        raise ValueError(
+            "STARLETTE_SECRET environment variable must be set. "
+            "Please run ./install_tatlock.sh or create a .env file with STARLETTE_SECRET."
+        )
+
+    # Add session middleware for session-based authentication
+    app.add_middleware(
+        SessionMiddleware,
+        secret_key=SECRET_KEY,
+        max_age=3600,  # 1 hour session timeout
+        same_site="lax",
+        https_only=False  # Allow HTTP for local development
+    )
+
+    # Add security headers middleware
+    app.add_middleware(
+        TrustedHostMiddleware,
+        allowed_hosts=["localhost", "127.0.0.1", "testserver"]
+    )
+
+    # Add CORS middleware
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=ALLOWED_ORIGINS,
+        allow_credentials=True,
+        allow_methods=["GET", "POST", "PUT", "DELETE"],
+        allow_headers=["*"],
+    )
+
+    logger.info("🔒 Security middleware configured (Session, TrustedHost, CORS)")
+
 class SecurityManager:
     """Manages authentication, authorization, and user management."""
     
