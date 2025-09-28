@@ -84,12 +84,13 @@ Tatlock automatically selects the optimal LLM model based on hardware:
 
 ### Tool Development
 
-Tools are implemented following a specific pattern:
+Tools are implemented using the dynamic loading system:
 
 1. Create tool function in appropriate brain module (e.g., `cerebellum/weather_tool.py`)
-2. Add to database schema in `stem/installation/database_setup.py`
-3. Register function in `stem/tools.py` AVAILABLE_TOOLS dictionary
+2. Add to database schema in `stem/installation/database_setup.py` with correct module path
+3. Tool is automatically discovered and loaded by the dynamic system in `stem/dynamic_tools.py`
 4. Enable in database by updating `enabled = 1` in tools table
+5. Use `execute_tool(tool_key, **kwargs)` for dynamic execution or access via `AVAILABLE_TOOLS[tool_key]` for backward compatibility
 
 ### User Context Management
 

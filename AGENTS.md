@@ -344,43 +344,42 @@ def execute_web_search(query: str) -> dict:
 
 #### Tool Registration
 
-All tools are registered in `stem/tools.py`:
+Tools use a **dynamic loading system** with database-driven registration:
 
 ```python
-# stem/tools.py
-from cerebellum.web_search_tool import execute_web_search
-from cerebellum.weather_tool import execute_get_weather_forecast
-from hippocampus.find_personal_variables_tool import execute_find_personal_variables
-# ... other imports
+# stem/tools.py - Dynamic system with backward compatibility
+from stem.dynamic_tools import tool_registry, initialize_tool_system, get_tool_function
 
-# Tool definitions for LLM
-TOOLS = [
-    {
-        "type": "function",
-        "function": {
-            "name": "web_search",
-            "description": "Perform a web search using Google Custom Search API.",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "query": {
-                        "type": "string",
-                        "description": "The search query to send to the search engine."
-                    }
-                },
-                "required": ["query"],
-            },
-        },
-    },
-    # ... other tool definitions
-]
+# Initialize the dynamic tool system
+initialize_tool_system()
 
-# Tool dispatcher
-AVAILABLE_TOOLS = {
-    "web_search": execute_web_search,
-    "find_personal_variables": execute_find_personal_variables,
-    # ... other tool mappings
-}
+# The TOOLS list is loaded from database for Ollama compatibility
+TOOLS = get_enabled_tools_from_db()
+
+def execute_tool(tool_key: str, **kwargs) -> Dict[str, Any]:
+    """Execute a tool by key with dynamic loading."""
+    tool_func = get_tool_function(tool_key)
+    if not tool_func:
+        return {"status": "error", "message": f"Tool '{tool_key}' not found"}
+
+    result = tool_func(**kwargs)
+    return result
+
+# Backward compatibility: LazyToolDict that loads tools on demand
+AVAILABLE_TOOLS = LazyToolDict()
+```
+
+**Database Registration**: Tools are registered in the `tools` table:
+
+```sql
+INSERT INTO tools (tool_key, description, module, function_name, enabled)
+VALUES (
+    'web_search',
+    'Perform a web search using Google Custom Search API.',
+    'cerebellum.web_search_tool',
+    'execute_web_search',
+    1
+);
 ```
 
 #### Module Assignment Guidelines
@@ -388,14 +387,18 @@ AVAILABLE_TOOLS = {
 - **Cerebellum**: External API tools (web search, weather, etc.)
 - **Hippocampus**: Memory and database-related tools
 - **Occipital**: Visual processing and screenshot tools
-- **Stem**: Core system tools and tool registration
+- **Stem**: Core system tools and dynamic tool loading infrastructure
 
-#### Benefits
+#### Benefits of Dynamic Tool System
 
 - **Modularity**: Each tool is self-contained and can be developed/tested independently
-- **Maintainability**: Easy to locate and modify specific tool functionality
-- **Testability**: Individual tools can be unit tested in isolation
-- **Scalability**: New tools can be added without cluttering existing files
+- **Performance**: Tools are loaded on-demand, reducing startup time and memory usage
+- **Database-Driven**: Tool registration and configuration stored in database for runtime control
+- **Plugin Architecture**: Supports built-in tools, plugins, and external tool packages
+- **Backward Compatibility**: Existing code continues to work via `LazyToolDict`
+- **Testing**: Mock-friendly design with comprehensive test coverage
+- **Maintainability**: Easy to enable/disable tools without code changes
+- **Scalability**: New tools can be added without modifying core files
 - **Clear Dependencies**: Each tool file only imports what it needs
 - **Brain-Inspired Organization**: Tools are grouped by functional area
 
