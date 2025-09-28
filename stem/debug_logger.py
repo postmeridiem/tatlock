@@ -33,22 +33,29 @@ class DebugLogger:
 
     def _initialize_log_file(self):
         """Initialize the debug log file for this session."""
-        # Create logs/conversations directory if it doesn't exist
-        log_dir = Path("logs/conversations")
-        log_dir.mkdir(parents=True, exist_ok=True)
+        try:
+            # Create logs/conversations directory if it doesn't exist
+            log_dir = Path("logs/conversations")
+            log_dir.mkdir(parents=True, exist_ok=True)
 
-        # Create filename with session ID and timestamp
-        timestamp = self.session_start.strftime("%Y-%m-%d_%H-%M-%S")
-        filename = f"{self.session_id}_{timestamp}.log"
-        self.log_file_path = log_dir / filename
+            # Create filename with session ID and timestamp
+            timestamp = self.session_start.strftime("%Y-%m-%d_%H-%M-%S")
+            filename = f"{self.session_id}_{timestamp}.log"
+            self.log_file_path = log_dir / filename
 
-        # Write session header
-        with open(self.log_file_path, 'w', encoding='utf-8') as f:
-            f.write("="*80 + "\n")
-            f.write(f"TATLOCK DEBUG SESSION LOG\n")
-            f.write(f"Session ID: {self.session_id}\n")
-            f.write(f"Started: {self.session_start.isoformat()}\n")
-            f.write("="*80 + "\n\n")
+            # Write session header
+            with open(self.log_file_path, 'w', encoding='utf-8') as f:
+                f.write("="*80 + "\n")
+                f.write(f"TATLOCK DEBUG SESSION LOG\n")
+                f.write(f"Session ID: {self.session_id}\n")
+                f.write(f"Started: {self.session_start.isoformat()}\n")
+                f.write("="*80 + "\n\n")
+
+        except Exception as e:
+            # Log error and set to None so other methods will skip logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Failed to initialize debug log file: {e}")
+            self.log_file_path = None
 
     def log_phase_start(self, phase_name: str, description: str = ""):
         """Log the start of a processing phase."""

@@ -1,12 +1,12 @@
 """
-Tests for cortex.agent
+Tests for cortex.tatlock
 """
 import pytest
-import cortex.agent as agent
+import cortex.tatlock as agent
 import json
 import asyncio
 from unittest.mock import patch, MagicMock, AsyncMock
-from cortex.agent import process_chat_interaction, run_async, AVAILABLE_TOOLS
+from cortex.tatlock import process_chat_interaction, run_async, AVAILABLE_TOOLS
 
 class DummyOllama:
     def __init__(self):
@@ -94,24 +94,24 @@ class TestProcessChatInteraction:
     @pytest.fixture
     def mock_ollama(self):
         """Mock ollama responses."""
-        with patch('cortex.agent.ollama') as mock_ollama:
+        with patch('cortex.tatlock.ollama') as mock_ollama:
             yield mock_ollama
     
     @pytest.fixture
     def mock_save_interaction(self):
         """Mock the save_interaction function."""
-        with patch('cortex.agent.save_interaction') as mock_save:
+        with patch('cortex.tatlock.save_interaction') as mock_save:
             yield mock_save
     
     @pytest.mark.asyncio
     async def test_basic_chat_interaction(self):
         """Test basic chat interaction."""
-        with patch('cortex.agent.ollama') as mock_ollama:
+        with patch('cortex.tatlock.ollama') as mock_ollama:
             mock_ollama.chat.return_value = {
                 'message': {'role': 'assistant', 'content': 'Hello! How can I help you today?'}
             }
             
-            with patch('cortex.agent.save_interaction') as mock_save:
+            with patch('cortex.tatlock.save_interaction') as mock_save:
                 mock_save.return_value = "test_interaction_id"
                 
                 result = process_chat_interaction("Hello!", [], "test_user")
@@ -165,12 +165,12 @@ class TestProcessChatInteraction:
     @pytest.mark.asyncio
     async def test_tool_call_parsing_from_tool_call_tags(self):
         """Test parsing tool calls from <tool_call> tags."""
-        with patch('cortex.agent.ollama') as mock_ollama:
+        with patch('cortex.tatlock.ollama') as mock_ollama:
             mock_ollama.chat.return_value = {
                 'message': {'role': 'assistant', 'content': '<tool_call>{"name": "get_weather", "args": {"location": "New York"}}</tool_call>'}
             }
             
-            with patch('cortex.agent.save_interaction') as mock_save:
+            with patch('cortex.tatlock.save_interaction') as mock_save:
                 mock_save.return_value = "test_interaction_id"
                 
                 result = process_chat_interaction("What's the weather?", [], "test_user")
@@ -184,12 +184,12 @@ class TestProcessChatInteraction:
     @pytest.mark.asyncio
     async def test_tool_call_parsing_invalid_json(self):
         """Test parsing tool calls with invalid JSON."""
-        with patch('cortex.agent.ollama') as mock_ollama:
+        with patch('cortex.tatlock.ollama') as mock_ollama:
             mock_ollama.chat.return_value = {
                 'message': {'role': 'assistant', 'content': '<tool_call>{"invalid": json}</tool_call>'}
             }
             
-            with patch('cortex.agent.save_interaction') as mock_save:
+            with patch('cortex.tatlock.save_interaction') as mock_save:
                 mock_save.return_value = "test_interaction_id"
                 
                 result = process_chat_interaction("Invalid tool call", [], "test_user")
@@ -353,12 +353,12 @@ class TestProcessChatInteraction:
     @pytest.mark.asyncio
     async def test_tool_failures_analysis(self):
         """Test analysis of tool failures."""
-        with patch('cortex.agent.ollama') as mock_ollama:
+        with patch('cortex.tatlock.ollama') as mock_ollama:
             mock_ollama.chat.return_value = {
                 'message': {'role': 'assistant', 'content': '<tool_call>{"name": "get_weather", "args": {}}</tool_call>'}
             }
             
-            with patch('cortex.agent.save_interaction') as mock_save:
+            with patch('cortex.tatlock.save_interaction') as mock_save:
                 mock_save.return_value = "test_interaction_id"
                 
                 result = process_chat_interaction("Test tool failure", [], "test_user")
@@ -416,12 +416,12 @@ class TestProcessChatInteraction:
     @pytest.mark.asyncio
     async def test_save_interaction_failure(self):
         """Test handling save interaction failure."""
-        with patch('cortex.agent.ollama') as mock_ollama:
+        with patch('cortex.tatlock.ollama') as mock_ollama:
             mock_ollama.chat.return_value = {
                 'message': {'role': 'assistant', 'content': 'Hello! How can I help you today?'}
             }
             
-            with patch('cortex.agent.save_interaction') as mock_save:
+            with patch('cortex.tatlock.save_interaction') as mock_save:
                 mock_save.side_effect = Exception("Save failed")
                 
                 result = process_chat_interaction("Hello!", [], "test_user")
@@ -564,12 +564,12 @@ class TestProcessChatInteraction:
     @pytest.mark.asyncio
     async def test_empty_history_handling(self):
         """Test handling empty conversation history."""
-        with patch('cortex.agent.ollama') as mock_ollama:
+        with patch('cortex.tatlock.ollama') as mock_ollama:
             mock_ollama.chat.return_value = {
                 'message': {'role': 'assistant', 'content': 'Hello! How can I help you today?'}
             }
             
-            with patch('cortex.agent.save_interaction') as mock_save:
+            with patch('cortex.tatlock.save_interaction') as mock_save:
                 mock_save.return_value = "test_interaction_id"
                 
                 result = process_chat_interaction("Hello!", [], "test_user")
@@ -583,12 +583,12 @@ class TestProcessChatInteraction:
     @pytest.mark.asyncio
     async def test_history_without_content(self):
         """Test handling history without content field."""
-        with patch('cortex.agent.ollama') as mock_ollama:
+        with patch('cortex.tatlock.ollama') as mock_ollama:
             mock_ollama.chat.return_value = {
                 'message': {'role': 'assistant', 'content': 'Hello! How can I help you today?'}
             }
             
-            with patch('cortex.agent.save_interaction') as mock_save:
+            with patch('cortex.tatlock.save_interaction') as mock_save:
                 mock_save.return_value = "test_interaction_id"
                 
                 history = [{"role": "user", "message": "Hi"}, {"role": "assistant", "message": "Hello"}]
