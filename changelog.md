@@ -85,6 +85,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Integration with existing logging infrastructure without breaking changes
   - Debug log files stored in `logs/conversations/` with session isolation
 
+### Changed
+
+- **Documentation Updates**: Updated tool development documentation for dynamic loading system
+  - Updated `CLAUDE.md` tool development section to reflect dynamic loading approach
+  - Updated `AGENTS.md` tool registration documentation with database-driven examples
+  - Added benefits section highlighting performance and modularity advantages
+  - Removed references to outdated static `AVAILABLE_TOOLS` dictionary pattern
+  - All documentation now accurately reflects the new dynamic tool architecture
+
 ### Fixed
 
 - **Test Compatibility**: Resolved all test failures after dynamic tool system implementation
