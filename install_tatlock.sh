@@ -1087,6 +1087,9 @@ ALLOWED_ORIGINS=http://$hostname_input:$port_input
 
 # Security
 STARLETTE_SECRET=$STARLETTE_SECRET
+
+# Debug Configuration
+DEBUG_MODE=false
 EOF
 
     echo "- .env file created in root directory"

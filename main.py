@@ -24,7 +24,7 @@ from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Depends, Request, Form, status, WebSocket, WebSocketDisconnect
 from fastapi.responses import HTMLResponse, RedirectResponse, FileResponse, JSONResponse
 import uvicorn
-from cortex.agent import process_chat_interaction_lean
+from cortex.agent import process_chat_interaction
 from stem.static import mount_static_files, get_conversation_page, get_profile_page, get_login_page
 from stem.security import get_current_user, require_admin_role, security_manager, login_user, logout_user, current_user, setup_security_middleware
 from stem.middleware import setup_middleware, setup_logging_config, websocket_auth_middleware
@@ -182,7 +182,7 @@ async def chat_endpoint(request: ChatRequest, user: UserModel = Depends(get_curr
         history_dicts = [msg.model_dump(exclude_none=True) for msg in request.history]
 
         # Process the chat interaction
-        result_dict = process_chat_interaction_lean(
+        result_dict = process_chat_interaction(
             user_message=request.message,
             history=history_dicts,
             username=user.username,

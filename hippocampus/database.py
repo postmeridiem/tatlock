@@ -48,7 +48,8 @@ def get_base_instructions(username: str = "") -> list[str]:
     CORE_TOOLS = [
         'recall_memories',
         'recall_memories_with_time',
-        'find_personal_variables'
+        'find_personal_variables',
+        'get_temporal_info'
     ]
 
     # Get core tool prompts (always loaded for immediate access)
@@ -63,9 +64,14 @@ def get_base_instructions(username: str = "") -> list[str]:
 
     conn.close()
 
-    # Combine base prompts with core tool prompts only
-    # This reduces overhead from 27 prompts to ~7 prompts (4 base + 3 core tools)
-    all_prompts = base_prompts + core_tool_prompts
+    # Add current timestamp for temporal context
+    from datetime import datetime
+    now = datetime.now()
+    timestamp_prompt = f"Current date and time: {now.strftime('%A, %B %d, %Y at %I:%M %p')}"
+
+    # Combine base prompts with core tool prompts and timestamp
+    # This reduces overhead from 27 prompts to ~8 prompts (4 base + 3 core tools + timestamp)
+    all_prompts = base_prompts + core_tool_prompts + [timestamp_prompt]
 
     return all_prompts
 

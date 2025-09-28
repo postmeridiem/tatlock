@@ -69,6 +69,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Updated installation script with M1-specific detection logic matching runtime classification
   - Updated documentation to reflect M1-specific low-tier classification for optimal performance
 
+- **Dynamic Tool Loading System**: Complete refactoring of tool architecture for modularity and performance
+  - Replaced static tool imports with dynamic loading system in `stem/dynamic_tools.py`
+  - Database-driven tool registration with module path and function name mapping
+  - Plugin-style architecture supporting built-in tools, plugins, and external tool packages
+  - Lazy-loaded tool dictionary (`LazyToolDict`) for backward compatibility with existing code
+  - Tools now loaded on-demand rather than at startup, reducing memory footprint
+  - Comprehensive test coverage for dynamic loading system with mock compatibility
+
+- **Debug Logging Infrastructure**: Structured logging system for development and troubleshooting
+  - New `stem/debug_logger.py` with session-based logging and phase tracking
+  - JSON-structured debug output for machine-readable log analysis
+  - Conversation session tracking with unique session IDs and timestamps
+  - Phase-based logging for multi-step debugging workflows
+  - Integration with existing logging infrastructure without breaking changes
+  - Debug log files stored in `logs/conversations/` with session isolation
+
+### Fixed
+
+- **Test Compatibility**: Resolved all test failures after dynamic tool system implementation
+  - Fixed `LazyToolDict` compatibility with `unittest.mock.patch.dict` by implementing required dict-like methods
+  - Updated database tool registration with correct module paths (`cerebellum` → `cerebellum.weather_tool`, etc.)
+  - Fixed legacy wrapper function signatures to accept positional arguments expected by existing tests
+  - Corrected parameter name mapping (`topic` → `topic_name`) for conversation tools
+  - Removed automatic username injection that conflicted with `current_user` global variable pattern
+  - All 23 tool tests and 23 cortex agent tests now passing
+
 ### Performance
 
 - **Response Time Improvements**:

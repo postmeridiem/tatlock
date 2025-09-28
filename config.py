@@ -108,6 +108,9 @@ SESSION_TIMEOUT = int(get_setting_from_db_or_env("session_timeout", "SESSION_TIM
 MAX_LOGIN_ATTEMPTS = int(get_setting_from_db_or_env("max_login_attempts", "MAX_LOGIN_ATTEMPTS", "5"))
 PASSWORD_MIN_LENGTH = int(get_setting_from_db_or_env("password_min_length", "PASSWORD_MIN_LENGTH", "8"))
 
+# --- Debug Configuration ---
+DEBUG_MODE = get_setting_from_db_or_env("debug_mode", "DEBUG_MODE", "false").lower() == "true"
+
 # --- Error Checking ---
 if not OPENWEATHER_API_KEY:
     logger.warning("WARNING: OPENWEATHER_API_KEY not set. Weather functionality will be disabled.")

@@ -22,45 +22,16 @@ from pydantic import BaseModel, Field
 from config import OLLAMA_MODEL
 from hippocampus.database import get_base_instructions
 from hippocampus.reference_frame import get_tool_catalog_for_selection, get_selected_tools
-from stem.tools import (
-    TOOLS,
-    execute_find_personal_variables,
-    execute_get_weather_forecast,
-    execute_web_search,
-    execute_recall_memories,
-    execute_recall_memories_with_time,
-    execute_get_conversations_by_topic,
-    execute_get_topics_by_conversation,
-    execute_get_conversation_summary,
-    execute_get_topic_statistics,
-    execute_get_user_conversations,
-    execute_get_conversation_details,
-    execute_search_conversations,
-    execute_screenshot_from_url,
-    execute_analyze_file
-)
+from stem.tools import TOOLS, AVAILABLE_TOOLS, execute_tool
 from hippocampus.remember import save_interaction
+from cortex.response_parser import response_parser, response_formatter
+from stem.debug_logger import get_debug_logger, reset_debug_logger
 
 # Set up logging for this module
 logger = logging.getLogger(__name__)
 
 # --- Tool Dispatcher ---
-AVAILABLE_TOOLS = {
-    "web_search": execute_web_search,
-    "find_personal_variables": execute_find_personal_variables,
-    "get_weather_forecast": execute_get_weather_forecast,
-    "recall_memories": execute_recall_memories,
-    "recall_memories_with_time": execute_recall_memories_with_time,
-    "get_conversations_by_topic": execute_get_conversations_by_topic,
-    "get_topics_by_conversation": execute_get_topics_by_conversation,
-    "get_conversation_summary": execute_get_conversation_summary,
-    "get_topic_statistics": execute_get_topic_statistics,
-    "get_user_conversations": execute_get_user_conversations,
-    "get_conversation_details": execute_get_conversation_details,
-    "search_conversations": execute_search_conversations,
-    "screenshot_from_url": execute_screenshot_from_url,
-    "analyze_file": execute_analyze_file
-}
+# AVAILABLE_TOOLS now provided by dynamic tool system in stem/tools.py
 
 # Pydantic model for structured capability assessment
 class CapabilityAssessment(BaseModel):
@@ -120,7 +91,7 @@ def process_chat_interaction(user_message: str, history: list[dict], username: s
     # Get user location from personal variables
     location = "unknown location"
     try:
-        location_result = execute_find_personal_variables(searchkey="location")
+        location_result = execute_tool("find_personal_variables", searchkey="location", username=username)
         if location_result.get("status") == "success" and location_result.get("data"):
             # Use the first value found
             location = location_result["data"][0]["value"]
@@ -289,18 +260,13 @@ Do not attempt to call any more tools - provide a final response analyzing the s
                     continue
                     
                 if function_name in AVAILABLE_TOOLS:
-                    tool_function = AVAILABLE_TOOLS[function_name]
-                    
                     # Add username to memory-related tools
                     if function_name in ['recall_memories', 'recall_memories_with_time', 'find_personal_variables', 'get_conversations_by_topic', 'get_topics_by_conversation', 'get_conversation_summary', 'get_topic_statistics', 'get_user_conversations', 'get_conversation_details', 'search_conversations']:
                         function_args['username'] = username
-                    
+
                     try:
-                        # Check if the tool function is async
-                        if inspect.iscoroutinefunction(tool_function):
-                            output = run_async(tool_function(**function_args))
-                        else:
-                            output = tool_function(**function_args)
+                        # Use the new dynamic tool execution
+                        output = execute_tool(function_name, **function_args)
                         tool_outputs.append({"role": "tool", "tool_call_id": tool_call_id, "content": json.dumps(output)})
                     except Exception as e:
                         failed_tools.append(f"{function_name}: {str(e)}")
@@ -398,6 +364,10 @@ def process_chat_interaction_lean(user_message: str, history: list[dict], userna
     start_time = time.time()
     logger.info(f"[BENCHMARK] Starting LEAN process_chat_interaction for: '{user_message[:50]}...'")
 
+    # Initialize debug logger for this session
+    debug_logger = get_debug_logger(conversation_id)
+    debug_logger.log_phase_start("Session Initialization", f"User: {username}, Message: {user_message[:100]}")
+
     base_instructions = get_base_instructions(username)
     setup_time = time.time()
     logger.info(f"[BENCHMARK] Setup/instructions: {setup_time - start_time:.3f}s")
@@ -405,7 +375,7 @@ def process_chat_interaction_lean(user_message: str, history: list[dict], userna
     # Get user location from personal variables
     location = "unknown location"
     try:
-        location_result = execute_find_personal_variables(searchkey="location")
+        location_result = execute_tool("find_personal_variables", searchkey="location", username=username)
         if location_result.get("status") == "success" and location_result.get("data"):
             location = location_result["data"][0]["value"]
     except Exception as e:
@@ -462,6 +432,10 @@ You can always ask to see the tool catalog again by saying "show tools" if you n
 
     logger.info(f"[BENCHMARK] Starting Phase 1 (capability assessment with structured parsing)")
 
+    # Debug log Phase 1 start
+    phase1_start = time.time()
+    debug_logger.log_phase_start("Phase 1: Capability Assessment", "Determine if tools are needed and which ones")
+
     try:
         # Use instructor for structured output parsing
         # Convert messages for instructor (it expects OpenAI format)
@@ -471,6 +445,9 @@ You can always ask to see the tool catalog again by saying "show tools" if you n
                 "role": msg["role"],
                 "content": msg["content"]
             })
+
+        # Debug log the LLM request
+        debug_logger.log_llm_request(OLLAMA_MODEL, instructor_messages, tools=None, iteration_type="capability_assessment")
 
         assessment: CapabilityAssessment = instructor_client.chat.completions.create(
             model=OLLAMA_MODEL,
@@ -482,6 +459,12 @@ You can always ask to see the tool catalog again by saying "show tools" if you n
         phase1_end = time.time()
         logger.info(f"[BENCHMARK] Phase 1 completed: {phase1_end - phase1_start:.3f}s")
         logger.debug(f"Structured assessment: {assessment.model_dump()}")
+
+        # Debug log the LLM response
+        debug_logger.log_llm_response(
+            {"assessment": assessment.assessment, "tools": assessment.tools, "response": assessment.response},
+            phase1_end - phase1_start
+        )
 
     except Exception as e:
         logger.error(f"Instructor structured parsing failed: {e}")
@@ -510,7 +493,8 @@ You can always ask to see the tool catalog again by saying "show tools" if you n
 
     # Use structured assessment result instead of regex parsing
     if assessment.assessment == "DIRECT" and len(assessment.tools) == 0:
-        final_response = assessment.response
+        # Format the direct response using our response formatter
+        final_response = response_formatter.format_response(assessment.response)
         logger.info(f"[BENCHMARK] Direct response path - no tools needed")
 
         # Save interaction and generate topic
@@ -541,30 +525,55 @@ You can always ask to see the tool catalog again by saying "show tools" if you n
         phase2_start = time.time()
         logger.info(f"[BENCHMARK] Starting Phase 2 (tool-enabled processing)")
 
+        # Debug log Phase 2 start
+        debug_logger.log_phase_start("Phase 2: Tool-Enabled Processing", f"Selected tools: {requested_tools}")
+
         # Add tool usage instructions
         tool_instructions = "Use the provided tools as needed to answer the user's question. Call tools directly without asking permission."
         tool_messages = messages_for_ollama + [{'role': 'system', 'content': tool_instructions}]
+
+        # Debug log the LLM request with tools
+        debug_logger.log_llm_request(OLLAMA_MODEL, tool_messages, tools=selected_tools, iteration_type="tool_enabled")
 
         response = ollama.chat(model=OLLAMA_MODEL, messages=tool_messages, tools=selected_tools)
         phase2_end = time.time()
         logger.info(f"[BENCHMARK] Phase 2 completed: {phase2_end - phase2_start:.3f}s")
 
-        response_message = dict(response['message'])
+        # Debug log the LLM response
+        debug_logger.log_llm_response(response, phase2_end - phase2_start)
+
+        # Use the new model-agnostic parser
+        parsed_response = response_parser.parse_response(response)
+        logger.debug(f"Parsed response: tool_calls={len(parsed_response.tool_calls)}, needs_execution={parsed_response.needs_tool_execution}")
 
         # Process tool calls with full agentic loop
-        if response_message.get('tool_calls'):
-            # Add the assistant's message with tool calls to conversation
-            messages_for_ollama.append({"role": "assistant", "content": response_message.get('content', ''), "tool_calls": response_message['tool_calls']})
+        if parsed_response.needs_tool_execution and parsed_response.tool_calls:
+            # Add the assistant's message with parsed tool calls to conversation
+            tool_calls_for_history = []
+            for tc in parsed_response.tool_calls:
+                tool_calls_for_history.append({
+                    "id": tc.id,
+                    "type": "function",
+                    "function": {
+                        "name": tc.name,
+                        "arguments": tc.arguments
+                    }
+                })
+
+            messages_for_ollama.append({
+                "role": "assistant",
+                "content": parsed_response.content,
+                "tool_calls": tool_calls_for_history
+            })
 
             # Execute tool calls
             tool_outputs = []
             failed_tools = []
 
-            for tool_call_obj in response_message['tool_calls']:
-                tool_call_id = tool_call_obj.get('id', 'unknown')
-                function_obj = tool_call_obj.get('function', {})
-                function_name = getattr(function_obj, 'name', None) if hasattr(function_obj, 'name') else function_obj.get('name')
-                function_args = getattr(function_obj, 'arguments', {}) if hasattr(function_obj, 'arguments') else function_obj.get('arguments', {})
+            for tool_call in parsed_response.tool_calls:
+                tool_call_id = tool_call.id
+                function_name = tool_call.name
+                function_args = tool_call.arguments
 
                 # Ensure arguments is a dict
                 if isinstance(function_args, str):
@@ -587,11 +596,16 @@ You can always ask to see the tool catalog again by saying "show tools" if you n
                         function_args['username'] = username
 
                     try:
-                        # Check if the tool function is async
-                        if inspect.iscoroutinefunction(tool_function):
-                            output = run_async(tool_function(**function_args))
-                        else:
-                            output = tool_function(**function_args)
+                        # Debug log tool execution start
+                        tool_start = time.time()
+
+                        # Use the new dynamic tool execution
+                        output = execute_tool(function_name, **function_args)
+
+                        # Debug log tool execution completion
+                        tool_end = time.time()
+                        debug_logger.log_tool_execution(function_name, function_args, output, tool_end - tool_start)
+
                         tool_outputs.append({"role": "tool", "tool_call_id": tool_call_id, "content": json.dumps(output)})
                     except Exception as e:
                         failed_tools.append(f"{function_name}: {str(e)}")
@@ -609,14 +623,18 @@ You can always ask to see the tool catalog again by saying "show tools" if you n
 
                 # Get final response from LLM after tool execution
                 final_llm_response = ollama.chat(model=OLLAMA_MODEL, messages=messages_for_ollama, tools=selected_tools)
-                final_response = final_llm_response['message'].get('content', 'Processing completed.')
+                raw_final_response = final_llm_response['message'].get('content', 'Processing completed.')
+
+                # Format the response using our response formatter
+                final_response = response_formatter.format_response(raw_final_response, tool_outputs)
             else:
-                if response_message.get('tool_calls'):
-                    final_response = "Could not execute any of the requested tools or no valid tools were called."
+                if parsed_response.tool_calls:
+                    final_response = response_formatter.format_response("Could not execute any of the requested tools or no valid tools were called.")
                 else:
-                    final_response = response_message.get('content', 'Processing completed.')
+                    final_response = response_formatter.format_response("Processing completed.")
         else:
-            final_response = response_message.get('content', 'Unable to process request.')
+            # No tools needed - format the direct response
+            final_response = response_formatter.format_response(parsed_response.content)
 
         # Save interaction and generate topic
         topic_str = "tool_assisted_conversation"
@@ -638,7 +656,7 @@ You can always ask to see the tool catalog again by saying "show tools" if you n
 
     # Fallback: if parsing fails, use direct response
     logger.warning("Failed to parse capability assessment, using direct response")
-    fallback_response = "I apologize, but I encountered an issue processing your request. Please try again."
+    fallback_response = response_formatter.format_response("I apologize, but I encountered an issue processing your request. Please try again.")
 
     processing_time = round(time.time() - start_time, 1)
     return {
