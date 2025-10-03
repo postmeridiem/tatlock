@@ -173,20 +173,26 @@ def execute_get_weather_forecast(city=None, start_date=None, end_date=None, **kw
         kwargs['end_date'] = end_date
     return execute_tool('get_weather_forecast', **kwargs)
 
-def execute_find_personal_variables(searchkey=None, **kwargs):
+def execute_find_personal_variables(searchkey=None, username=None, **kwargs):
     """Legacy wrapper for personal variables tool."""
+    # Note: username parameter is accepted for compatibility but ignored
+    # Tool implementation uses current_user global for user context
     if searchkey is not None:
         kwargs['searchkey'] = searchkey
     return execute_tool('find_personal_variables', **kwargs)
 
-def execute_recall_memories(keyword=None, **kwargs):
+def execute_recall_memories(keyword=None, username=None, **kwargs):
     """Legacy wrapper for recall memories tool."""
+    # Note: username parameter is accepted for compatibility but ignored
+    # Tool implementation uses current_user global for user context
     if keyword is not None:
         kwargs['keyword'] = keyword
     return execute_tool('recall_memories', **kwargs)
 
-def execute_recall_memories_with_time(keyword=None, start_date=None, end_date=None, **kwargs):
+def execute_recall_memories_with_time(keyword=None, start_date=None, end_date=None, username=None, **kwargs):
     """Legacy wrapper for recall memories with time tool."""
+    # Note: username parameter is accepted for compatibility but ignored
+    # Tool implementation uses current_user global for user context
     if keyword is not None:
         kwargs['keyword'] = keyword
     if start_date is not None:
@@ -195,46 +201,60 @@ def execute_recall_memories_with_time(keyword=None, start_date=None, end_date=No
         kwargs['end_date'] = end_date
     return execute_tool('recall_memories_with_time', **kwargs)
 
-def execute_get_conversations_by_topic(topic=None, **kwargs):
+def execute_get_conversations_by_topic(topic=None, username=None, **kwargs):
     """Legacy wrapper for conversations by topic tool."""
+    # Note: username parameter is accepted for compatibility but ignored
+    # Tool implementation uses current_user global for user context
     if topic is not None:
         kwargs['topic_name'] = topic
     return execute_tool('get_conversations_by_topic', **kwargs)
 
-def execute_get_topics_by_conversation(conversation_id=None, **kwargs):
+def execute_get_topics_by_conversation(conversation_id=None, username=None, **kwargs):
     """Legacy wrapper for topics by conversation tool."""
+    # Note: username parameter is accepted for compatibility but ignored
+    # Tool implementation uses current_user global for user context
     if conversation_id is not None:
         kwargs['conversation_id'] = conversation_id
     return execute_tool('get_topics_by_conversation', **kwargs)
 
-def execute_get_conversation_summary(conversation_id=None, **kwargs):
+def execute_get_conversation_summary(conversation_id=None, username=None, **kwargs):
     """Legacy wrapper for conversation summary tool."""
+    # Note: username parameter is accepted for compatibility but ignored
+    # Tool implementation uses current_user global for user context
     if conversation_id is not None:
         kwargs['conversation_id'] = conversation_id
     return execute_tool('get_conversation_summary', **kwargs)
 
-def execute_get_topic_statistics(topic=None, **kwargs):
+def execute_get_topic_statistics(topic=None, username=None, **kwargs):
     """Legacy wrapper for topic statistics tool."""
+    # Note: username parameter is accepted for compatibility but ignored
+    # Tool implementation uses current_user global for user context
     if topic is not None:
         kwargs['topic'] = topic
     return execute_tool('get_topic_statistics', **kwargs)
 
-def execute_get_user_conversations(limit=None, offset=None, **kwargs):
+def execute_get_user_conversations(limit=None, offset=None, username=None, **kwargs):
     """Legacy wrapper for user conversations tool."""
+    # Note: username parameter is accepted for compatibility but ignored
+    # Tool implementation uses current_user global for user context
     if limit is not None:
         kwargs['limit'] = limit
     if offset is not None:
         kwargs['offset'] = offset
     return execute_tool('get_user_conversations', **kwargs)
 
-def execute_get_conversation_details(conversation_id=None, **kwargs):
+def execute_get_conversation_details(conversation_id=None, username=None, **kwargs):
     """Legacy wrapper for conversation details tool."""
+    # Note: username parameter is accepted for compatibility but ignored
+    # Tool implementation uses current_user global for user context
     if conversation_id is not None:
         kwargs['conversation_id'] = conversation_id
     return execute_tool('get_conversation_details', **kwargs)
 
-def execute_search_conversations(query=None, limit=None, **kwargs):
+def execute_search_conversations(query=None, limit=None, username=None, **kwargs):
     """Legacy wrapper for search conversations tool."""
+    # Note: username parameter is accepted for compatibility but ignored
+    # Tool implementation uses current_user global for user context
     if query is not None:
         kwargs['query'] = query
     if limit is not None:

@@ -203,7 +203,7 @@ def authenticated_user_client(client, test_user):
 @pytest.fixture(autouse=True)
 def mock_ollama():
     """Mock Ollama calls to avoid external dependencies in tests."""
-    with patch('cortex.agent.ollama') as mock_ollama:
+    with patch('cortex.tatlock.ollama') as mock_ollama:
         # Mock the chat method to return a message with 'role': 'assistant'
         mock_ollama.chat.return_value = {
             'message': {
@@ -217,6 +217,6 @@ def mock_ollama():
 @pytest.fixture(autouse=True)
 def mock_tools():
     """Mock tool calls to avoid external dependencies in tests."""
-    with patch('cortex.agent.TOOLS') as mock_tools:
-        mock_tools.return_value = []
-        yield mock_tools 
+    # TOOLS is no longer used in the new 4.5-phase architecture
+    # The new system uses dynamic tool loading through stem.tools
+    pass 

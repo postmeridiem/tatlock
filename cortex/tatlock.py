@@ -1,7 +1,8 @@
 """
-cortex/agent.py
+cortex/tatlock.py
 
-Core agent logic for Tatlock. Handles chat interaction, tool dispatch, and agentic loop.
+Core agent logic for Tatlock implementing 4.5-phase prompt architecture.
+Handles chat interaction, tool dispatch, and butler personality.
 """
 
 import ollama
@@ -17,12 +18,14 @@ from typing import List, Literal
 import instructor
 from openai import OpenAI
 from pydantic import BaseModel, Field
+from enum import Enum
+from typing import Optional, Dict, Any
 
 # Import from our new, organized modules
 from config import OLLAMA_MODEL
 from hippocampus.database import get_base_instructions
 from hippocampus.reference_frame import get_tool_catalog_for_selection, get_selected_tools
-from stem.tools import TOOLS, AVAILABLE_TOOLS, execute_tool
+from stem.tools import AVAILABLE_TOOLS, execute_tool
 from hippocampus.remember import save_interaction
 from cortex.response_parser import response_parser, response_formatter
 from stem.debug_logger import get_debug_logger, reset_debug_logger
@@ -30,21 +33,97 @@ from stem.debug_logger import get_debug_logger, reset_debug_logger
 # Set up logging for this module
 logger = logging.getLogger(__name__)
 
+# Module reload marker
+print("MODULE RELOAD: cortex.tatlock module loaded with debug functionality")
+
 # --- Tool Dispatcher ---
 # AVAILABLE_TOOLS now provided by dynamic tool system in stem/tools.py
 
-# Pydantic model for structured capability assessment
-class CapabilityAssessment(BaseModel):
-    assessment: Literal["DIRECT", "TOOLS_NEEDED"] = Field(
-        description="Whether the question can be answered directly or needs tools"
+# === NEW 4.5-PHASE ARCHITECTURE CLASSES ===
+
+class PromptPhase(Enum):
+    """Enum representing the different phases of prompt processing"""
+    INITIAL_ASSESSMENT = "initial_assessment"
+    TOOL_SELECTION = "tool_selection"
+    TOOL_EXECUTION = "tool_execution"
+    RESPONSE_FORMATTING = "response_formatting"
+    QUALITY_GATE = "quality_gate"
+
+class CapabilityGuardReason(Enum):
+    """Reasons why CAPABILITY_GUARD might be triggered"""
+    IDENTITY = "IDENTITY"
+    CAPABILITIES = "CAPABILITIES"
+    TEMPORAL = "TEMPORAL"
+    SECURITY = "SECURITY"
+    MIXED = "MIXED"
+
+class AssessmentResult(BaseModel):
+    """Result from Phase 1 initial assessment"""
+    assessment_type: Literal["DIRECT", "TOOLS_NEEDED", "CAPABILITY_GUARD"] = Field(
+        description="Type of assessment result"
     )
-    tools: List[str] = Field(
+    guard_reason: Optional[CapabilityGuardReason] = Field(
+        default=None,
+        description="Reason for capability guard trigger if applicable"
+    )
+    tools_needed: List[str] = Field(
         default=[],
-        description="List of specific tool keys needed, empty if none required"
+        description="List of specific tool keys needed"
+    )
+    direct_response: Optional[str] = Field(
+        default=None,
+        description="Direct answer if assessment is DIRECT"
+    )
+    tool_query: Optional[str] = Field(
+        default=None,
+        description="Description of what tools are needed if TOOLS_NEEDED"
+    )
+
+class ToolSelectionResult(BaseModel):
+    """Result from Phase 2 tool selection"""
+    selected_tools: List[str] = Field(
+        description="List of selected tool names"
+    )
+    usage_instructions: str = Field(
+        description="Instructions for how to use the selected tools"
+    )
+
+class QualityResult(BaseModel):
+    """Result from Phase 4.5 quality gate"""
+    approved: bool = Field(
+        description="Whether the response is approved for delivery"
+    )
+    needs_fallback: bool = Field(
+        default=False,
+        description="Whether a fallback response is needed"
+    )
+    fallback_type: Optional[str] = Field(
+        default=None,
+        description="Type of fallback if needed"
     )
     response: str = Field(
-        description="Direct answer if DIRECT, or 'PROCESSING WITH TOOLS' if tools needed"
+        description="Final approved response or generated fallback"
     )
+    reasoning: Optional[str] = Field(
+        default=None,
+        description="Reasoning for quality gate decision"
+    )
+
+class ProcessingContext(BaseModel):
+    """Context passed between phases"""
+    original_question: str
+    username: str
+    conversation_id: Optional[str]
+    location: str
+    date_time: str
+    base_instructions: List[str]
+    history: List[Dict[str, Any]]
+    current_phase: PromptPhase
+    assessment_result: Optional[AssessmentResult] = None
+    tool_selection_result: Optional[ToolSelectionResult] = None
+    tool_execution_results: List[Dict[str, Any]] = Field(default_factory=list)
+    formatted_response: Optional[str] = None
+
 
 # Initialize instructor client for structured output
 instructor_client = instructor.from_openai(
@@ -54,6 +133,824 @@ instructor_client = instructor.from_openai(
     ),
     mode=instructor.Mode.JSON,
 )
+
+# === PROMPT BUILDER CLASS ===
+
+class PromptBuilder:
+    """Builds phase-specific prompts with consistent formatting"""
+
+    def __init__(self):
+        self.edge_case_patterns = [
+            "Mixed capability/tool questions not fully addressed",
+            "Identity questions answered with model name instead of Tatlock",
+            "Temporal questions missing current context",
+            "Tool failures resulting in incomplete answers",
+            "Questions about capabilities answered incorrectly",
+            "Requests for prohibited information (credentials, personal data)",
+            "Responses that don't maintain butler persona",
+            "Technical jargon or system information leaked to user"
+        ]
+
+    def build_assessment_prompt(self, context: ProcessingContext, tool_categories: Dict[str, List[str]]) -> List[Dict[str, str]]:
+        """Build Phase 1 assessment prompt with CAPABILITY_GUARD"""
+
+        capability_guard_prompt = f"""[SYSTEM: CAPABILITY_GUARD] If the question asks about sensitive topics that require full context, respond with "CAPABILITY_GUARD: [REASON]" where REASON is:
+- IDENTITY: Questions about your name, identity, or who you are
+- CAPABILITIES: Questions about what you can do, your functions, or abilities
+- TEMPORAL: Questions about current time, date, or temporal context
+- SECURITY: Questions about personal data, credentials, or sensitive information
+- MIXED: Questions combining multiple sensitive topics
+
+[SYSTEM: TOOLS_AVAILABLE] You have access to tools in these categories:
+• PERSONAL DATA: {tool_categories.get('personal_data', [])}
+• MEMORY/RECALL: {tool_categories.get('memory_recall', [])}
+• EXTERNAL DATA: {tool_categories.get('external_data', [])}
+• VISUAL ANALYSIS: {tool_categories.get('visual_analysis', [])}
+• CONVERSATION ANALYSIS: {tool_categories.get('conversation_analysis', [])}
+
+[QUESTION] {context.original_question}
+
+Can you answer this question directly with your existing knowledge, or do you need tools?
+Respond with: DIRECT, TOOLS_NEEDED, or CAPABILITY_GUARD: [REASON]
+If DIRECT, provide your complete answer.
+If TOOLS_NEEDED, describe what tools you think you need."""
+
+        messages = [
+            {'role': 'system', 'content': f'[SYSTEM: DATE] {context.date_time}'},
+            {'role': 'system', 'content': f'[SYSTEM: LOCATION] User location: {context.location}'},
+            {'role': 'system', 'content': capability_guard_prompt}
+        ]
+
+        # Add recent history for context (only last 3 messages)
+        if context.history:
+            messages.extend(context.history[-3:])
+
+        messages.append({"role": "user", "content": context.original_question})
+
+        return messages
+
+    def build_tool_selection_prompt(self, context: ProcessingContext, available_tools: List[Dict]) -> List[Dict[str, str]]:
+        """Build Phase 2 tool selection prompt"""
+
+        tool_descriptions = []
+        for tool in available_tools:
+            tool_descriptions.append(f"• {tool['name']}: {tool['description']}")
+            if 'parameters' in tool:
+                tool_descriptions.append(f"  - Parameters: {', '.join(tool['parameters'])}")
+            tool_descriptions.append(f"  - Usage: {tool.get('usage', 'No usage description')}")
+
+        tools_text = '\n'.join(tool_descriptions)
+
+        selection_prompt = f"""[SYSTEM: DATE] {context.date_time}
+[SYSTEM: LOCATION] User location: {context.location}
+
+[QUESTION] {context.original_question}
+
+[BACKGROUND: TOOL_QUERY] {context.assessment_result.tool_query}
+
+[SYSTEM: AVAILABLE_TOOLS] Here are the specific tools available:
+{tools_text}
+
+Select only the tools needed and provide usage instructions:"""
+
+        messages = [
+            {'role': 'system', 'content': selection_prompt}
+        ]
+
+        return messages
+
+    def build_formatting_prompt(self, context: ProcessingContext, is_capability_guard: bool = False) -> List[Dict[str, str]]:
+        """Build Phase 4 response formatting prompt"""
+
+        if is_capability_guard:
+            # Use full rise_and_shine context for capability guard scenarios
+            messages = [
+                {'role': 'system', 'content': f'[SYSTEM: DATE] {context.date_time}'},
+                {'role': 'system', 'content': f'[SYSTEM: LOCATION] User location: {context.location}'}
+            ]
+
+            # Add all base instructions (rise_and_shine)
+            for instruction in context.base_instructions:
+                messages.append({'role': 'system', 'content': f'[SYSTEM: RISE_AND_SHINE] {instruction}'})
+
+            messages.extend([
+                {'role': 'system', 'content': '[SYSTEM: FORMATTING_REQUIREMENTS] Answer the original question directly using your identity from the rise_and_shine instructions above.'},
+                {'role': 'system', 'content': f'[QUESTION] {context.original_question}'},
+                {'role': 'system', 'content': f'[BACKGROUND: CAPABILITY_GUARD_TRIGGERED] True'},
+                {'role': 'system', 'content': f'[BACKGROUND: GUARD_REASON] {context.assessment_result.guard_reason.value if context.assessment_result else "UNKNOWN"}'},
+                {'role': 'system', 'content': '[BACKGROUND: INSTRUCTION] Answer the original question using your rise_and_shine context'},
+                {'role': 'user', 'content': 'Provide your response:'}
+            ])
+        else:
+            # Standard butler formatting
+            background_sections = []
+
+            if context.assessment_result and context.assessment_result.tool_query:
+                background_sections.append(f'[BACKGROUND: TOOL_SELECTION_PHASE] {context.assessment_result.tool_query}')
+
+            if context.tool_execution_results:
+                background_sections.append('[BACKGROUND: TOOL_EXECUTION]')
+                for result in context.tool_execution_results:
+                    background_sections.append(f"Called {result.get('tool_name', 'unknown')} with results: {result.get('status', 'unknown')}")
+
+            if context.tool_execution_results:
+                background_sections.append('[BACKGROUND: TOOL_RESULTS]')
+                results_summary = []
+                for result in context.tool_execution_results:
+                    if result.get('status') == 'success':
+                        results_summary.append(f"{result.get('tool_name', 'tool')}: {str(result.get('data', 'No data'))[:100]}")
+                    else:
+                        results_summary.append(f"{result.get('tool_name', 'tool')}: {result.get('message', 'Failed')}")
+                background_sections.extend(results_summary)
+
+            background_text = '\n'.join(background_sections) if background_sections else 'Direct answer path, no tools used'
+
+            butler_prompt = f"""[SYSTEM: BUTLER_ROLE] You are Tatlock, a British butler. Format a response according to these requirements:
+- Keep responses concise (under 50 words) unless specified otherwise
+- Use proper British butler speech
+- Always end with ", sir."
+- Be helpful but formal
+- Remove any technical jargon
+- Synthesize information naturally
+
+[QUESTION] {context.original_question}
+
+{background_text}
+
+Provide the properly formatted butler response:"""
+
+            messages = [
+                {'role': 'system', 'content': butler_prompt}
+            ]
+
+        return messages
+
+    def build_quality_gate_prompt(self, context: ProcessingContext, proposed_response: str) -> List[Dict[str, str]]:
+        """Build Phase 4.5 quality gate prompt"""
+
+        edge_case_list = '\n'.join([f"- {pattern}" for pattern in self.edge_case_patterns])
+
+        context_summary = []
+        if context.assessment_result:
+            if context.assessment_result.assessment_type == "CAPABILITY_GUARD":
+                context_summary.append(f"CAPABILITY_GUARD triggered: {context.assessment_result.guard_reason.value}")
+            elif context.assessment_result.assessment_type == "TOOLS_NEEDED":
+                context_summary.append(f"Tool execution: {len(context.tool_execution_results)} tools used")
+            else:
+                context_summary.append("Direct answer path, no tools used, no guards triggered")
+
+        context_text = ', '.join(context_summary) if context_summary else 'Unknown processing path'
+
+        quality_prompt = f"""[SYSTEM: QUALITY_GATE] Review this response against known issues:
+
+EDGE CASE PATTERNS:
+{edge_case_list}
+
+EDGE CASE CHECKS:
+- Does this answer the original question completely?
+- Is the butler persona maintained (formal, ends with "sir")?
+- Are there any inappropriate elements or system leaks?
+- Does this match any known problematic patterns?
+
+[ORIGINAL_QUESTION] {context.original_question}
+[PROPOSED_ANSWER] {proposed_response}
+[CONTEXT] {context_text}
+
+Quality assessment: APPROVED or FALLBACK: [TYPE with reason]
+If FALLBACK needed, provide the corrected response."""
+
+        messages = [
+            {'role': 'system', 'content': quality_prompt}
+        ]
+
+        return messages
+
+
+# === QUALITY GATE CLASS ===
+
+class QualityGate:
+    """Validates response quality and handles edge cases before delivery"""
+
+    def __init__(self, prompt_builder: PromptBuilder):
+        self.prompt_builder = prompt_builder
+        self.fallback_responses = {
+            "INCOMPLETE": "I apologize, sir, but I believe I may have missed part of your question. Could you please rephrase it so I can assist you properly?",
+            "TOOL_FAILURE": "I apologize, sir, but I'm currently unable to retrieve that information due to a technical issue. Please try again in a moment.",
+            "IDENTITY_LEAK": "My name is Tatlock, sir. How may I assist you today?",
+            "CAPABILITY_ERROR": "I can help with various tasks including answering questions, searching information, and recalling our conversation history, sir.",
+            "DOUBLE_PROCESSING": None,  # Will use original if detected
+            "SAFETY_VIOLATION": "I'm not able to help with that request, sir.",
+            "UNKNOWN": "I apologize, sir, but I encountered an issue processing your request. Please try again."
+        }
+
+    def evaluate_response(self, context: ProcessingContext, proposed_response: str) -> QualityResult:
+        """Evaluate if proposed answer adequately addresses the original question"""
+
+        # Step 1: Quick safety checks
+        safety_result = self._check_safety(context.original_question, proposed_response)
+        if safety_result.needs_fallback:
+            return safety_result
+
+        # Step 2: Completeness validation
+        completeness_result = self._check_completeness(context, proposed_response)
+        if completeness_result.needs_fallback:
+            return completeness_result
+
+        # Step 3: Edge case detection
+        edge_case_result = self._check_edge_cases(context, proposed_response)
+        if edge_case_result.needs_fallback:
+            return edge_case_result
+
+        # Step 4: Use LLM for final quality assessment
+        llm_result = self._llm_quality_check(context, proposed_response)
+        return llm_result
+
+    def _check_safety(self, original_question: str, proposed_response: str) -> QualityResult:
+        """Quick safety validation for obvious violations"""
+
+        # Check for obvious security violations
+        security_triggers = ["password", "credit card", "ssn", "social security", "bank account"]
+        question_lower = original_question.lower()
+
+        if any(trigger in question_lower for trigger in security_triggers):
+            return QualityResult(
+                approved=False,
+                needs_fallback=True,
+                fallback_type="SAFETY_VIOLATION",
+                response=self.fallback_responses["SAFETY_VIOLATION"],
+                reasoning="Question requests sensitive information"
+            )
+
+        # Check for system information leaks
+        system_leaks = ["ollama", "llama", "gemma", "model", "AI assistant", "language model"]
+        response_lower = proposed_response.lower()
+
+        if any(leak in response_lower for leak in system_leaks):
+            return QualityResult(
+                approved=False,
+                needs_fallback=True,
+                fallback_type="IDENTITY_LEAK",
+                response=self.fallback_responses["IDENTITY_LEAK"],
+                reasoning="Response contains system information leak"
+            )
+
+        return QualityResult(approved=True, response=proposed_response, reasoning="Safety checks passed")
+
+    def _check_completeness(self, context: ProcessingContext, proposed_response: str) -> QualityResult:
+        """Validate response completeness"""
+
+        # Check for tool failure scenarios
+        if context.tool_execution_results:
+            failed_tools = [r for r in context.tool_execution_results if r.get('status') != 'success']
+            if failed_tools and "successfully" in proposed_response.lower():
+                return QualityResult(
+                    approved=False,
+                    needs_fallback=True,
+                    fallback_type="TOOL_FAILURE",
+                    response=self.fallback_responses["TOOL_FAILURE"],
+                    reasoning="Response claims success but tools failed"
+                )
+
+        # Check for empty or generic responses
+        generic_responses = ["processing completed", "i apologize", "i cannot", "i don't know"]
+        if len(proposed_response.strip()) < 10 or any(generic in proposed_response.lower() for generic in generic_responses):
+            if context.assessment_result and context.assessment_result.assessment_type == "DIRECT":
+                return QualityResult(
+                    approved=False,
+                    needs_fallback=True,
+                    fallback_type="INCOMPLETE",
+                    response=self.fallback_responses["INCOMPLETE"],
+                    reasoning="Response is too generic for direct question"
+                )
+
+        return QualityResult(approved=True, response=proposed_response, reasoning="Completeness checks passed")
+
+    def _check_edge_cases(self, context: ProcessingContext, proposed_response: str) -> QualityResult:
+        """Check for known edge case patterns"""
+
+        # Edge case: Mixed questions not fully addressed
+        if context.assessment_result and context.assessment_result.guard_reason == CapabilityGuardReason.MIXED:
+            # Check if response addresses all parts of a mixed question
+            question_parts = self._count_question_parts(context.original_question)
+            if question_parts > 1 and len(proposed_response.split('.')) < question_parts:
+                return QualityResult(
+                    approved=False,
+                    needs_fallback=True,
+                    fallback_type="INCOMPLETE",
+                    response=self.fallback_responses["INCOMPLETE"],
+                    reasoning="Mixed question not fully addressed"
+                )
+
+        # Edge case: Identity questions without proper context
+        identity_keywords = ["name", "who are you", "what are you", "identity"]
+        if any(keyword in context.original_question.lower() for keyword in identity_keywords):
+            if "tatlock" not in proposed_response.lower():
+                return QualityResult(
+                    approved=False,
+                    needs_fallback=True,
+                    fallback_type="IDENTITY_LEAK",
+                    response=self.fallback_responses["IDENTITY_LEAK"],
+                    reasoning="Identity question didn't mention Tatlock"
+                )
+
+        # Edge case: Capability questions
+        capability_keywords = ["what can you do", "capabilities", "abilities", "help with"]
+        if any(keyword in context.original_question.lower() for keyword in capability_keywords):
+            if len(proposed_response) < 30:  # Too short for capability explanation
+                return QualityResult(
+                    approved=False,
+                    needs_fallback=True,
+                    fallback_type="CAPABILITY_ERROR",
+                    response=self.fallback_responses["CAPABILITY_ERROR"],
+                    reasoning="Capability question needs more detailed response"
+                )
+
+        return QualityResult(approved=True, response=proposed_response, reasoning="Edge case checks passed")
+
+    def _count_question_parts(self, question: str) -> int:
+        """Count distinct parts in a question (rough heuristic)"""
+        and_count = question.lower().count(' and ')
+        question_marks = question.count('?')
+        return max(1, and_count + 1, question_marks)
+
+    def _llm_quality_check(self, context: ProcessingContext, proposed_response: str) -> QualityResult:
+        """Use LLM for final quality assessment"""
+
+        try:
+            # Build quality gate prompt
+            messages = self.prompt_builder.build_quality_gate_prompt(context, proposed_response)
+
+            # Get LLM evaluation
+            quality_response = ollama.chat(model=OLLAMA_MODEL, messages=messages, tools=[])
+            quality_content = quality_response['message']['content']
+
+            # Parse quality response
+            if "APPROVED" in quality_content.upper():
+                return QualityResult(
+                    approved=True,
+                    response=proposed_response,
+                    reasoning="LLM quality check approved"
+                )
+            elif "FALLBACK:" in quality_content.upper():
+                # Extract fallback type and reason
+                fallback_lines = [line.strip() for line in quality_content.split('\n') if 'FALLBACK:' in line.upper()]
+                if fallback_lines:
+                    fallback_info = fallback_lines[0].split('FALLBACK:')[1].strip()
+                    fallback_type = fallback_info.split(' ')[0] if fallback_info else "UNKNOWN"
+
+                    # Try to extract corrected response if provided
+                    corrected_response = None
+                    lines = quality_content.split('\n')
+                    for i, line in enumerate(lines):
+                        if 'corrected response' in line.lower() and i + 1 < len(lines):
+                            corrected_response = lines[i + 1].strip()
+                            break
+
+                    return QualityResult(
+                        approved=False,
+                        needs_fallback=True,
+                        fallback_type=fallback_type,
+                        response=corrected_response or self.fallback_responses.get(fallback_type, self.fallback_responses["UNKNOWN"]),
+                        reasoning=f"LLM detected issue: {fallback_info}"
+                    )
+
+            # Fallback if parsing fails
+            return QualityResult(
+                approved=True,
+                response=proposed_response,
+                reasoning="LLM quality check completed (parse unclear)"
+            )
+
+        except Exception as e:
+            logger.warning(f"Quality gate LLM check failed: {e}")
+            # Default to approval if quality check fails
+            return QualityResult(
+                approved=True,
+                response=proposed_response,
+                reasoning=f"Quality check failed, defaulting to approval: {str(e)}"
+            )
+
+    def generate_fallback_response(self, context: ProcessingContext, fallback_type: str, custom_message: str = None) -> str:
+        """Generate appropriate fallback response"""
+
+        if custom_message:
+            return custom_message
+
+        return self.fallback_responses.get(fallback_type, self.fallback_responses["UNKNOWN"])
+
+
+# === CAPABILITY GUARD RESPONSE PARSER ===
+
+class CapabilityGuardParser:
+    """Parses LLM responses from Phase 1 assessment for CAPABILITY_GUARD triggers"""
+
+    def parse_assessment_response(self, response_content: str) -> AssessmentResult:
+        """Parse LLM response from Phase 1 assessment"""
+
+        response_upper = response_content.upper()
+
+        # Check for CAPABILITY_GUARD trigger (LLM detected sensitive topic)
+        if "CAPABILITY_GUARD:" in response_upper:
+            guard_line = [line for line in response_content.split('\n') if 'CAPABILITY_GUARD:' in line.upper()]
+            if guard_line:
+                guard_reason_text = guard_line[0].split('CAPABILITY_GUARD:')[1].strip()
+                try:
+                    guard_reason = CapabilityGuardReason(guard_reason_text)
+                except ValueError:
+                    # Invalid reason, default to MIXED
+                    guard_reason = CapabilityGuardReason.MIXED
+
+                return AssessmentResult(
+                    assessment_type="CAPABILITY_GUARD",
+                    guard_reason=guard_reason
+                )
+
+        # Check for TOOLS_NEEDED
+        elif "TOOLS_NEEDED" in response_upper:
+            # Extract tool query from response
+            lines = response_content.split('\n')
+            tool_query = ""
+            for line in lines:
+                if line.strip() and not any(keyword in line.upper() for keyword in ['ASSESSMENT:', 'TOOLS:', 'RESPONSE:']):
+                    tool_query = line.strip()
+                    break
+
+            # Extract tools list if present
+            tools_lines = [line for line in lines if 'TOOLS:' in line.upper()]
+            tools_needed = []
+            if tools_lines:
+                tools_text = tools_lines[0].split('TOOLS:')[1].strip()
+                if tools_text and tools_text.upper() != "NONE":
+                    tools_needed = [tool.strip() for tool in tools_text.split(',')]
+
+            return AssessmentResult(
+                assessment_type="TOOLS_NEEDED",
+                tools_needed=tools_needed,
+                tool_query=tool_query or "Tools needed for this request"
+            )
+
+        # Default to DIRECT response
+        else:
+            return AssessmentResult(
+                assessment_type="DIRECT",
+                direct_response=response_content.strip()
+            )
+
+
+# === NEW 4.5-PHASE PROCESSOR ===
+
+class TatlockProcessor:
+    """Main processor implementing the 4.5-phase architecture"""
+
+    def __init__(self):
+        self.prompt_builder = PromptBuilder()
+        self.quality_gate = QualityGate(self.prompt_builder)
+        self.guard_parser = CapabilityGuardParser()
+
+    def process_question(self, user_message: str, history: List[Dict], username: str = "admin",
+                        conversation_id: str = None) -> Dict:
+        """Process question through 4.5-phase architecture"""
+
+        start_time = time.time()
+        logger.info(f"[NEW ARCHITECTURE] Processing: '{user_message[:50]}...'")
+
+        # Initialize debug logger
+        debug_logger = get_debug_logger(conversation_id)
+        debug_logger.log_phase_start("NEW 4.5-Phase Processing", f"User: {username}, Message: {user_message[:100]}")
+
+        # Build processing context
+        context = self._build_context(user_message, history, username, conversation_id)
+
+        try:
+            # Phase 1: Initial Assessment
+            assessment_result = self._phase_1_assessment(context, debug_logger)
+            context.assessment_result = assessment_result
+            context.current_phase = PromptPhase.INITIAL_ASSESSMENT
+
+            # Route based on assessment
+            if assessment_result.assessment_type == "CAPABILITY_GUARD":
+                # Direct to Phase 4 with full context
+                context.current_phase = PromptPhase.RESPONSE_FORMATTING
+                formatted_response = self._phase_4_formatting(context, debug_logger, is_capability_guard=True)
+
+            elif assessment_result.assessment_type == "DIRECT":
+                # Direct to Phase 4 for butler formatting
+                context.current_phase = PromptPhase.RESPONSE_FORMATTING
+                formatted_response = self._phase_4_formatting(context, debug_logger, is_capability_guard=False)
+
+            elif assessment_result.assessment_type == "TOOLS_NEEDED":
+                # Phase 2: Tool Selection
+                context.current_phase = PromptPhase.TOOL_SELECTION
+                tool_selection_result = self._phase_2_tool_selection(context, debug_logger)
+                context.tool_selection_result = tool_selection_result
+
+                # Phase 3: Tool Execution
+                context.current_phase = PromptPhase.TOOL_EXECUTION
+                tool_results = self._phase_3_tool_execution(context, debug_logger)
+                context.tool_execution_results = tool_results
+
+                # Phase 4: Response Formatting
+                context.current_phase = PromptPhase.RESPONSE_FORMATTING
+                formatted_response = self._phase_4_formatting(context, debug_logger, is_capability_guard=False)
+            else:
+                # Fallback
+                formatted_response = "I apologize, sir, but I encountered an issue processing your request."
+
+            context.formatted_response = formatted_response
+
+            # Phase 4.5: Quality Gate
+            context.current_phase = PromptPhase.QUALITY_GATE
+            quality_result = self._phase_4_5_quality_gate(context, debug_logger)
+
+            # Finalize response
+            final_response = quality_result.response
+            processing_time = round(time.time() - start_time, 1)
+
+            # Save interaction
+            try:
+                topic_str = self._determine_topic(assessment_result)
+                save_interaction(username, user_message, final_response, topic_str, conversation_id)
+            except Exception as e:
+                logger.error(f"Error saving interaction: {e}")
+
+            # Build final history for response
+            final_history = context.history + [{"role": "assistant", "content": final_response}]
+
+            return {
+                "response": final_response,
+                "topic": topic_str,
+                "history": final_history,
+                "conversation_id": conversation_id or datetime.now().strftime('%Y-%m-%d-%H-%M-%S'),
+                "processing_time": processing_time
+            }
+
+        except Exception as e:
+            logger.error(f"Error in 4.5-phase processing: {e}", exc_info=True)
+            processing_time = round(time.time() - start_time, 1)
+            fallback_response = "I apologize, sir, but I encountered an issue processing your request. Please try again."
+
+            return {
+                "response": fallback_response,
+                "topic": "error_fallback",
+                "history": context.history + [{"role": "assistant", "content": fallback_response}],
+                "conversation_id": conversation_id or datetime.now().strftime('%Y-%m-%d-%H-%M-%S'),
+                "processing_time": processing_time
+            }
+
+    def _build_context(self, user_message: str, history: List[Dict], username: str, conversation_id: str) -> ProcessingContext:
+        """Build initial processing context"""
+
+        # Get user location
+        location = "unknown location"
+        try:
+            location_result = execute_tool("find_personal_variables", searchkey="location", username=username)
+            if location_result.get("status") == "success" and location_result.get("data"):
+                location = location_result["data"][0]["value"]
+        except Exception as e:
+            logger.warning(f"Could not retrieve user location: {e}")
+
+        # Get base instructions
+        base_instructions = get_base_instructions(username)
+
+        return ProcessingContext(
+            original_question=user_message,
+            username=username,
+            conversation_id=conversation_id,
+            location=location,
+            date_time=datetime.now().strftime("%A, %B %d, %Y at %I:%M %p"),
+            base_instructions=base_instructions,
+            history=history,
+            current_phase=PromptPhase.INITIAL_ASSESSMENT
+        )
+
+    def _phase_1_assessment(self, context: ProcessingContext, debug_logger) -> AssessmentResult:
+        """Phase 1: Initial Assessment with CAPABILITY_GUARD"""
+
+        debug_logger.log_phase_start("Phase 1: Initial Assessment", "Determine routing with CAPABILITY_GUARD")
+
+        # Get tool categories for prompt
+        tool_catalog = get_tool_catalog_for_selection()
+
+        # Build assessment prompt
+        messages = self.prompt_builder.build_assessment_prompt(context, tool_catalog)
+
+        # Debug log the request
+        debug_logger.log_llm_request(OLLAMA_MODEL, messages, tools=None, iteration_type="assessment")
+
+        try:
+            # Call LLM for assessment
+            phase1_start = time.time()
+            response = ollama.chat(model=OLLAMA_MODEL, messages=messages, tools=[])
+            phase1_end = time.time()
+
+            response_content = response['message']['content']
+            logger.debug(f"Phase 1 assessment response: {response_content[:200]}...")
+
+            # Debug log the response
+            debug_logger.log_llm_response(response, phase1_end - phase1_start)
+
+            # Parse the response
+            assessment_result = self.guard_parser.parse_assessment_response(response_content)
+            logger.info(f"Assessment result: {assessment_result.assessment_type}, guard: {assessment_result.guard_reason}")
+
+            return assessment_result
+
+        except Exception as e:
+            logger.error(f"Phase 1 assessment failed: {e}")
+            # Fallback to direct response
+            return AssessmentResult(
+                assessment_type="DIRECT",
+                direct_response="I apologize, sir, but I encountered an issue with your request."
+            )
+
+    def _phase_2_tool_selection(self, context: ProcessingContext, debug_logger) -> ToolSelectionResult:
+        """Phase 2: Tool Selection"""
+
+        debug_logger.log_phase_start("Phase 2: Tool Selection", f"Selecting tools for: {context.assessment_result.tool_query}")
+
+        # Get available tools based on assessment
+        requested_tools = context.assessment_result.tools_needed
+        available_tools = get_selected_tools(requested_tools)
+
+        # Build tool selection prompt
+        messages = self.prompt_builder.build_tool_selection_prompt(context, available_tools)
+
+        # Debug log the request
+        debug_logger.log_llm_request(OLLAMA_MODEL, messages, tools=None, iteration_type="tool_selection")
+
+        try:
+            phase2_start = time.time()
+            response = ollama.chat(model=OLLAMA_MODEL, messages=messages, tools=[])
+            phase2_end = time.time()
+
+            response_content = response['message']['content']
+
+            # Debug log the response
+            debug_logger.log_llm_response(response, phase2_end - phase2_start)
+
+            # Parse tool selection (simple parsing for now)
+            selected_tools = requested_tools  # Use original tools as fallback
+            usage_instructions = context.assessment_result.tool_query
+
+            return ToolSelectionResult(
+                selected_tools=selected_tools,
+                usage_instructions=usage_instructions
+            )
+
+        except Exception as e:
+            logger.error(f"Phase 2 tool selection failed: {e}")
+            return ToolSelectionResult(
+                selected_tools=requested_tools,
+                usage_instructions="Execute the requested tools"
+            )
+
+    def _phase_3_tool_execution(self, context: ProcessingContext, debug_logger) -> List[Dict[str, Any]]:
+        """Phase 3: Tool Execution"""
+
+        debug_logger.log_phase_start("Phase 3: Tool Execution", f"Executing: {context.tool_selection_result.selected_tools}")
+
+        # Get tools and execute LLM call with tools
+        selected_tools = get_selected_tools(context.tool_selection_result.selected_tools)
+
+        # Build messages for tool execution
+        messages = []
+        messages.append({'role': 'system', 'content': f'The current date is {context.date_time}. The user is in {context.location}.'})
+
+        for instruction in context.base_instructions:
+            messages.append({'role': 'system', 'content': instruction})
+
+        messages.extend(context.history)
+        messages.append({"role": "user", "content": context.original_question})
+        messages.append({'role': 'system', 'content': f'Use the provided tools as needed to answer the user\'s question. {context.tool_selection_result.usage_instructions}'})
+
+        # Debug log the request
+        debug_logger.log_llm_request(OLLAMA_MODEL, messages, tools=selected_tools, iteration_type="tool_execution")
+
+        try:
+            phase3_start = time.time()
+            response = ollama.chat(model=OLLAMA_MODEL, messages=messages, tools=selected_tools)
+            phase3_end = time.time()
+
+            # Debug log the response
+            debug_logger.log_llm_response(response, phase3_end - phase3_start)
+
+            # Parse and execute tool calls (reuse existing logic)
+            parsed_response = response_parser.parse_response(response)
+            tool_results = []
+
+            if parsed_response.needs_tool_execution and parsed_response.tool_calls:
+                for tool_call in parsed_response.tool_calls:
+                    function_name = tool_call.name
+                    function_args = tool_call.arguments
+
+                    # Ensure arguments is a dict
+                    if isinstance(function_args, str):
+                        try:
+                            function_args = json.loads(function_args)
+                        except json.JSONDecodeError:
+                            function_args = {}
+
+                    logger.info(f"Executing tool: {function_name} with args: {function_args}")
+
+                    # Add username to memory-related tools
+                    if function_name in ['recall_memories', 'recall_memories_with_time', 'find_personal_variables',
+                                       'get_conversations_by_topic', 'get_topics_by_conversation', 'get_conversation_summary',
+                                       'get_topic_statistics', 'get_user_conversations', 'get_conversation_details', 'search_conversations']:
+                        function_args['username'] = context.username
+
+                    try:
+                        tool_start = time.time()
+                        output = execute_tool(function_name, **function_args)
+                        tool_end = time.time()
+
+                        # Debug log tool execution
+                        debug_logger.log_tool_execution(function_name, function_args, output, tool_end - tool_start)
+
+                        tool_results.append({
+                            "tool_name": function_name,
+                            "status": output.get("status", "success"),
+                            "data": output.get("data", output),
+                            "message": output.get("message", "")
+                        })
+
+                    except Exception as e:
+                        logger.error(f"Tool execution failed for {function_name}: {e}")
+                        tool_results.append({
+                            "tool_name": function_name,
+                            "status": "error",
+                            "data": None,
+                            "message": f"Tool execution failed: {str(e)}"
+                        })
+
+            return tool_results
+
+        except Exception as e:
+            logger.error(f"Phase 3 tool execution failed: {e}")
+            return [{
+                "tool_name": "unknown",
+                "status": "error",
+                "data": None,
+                "message": f"Tool execution phase failed: {str(e)}"
+            }]
+
+    def _phase_4_formatting(self, context: ProcessingContext, debug_logger, is_capability_guard: bool) -> str:
+        """Phase 4: Response Formatting"""
+
+        phase_desc = "CAPABILITY_GUARD formatting" if is_capability_guard else "Standard butler formatting"
+        debug_logger.log_phase_start("Phase 4: Response Formatting", phase_desc)
+
+        # Build formatting prompt
+        messages = self.prompt_builder.build_formatting_prompt(context, is_capability_guard)
+
+        # Debug log the request
+        debug_logger.log_llm_request(OLLAMA_MODEL, messages, tools=None, iteration_type="formatting")
+
+        try:
+            phase4_start = time.time()
+            response = ollama.chat(model=OLLAMA_MODEL, messages=messages, tools=[])
+            phase4_end = time.time()
+
+            formatted_response = response['message']['content'].strip()
+
+            # Debug log the response
+            debug_logger.log_llm_response(response, phase4_end - phase4_start)
+
+            return formatted_response
+
+        except Exception as e:
+            logger.error(f"Phase 4 formatting failed: {e}")
+            if is_capability_guard:
+                return "My name is Tatlock, sir. How may I assist you today?"
+            else:
+                return "I apologize, sir, but I encountered an issue processing your request."
+
+    def _phase_4_5_quality_gate(self, context: ProcessingContext, debug_logger) -> QualityResult:
+        """Phase 4.5: Quality Gate"""
+
+        debug_logger.log_phase_start("Phase 4.5: Quality Gate", f"Validating response quality")
+
+        quality_result = self.quality_gate.evaluate_response(context, context.formatted_response)
+
+        logger.info(f"Quality gate result: approved={quality_result.approved}, type={quality_result.fallback_type}")
+
+        # Debug log quality gate result
+        debug_logger.log_quality_gate_result(
+            quality_result.approved,
+            quality_result.reasoning or "No reasoning provided",
+            quality_result.fallback_type
+        )
+
+        return quality_result
+
+    def _determine_topic(self, assessment_result: AssessmentResult) -> str:
+        """Determine conversation topic based on assessment"""
+        if assessment_result.assessment_type == "CAPABILITY_GUARD":
+            return f"capability_guard_{assessment_result.guard_reason.value.lower()}"
+        elif assessment_result.assessment_type == "TOOLS_NEEDED":
+            return "tool_assisted_conversation"
+        else:
+            return "general_conversation"
+
 
 def run_async(coro):
     try:
@@ -70,599 +967,31 @@ def run_async(coro):
     else:
         return asyncio.run(coro)
 
+
+# === NEW PROCESSOR INTEGRATION ===
+
+# Global processor instance
+_tatlock_processor = None
+
+def get_tatlock_processor() -> TatlockProcessor:
+    """Get or create the global TatlockProcessor instance"""
+    global _tatlock_processor
+    if _tatlock_processor is None:
+        _tatlock_processor = TatlockProcessor()
+    return _tatlock_processor
+
 def process_chat_interaction(user_message: str, history: list[dict], username: str = "admin", conversation_id: str | None = None) -> dict:
     """
-    Handles the entire chat logic flow with an agentic loop for sequential tool calls.
-    Args:
-        user_message (str): The user's message.
-        history (list[dict]): Previous conversation history.
-        username (str): The username for user-specific database access. Defaults to "admin".
-        conversation_id (str | None): Conversation ID for grouping messages. Defaults to None.
-    Returns:
-        dict: The agent's response, topic, updated history, and processing time.
+    4.5-phase architecture entry point - implements the sample.md specification
+
+    This function uses the complete new architecture:
+    - Phase 1: Initial Assessment with CAPABILITY_GUARD
+    - Phase 2: Tool Selection (if needed)
+    - Phase 3: Tool Execution (if needed)
+    - Phase 4: Response Formatting
+    - Phase 4.5: Quality Gate
     """
-    start_time = time.time()
-    logger.info(f"[BENCHMARK] Starting process_chat_interaction for: '{user_message[:50]}...'")
+    processor = get_tatlock_processor()
+    return processor.process_question(user_message, history, username, conversation_id)
 
-    base_instructions = get_base_instructions(username)
-    setup_time = time.time()
-    logger.info(f"[BENCHMARK] Setup/instructions: {setup_time - start_time:.3f}s")
 
-    # Get user location from personal variables
-    location = "unknown location"
-    try:
-        location_result = execute_tool("find_personal_variables", searchkey="location", username=username)
-        if location_result.get("status") == "success" and location_result.get("data"):
-            # Use the first value found
-            location = location_result["data"][0]["value"]
-    except Exception as e:
-        logger.warning(f"Could not retrieve user location: {e}")
-
-    messages_for_ollama = []
-    messages_for_ollama.append({'role': 'system',
-                                'content': f'The current date is {date.today().isoformat()}. The user is in {location}.'})
-    for instruction in base_instructions:
-        messages_for_ollama.append({'role': 'system', 'content': instruction})
-
-    messages_for_ollama.extend(history)
-    messages_for_ollama.append({"role": "user", "content": user_message})
-
-    max_interactions = 10
-    tool_failures = []  # Track tool failures for analysis
-    
-    for i in range(max_interactions):
-        logger.debug(f"Tool Iteration {i+1}")
-        
-        # Check if this is the last iteration and we've had tool failures
-        if i == max_interactions - 1 and tool_failures:
-            # Add system prompt for tool failure analysis
-            failure_analysis_prompt = f"""
-IMPORTANT: You have reached the maximum number of tool call attempts ({max_interactions}). 
-The following tools failed to execute properly:
-{chr(10).join([f"- {failure}" for failure in tool_failures])}
-
-Please provide a comprehensive response that:
-1. Acknowledges the tool failures
-2. Analyzes what went wrong (API issues, invalid parameters, network problems, etc.)
-3. Provides the best possible answer with the information available
-4. Suggests alternative approaches or what information would be needed
-5. Maintains your helpful and professional tone
-
-Do not attempt to call any more tools - provide a final response analyzing the situation.
-"""
-            messages_for_ollama.append({'role': 'system', 'content': failure_analysis_prompt})
-        
-        logger.info(f"LLM_TOOL_CALL | Tool: chat_completion | CallID: chat_{uuid.uuid4().hex[:8]} | Args: {{'model': '{OLLAMA_MODEL}', 'messages_count': {len(messages_for_ollama)}, 'tools_count': {len(TOOLS)}}}")
-        llm_start = time.time()
-        logger.info(f"[BENCHMARK] Starting LLM call #{i+1}")
-        response = ollama.chat(model=OLLAMA_MODEL, messages=messages_for_ollama, tools=TOOLS)
-        llm_end = time.time()
-        logger.info(f"[BENCHMARK] LLM call #{i+1} completed: {llm_end - llm_start:.3f}s")
-        response_message = dict(response['message'])
-        
-        # Add debugging for LLM response (only in debug mode)
-        if logger.isEnabledFor(logging.DEBUG):
-            logger.debug(f"Raw LLM response content: {response_message.get('content', 'None')}")
-            logger.debug(f"Raw LLM response tool_calls: {response_message.get('tool_calls', 'None')}")
-        
-        if response_message.get('tool_calls'):
-            logger.debug(f"LLM Response: {len(response_message['tool_calls'])} tool calls")
-        else:
-            logger.debug(f"LLM Response: Final response (no tools)")
-
-        if response_message.get('tool_calls'):
-            clean_tool_calls = []
-            for tool_call_obj in response_message['tool_calls']:
-                function_obj = tool_call_obj.get('function', {})
-                function_dict = {
-                    'name': getattr(function_obj, 'name', None),
-                    'arguments': getattr(function_obj, 'arguments', {})
-                }
-                clean_tool_calls.append({
-                    'id': tool_call_obj.get('id'),
-                    'type': 'function',
-                    'function': function_dict
-                })
-            response_message['tool_calls'] = clean_tool_calls
-        elif response_message.get('tool_calls') == '':
-            response_message['tool_calls'] = None
-
-        if not response_message.get('tool_calls') and "tool_calls" in response_message.get('content', ''):
-            content = response_message['content']
-            logger.debug(f"Found 'tool_calls' in content, attempting to parse...")
-            
-            # Try to parse tool calls from ```tool_calls``` code blocks
-            match = re.search(r"```tool_calls\s*\n(.*?)\n```", content, re.DOTALL)
-            if match:
-                logger.debug(f"Found ```tool_calls``` block, attempting to parse...")
-                try:
-                    tool_json_str = match.group(1).strip()
-                    parsed_calls = json.loads(tool_json_str)
-                    
-                    # Convert the parsed calls to the proper format
-                    clean_tool_calls = []
-                    for parsed_call in parsed_calls:
-                        if isinstance(parsed_call, dict) and 'name' in parsed_call and 'parameters' in parsed_call:
-                            clean_tool_calls.append({
-                                "id": f"call_{uuid.uuid4().hex[:8]}",
-                                "type": "function",
-                                "function": {
-                                    "name": parsed_call.get("name"),
-                                    "arguments": parsed_call.get("parameters", {})
-                                }
-                            })
-                    
-                    if clean_tool_calls:
-                        response_message['tool_calls'] = clean_tool_calls
-                        response_message['content'] = ""
-                        logger.debug(f"Successfully parsed {len(clean_tool_calls)} tool calls from content, cleared content")
-                    else:
-                        logger.debug("No valid tool calls found in ```tool_calls``` block, keeping original content")
-                except (json.JSONDecodeError, AttributeError) as e:
-                    logger.error(f"Failed to parse tool calls from ```tool_calls``` block: {e}")
-                    logger.debug("Keeping original content due to parsing error")
-            
-            # Fallback to the original <tool_call> parsing
-            if not response_message.get('tool_calls'):
-                match = re.search(r"<tool_call>\s*(\{.*?\})\s*</tool_call>", content, re.DOTALL)
-                if match:
-                    logger.debug(f"Found <tool_call> block, attempting to parse...")
-                    try:
-                        tool_json_str = match.group(1).replace('\\"', '"')
-                        parsed_call = json.loads(tool_json_str)
-                        if 'location' in parsed_call.get('parameters', {}):
-                            parsed_call['parameters']['city'] = parsed_call['parameters'].pop('location')
-                        response_message['tool_calls'] = [{"id": f"call_{uuid.uuid4().hex[:8]}",
-                                                           "function": {"name": parsed_call.get("name"),
-                                                                        "arguments": parsed_call.get("parameters", {})}}]
-                        response_message['content'] = ""
-                        logger.debug(f"Successfully parsed tool call from <tool_call> block, cleared content")
-                    except (json.JSONDecodeError, AttributeError) as e:
-                        logger.error(f"Failed to parse tool call from content: {e}")
-                        logger.debug("Keeping original content due to parsing error")
-
-        messages_for_ollama.append(response_message)
-
-        # Add debugging after processing response message (only in debug mode)
-        if logger.isEnabledFor(logging.DEBUG):
-            logger.debug(f"After processing - content: {response_message.get('content', 'None')}")
-            logger.debug(f"After processing - tool_calls: {response_message.get('tool_calls', 'None')}")
-
-        # If content is empty but no tool calls, try to get a proper response
-        if not response_message.get('content') and not response_message.get('tool_calls'):
-            logger.warning("Content is empty and no tool calls found, requesting new response from LLM")
-            # Add a system message to request a proper response
-            messages_for_ollama.append({'role': 'system', 'content': 'Please provide a helpful response to the user\'s message.'})
-            logger.info(f"LLM_TOOL_CALL | Tool: chat_completion_retry | CallID: chat_retry_{uuid.uuid4().hex[:8]} | Args: {{'model': '{OLLAMA_MODEL}', 'messages_count': {len(messages_for_ollama)}, 'tools_count': {len(TOOLS)}}}")
-            response = ollama.chat(model=OLLAMA_MODEL, messages=messages_for_ollama, tools=TOOLS)
-            response_message = dict(response['message'])
-            messages_for_ollama[-1] = response_message  # Replace the system message with the new response
-            logger.debug(f"New response content: {response_message.get('content', 'None')}")
-
-        if not response_message.get('tool_calls'):
-            logger.debug("No tool calls found, breaking out of loop")
-            break
-
-        tool_outputs = []
-        failed_tools = []  # Track failures in this iteration
-        
-        if response_message.get('tool_calls') and isinstance(response_message['tool_calls'], list):
-            for tool_call in response_message['tool_calls']:
-                function_name = tool_call.get('function', {}).get('name')
-                function_args = tool_call.get('function', {}).get('arguments')
-                tool_call_id = tool_call.get('id')
-                
-                # Single comprehensive log entry for each tool call
-                logger.info(f"LLM_TOOL_CALL | Tool: {function_name} | CallID: {tool_call_id} | Args: {json.dumps(function_args, default=str)}")
-                
-                if not function_name or not isinstance(function_args, dict): 
-                    failed_tools.append(f"Invalid tool call format for {function_name}")
-                    continue
-                    
-                if function_name in AVAILABLE_TOOLS:
-                    # Add username to memory-related tools
-                    if function_name in ['recall_memories', 'recall_memories_with_time', 'find_personal_variables', 'get_conversations_by_topic', 'get_topics_by_conversation', 'get_conversation_summary', 'get_topic_statistics', 'get_user_conversations', 'get_conversation_details', 'search_conversations']:
-                        function_args['username'] = username
-
-                    try:
-                        # Use the new dynamic tool execution
-                        output = execute_tool(function_name, **function_args)
-                        tool_outputs.append({"role": "tool", "tool_call_id": tool_call_id, "content": json.dumps(output)})
-                    except Exception as e:
-                        failed_tools.append(f"{function_name}: {str(e)}")
-                        tool_outputs.append({"role": "tool", "tool_call_id": tool_call_id, "content": json.dumps({
-                            "status": "error",
-                            "message": f"Tool {function_name} failed: {str(e)}"
-                        })})
-                else:
-                    failed_tools.append(f"Unknown tool: {function_name}")
-                    logger.warning(f"Warning: LLM tried to call an unknown tool: {function_name}")
-
-        # Track failures for analysis
-        if failed_tools:
-            tool_failures.extend(failed_tools)
-
-        if tool_outputs:
-            messages_for_ollama.extend(tool_outputs)
-        else:
-            if response_message.get('tool_calls'):
-                error_msg = "Could not execute any of the requested tools or no valid tools were called."
-                tool_failures.append(error_msg)
-                messages_for_ollama.append({"role": "tool", "content": json.dumps({
-                    "status": "error",
-                    "message": error_msg
-                })})
-
-    final_content = "I'm sorry, an error occurred or no assistant reply was generated."
-    if messages_for_ollama:
-        last_message = messages_for_ollama[-1]
-        if isinstance(last_message, dict) and last_message.get('role') == 'assistant' and 'content' in last_message:
-            final_content = last_message['content']
-    
-    # Add debugging for empty response issue (only in debug mode)
-    if logger.isEnabledFor(logging.DEBUG):
-        logger.debug(f"Final content length: {len(final_content) if final_content else 0}")
-        logger.debug(f"Final content preview: {final_content[:100] if final_content else 'None'}...")
-        logger.debug(f"Last message role: {messages_for_ollama[-1].get('role', 'None') if messages_for_ollama else 'None'}")
-    
-    final_history = [msg for msg in messages_for_ollama if msg.get('role') != 'system']
-
-    topic_str = "general"
-    if final_history:
-        history_for_summary = ""
-        for msg in final_history:
-            role = msg.get("role", "unknown").capitalize()
-            content = msg.get("content", "")
-            if content and isinstance(content, str):
-                history_for_summary += f"{role}: {content}\n"
-
-        if history_for_summary:
-            messages_for_summary = [
-                {'role': 'system',
-                 'content': 'You are a text summarizer. Analyze the following conversation script and respond with a single, one-word topic that best describes it. Examples: weather, personal_info, planning, general_knowledge.'},
-                {'role': 'user', 'content': history_for_summary}
-            ]
-            try:
-                logger.info(f"LLM_TOOL_CALL | Tool: topic_generation | CallID: topic_{uuid.uuid4().hex[:8]} | Args: {{'model': '{OLLAMA_MODEL}', 'messages_count': {len(messages_for_summary)}}}")
-                topic_response = ollama.chat(model=OLLAMA_MODEL, messages=messages_for_summary)
-                topic_str = topic_response['message']['content'].strip().lower().replace(" ", "_")
-
-                if not topic_str:
-                    topic_str = "general"
-            except Exception as e:
-                logger.error(f"Could not generate topic: {e}")
-
-    try:
-        save_interaction(
-            user_prompt=user_message,
-            llm_reply=final_content,
-            full_llm_history=messages_for_ollama,
-            topic=topic_str,
-            username=username,
-            conversation_id=conversation_id
-        )
-    except Exception as e:
-        logger.error(f"Error during saving interaction: {e}")
-
-    processing_time = time.time() - start_time
-    processing_time = round(processing_time, 1)
-    return {
-        "response": final_content,
-        "topic": topic_str,
-        "history": final_history,
-        "conversation_id": conversation_id or datetime.now().strftime('%Y-%m-%d-%H-%M-%S'),
-        "processing_time": processing_time
-    }
-
-def process_chat_interaction_lean(user_message: str, history: list[dict], username: str = "admin", conversation_id: str | None = None) -> dict:
-    """
-    NEW LEAN TOOL SELECTION: Two-phase approach for faster LLM responses.
-    Phase 1: Ask LLM if it needs tools and which ones
-    Phase 2: If tools needed, call LLM again with only selected tools
-    This dramatically reduces the tool schema overhead from 17 tools to 0-5 tools.
-    """
-    start_time = time.time()
-    logger.info(f"[BENCHMARK] Starting LEAN process_chat_interaction for: '{user_message[:50]}...'")
-
-    # Initialize debug logger for this session
-    debug_logger = get_debug_logger(conversation_id)
-    debug_logger.log_phase_start("Session Initialization", f"User: {username}, Message: {user_message[:100]}")
-
-    base_instructions = get_base_instructions(username)
-    setup_time = time.time()
-    logger.info(f"[BENCHMARK] Setup/instructions: {setup_time - start_time:.3f}s")
-
-    # Get user location from personal variables
-    location = "unknown location"
-    try:
-        location_result = execute_tool("find_personal_variables", searchkey="location", username=username)
-        if location_result.get("status") == "success" and location_result.get("data"):
-            location = location_result["data"][0]["value"]
-    except Exception as e:
-        logger.warning(f"Could not retrieve user location: {e}")
-
-    # Build base messages for main processing
-    messages_for_ollama = []
-    messages_for_ollama.append({'role': 'system',
-                                'content': f'The current date is {date.today().isoformat()}. The user is in {location}.'})
-    for instruction in base_instructions:
-        messages_for_ollama.append({'role': 'system', 'content': instruction})
-
-    messages_for_ollama.extend(history)
-    messages_for_ollama.append({"role": "user", "content": user_message})
-
-    # PHASE 1: Capability Assessment - Ask LLM if it needs tools
-    phase1_start = time.time()
-
-    tool_catalog = get_tool_catalog_for_selection()
-
-    capability_prompt = f"""
-CAPABILITY ASSESSMENT: Before providing your response, determine if you can answer the user's question with your existing knowledge, or if you need additional capabilities through tools.
-
-Available tool categories:
-• PERSONAL DATA: {[tool['key'] for tool in tool_catalog.get('personal_data', [])]}
-• MEMORY/RECALL: {[tool['key'] for tool in tool_catalog.get('memory_recall', [])]}
-• EXTERNAL DATA: {[tool['key'] for tool in tool_catalog.get('external_data', [])]}
-• VISUAL ANALYSIS: {[tool['key'] for tool in tool_catalog.get('visual_analysis', [])]}
-• CONVERSATION ANALYSIS: {[tool['key'] for tool in tool_catalog.get('conversation_analysis', [])]}
-
-Respond with EXACTLY this format:
-ASSESSMENT: [DIRECT or TOOLS_NEEDED]
-TOOLS: [comma-separated list of specific tool keys needed, or NONE]
-RESPONSE: [if DIRECT, provide your complete answer here; if TOOLS_NEEDED, write "PROCESSING WITH TOOLS"]
-
-Examples:
-- For "What is the capital of France?" → ASSESSMENT: DIRECT, TOOLS: NONE, RESPONSE: The capital of France is Paris.
-- For "What's the weather like?" → ASSESSMENT: TOOLS_NEEDED, TOOLS: get_weather_forecast, RESPONSE: PROCESSING WITH TOOLS
-- For "What did we discuss yesterday?" → ASSESSMENT: TOOLS_NEEDED, TOOLS: recall_memories, RESPONSE: PROCESSING WITH TOOLS
-
-You can always ask to see the tool catalog again by saying "show tools" if you need to reconsider your capabilities.
-"""
-
-    # Create minimal capability assessment messages (NO heavy system instructions)
-    capability_messages = [
-        {'role': 'system', 'content': f'The current date is {date.today().isoformat()}. The user is in {location}.'},
-        {'role': 'system', 'content': capability_prompt}
-    ]
-
-    # Add only the user message and recent history (not all system instructions)
-    if history:
-        capability_messages.extend(history[-3:])  # Only last 3 messages for context
-    capability_messages.append({"role": "user", "content": user_message})
-
-    logger.info(f"[BENCHMARK] Starting Phase 1 (capability assessment with structured parsing)")
-
-    # Debug log Phase 1 start
-    phase1_start = time.time()
-    debug_logger.log_phase_start("Phase 1: Capability Assessment", "Determine if tools are needed and which ones")
-
-    try:
-        # Use instructor for structured output parsing
-        # Convert messages for instructor (it expects OpenAI format)
-        instructor_messages = []
-        for msg in capability_messages:
-            instructor_messages.append({
-                "role": msg["role"],
-                "content": msg["content"]
-            })
-
-        # Debug log the LLM request
-        debug_logger.log_llm_request(OLLAMA_MODEL, instructor_messages, tools=None, iteration_type="capability_assessment")
-
-        assessment: CapabilityAssessment = instructor_client.chat.completions.create(
-            model=OLLAMA_MODEL,
-            response_model=CapabilityAssessment,
-            messages=instructor_messages,
-            max_retries=2,
-            timeout=30
-        )
-        phase1_end = time.time()
-        logger.info(f"[BENCHMARK] Phase 1 completed: {phase1_end - phase1_start:.3f}s")
-        logger.debug(f"Structured assessment: {assessment.model_dump()}")
-
-        # Debug log the LLM response
-        debug_logger.log_llm_response(
-            {"assessment": assessment.assessment, "tools": assessment.tools, "response": assessment.response},
-            phase1_end - phase1_start
-        )
-
-    except Exception as e:
-        logger.error(f"Instructor structured parsing failed: {e}")
-        # Fallback to basic ollama call
-        capability_response = ollama.chat(model=OLLAMA_MODEL, messages=capability_messages, tools=[])
-        phase1_end = time.time()
-        logger.info(f"[BENCHMARK] Phase 1 fallback completed: {phase1_end - phase1_start:.3f}s")
-
-        # Create assessment from fallback response
-        capability_content = capability_response['message']['content']
-        logger.debug(f"Fallback capability assessment response: {capability_content[:200]}...")
-
-        # Simple parsing as fallback
-        if "direct" in capability_content.lower() or "no tools" in capability_content.lower():
-            assessment = CapabilityAssessment(
-                assessment="DIRECT",
-                tools=[],
-                response=capability_content
-            )
-        else:
-            assessment = CapabilityAssessment(
-                assessment="TOOLS_NEEDED",
-                tools=["recall_memories"],  # Default fallback tool
-                response="PROCESSING WITH TOOLS"
-            )
-
-    # Use structured assessment result instead of regex parsing
-    if assessment.assessment == "DIRECT" and len(assessment.tools) == 0:
-        # Format the direct response using our response formatter
-        final_response = response_formatter.format_response(assessment.response)
-        logger.info(f"[BENCHMARK] Direct response path - no tools needed")
-
-        # Save interaction and generate topic
-        topic_str = "general_conversation"
-        final_history = messages_for_ollama[2:] + [{"role": "assistant", "content": final_response}]
-
-        try:
-            save_interaction(username, user_message, final_response, topic_str, conversation_id)
-        except Exception as e:
-            logger.error(f"Error saving interaction: {e}")
-
-        processing_time = round(time.time() - start_time, 1)
-        return {
-            "response": final_response,
-            "topic": topic_str,
-            "history": final_history,
-            "conversation_id": conversation_id or datetime.now().strftime('%Y-%m-%d-%H-%M-%S'),
-            "processing_time": processing_time
-        }
-
-    # PHASE 2: Tool-enabled processing
-    elif assessment.assessment == "TOOLS_NEEDED" and len(assessment.tools) > 0:
-        requested_tools = assessment.tools
-
-        # Get only the selected tools from database
-        selected_tools = get_selected_tools(requested_tools)
-
-        phase2_start = time.time()
-        logger.info(f"[BENCHMARK] Starting Phase 2 (tool-enabled processing)")
-
-        # Debug log Phase 2 start
-        debug_logger.log_phase_start("Phase 2: Tool-Enabled Processing", f"Selected tools: {requested_tools}")
-
-        # Add tool usage instructions
-        tool_instructions = "Use the provided tools as needed to answer the user's question. Call tools directly without asking permission."
-        tool_messages = messages_for_ollama + [{'role': 'system', 'content': tool_instructions}]
-
-        # Debug log the LLM request with tools
-        debug_logger.log_llm_request(OLLAMA_MODEL, tool_messages, tools=selected_tools, iteration_type="tool_enabled")
-
-        response = ollama.chat(model=OLLAMA_MODEL, messages=tool_messages, tools=selected_tools)
-        phase2_end = time.time()
-        logger.info(f"[BENCHMARK] Phase 2 completed: {phase2_end - phase2_start:.3f}s")
-
-        # Debug log the LLM response
-        debug_logger.log_llm_response(response, phase2_end - phase2_start)
-
-        # Use the new model-agnostic parser
-        parsed_response = response_parser.parse_response(response)
-        logger.debug(f"Parsed response: tool_calls={len(parsed_response.tool_calls)}, needs_execution={parsed_response.needs_tool_execution}")
-
-        # Process tool calls with full agentic loop
-        if parsed_response.needs_tool_execution and parsed_response.tool_calls:
-            # Add the assistant's message with parsed tool calls to conversation
-            tool_calls_for_history = []
-            for tc in parsed_response.tool_calls:
-                tool_calls_for_history.append({
-                    "id": tc.id,
-                    "type": "function",
-                    "function": {
-                        "name": tc.name,
-                        "arguments": tc.arguments
-                    }
-                })
-
-            messages_for_ollama.append({
-                "role": "assistant",
-                "content": parsed_response.content,
-                "tool_calls": tool_calls_for_history
-            })
-
-            # Execute tool calls
-            tool_outputs = []
-            failed_tools = []
-
-            for tool_call in parsed_response.tool_calls:
-                tool_call_id = tool_call.id
-                function_name = tool_call.name
-                function_args = tool_call.arguments
-
-                # Ensure arguments is a dict
-                if isinstance(function_args, str):
-                    try:
-                        function_args = json.loads(function_args)
-                    except json.JSONDecodeError:
-                        function_args = {}
-
-                logger.info(f"LLM_TOOL_CALL | Tool: {function_name} | CallID: {tool_call_id} | Args: {json.dumps(function_args, default=str)}")
-
-                if not function_name or not isinstance(function_args, dict):
-                    failed_tools.append(f"Invalid tool call format for {function_name}")
-                    continue
-
-                if function_name in AVAILABLE_TOOLS:
-                    tool_function = AVAILABLE_TOOLS[function_name]
-
-                    # Add username to memory-related tools
-                    if function_name in ['recall_memories', 'recall_memories_with_time', 'find_personal_variables', 'get_conversations_by_topic', 'get_topics_by_conversation', 'get_conversation_summary', 'get_topic_statistics', 'get_user_conversations', 'get_conversation_details', 'search_conversations']:
-                        function_args['username'] = username
-
-                    try:
-                        # Debug log tool execution start
-                        tool_start = time.time()
-
-                        # Use the new dynamic tool execution
-                        output = execute_tool(function_name, **function_args)
-
-                        # Debug log tool execution completion
-                        tool_end = time.time()
-                        debug_logger.log_tool_execution(function_name, function_args, output, tool_end - tool_start)
-
-                        tool_outputs.append({"role": "tool", "tool_call_id": tool_call_id, "content": json.dumps(output)})
-                    except Exception as e:
-                        failed_tools.append(f"{function_name}: {str(e)}")
-                        tool_outputs.append({"role": "tool", "tool_call_id": tool_call_id, "content": json.dumps({
-                            "status": "error",
-                            "message": f"Tool {function_name} failed: {str(e)}"
-                        })})
-                else:
-                    failed_tools.append(f"Unknown tool: {function_name}")
-                    logger.warning(f"Warning: LLM tried to call an unknown tool: {function_name}")
-
-            # Add tool outputs to conversation
-            if tool_outputs:
-                messages_for_ollama.extend(tool_outputs)
-
-                # Get final response from LLM after tool execution
-                final_llm_response = ollama.chat(model=OLLAMA_MODEL, messages=messages_for_ollama, tools=selected_tools)
-                raw_final_response = final_llm_response['message'].get('content', 'Processing completed.')
-
-                # Format the response using our response formatter
-                final_response = response_formatter.format_response(raw_final_response, tool_outputs)
-            else:
-                if parsed_response.tool_calls:
-                    final_response = response_formatter.format_response("Could not execute any of the requested tools or no valid tools were called.")
-                else:
-                    final_response = response_formatter.format_response("Processing completed.")
-        else:
-            # No tools needed - format the direct response
-            final_response = response_formatter.format_response(parsed_response.content)
-
-        # Save interaction and generate topic
-        topic_str = "tool_assisted_conversation"
-        final_history = messages_for_ollama[2:] + [{"role": "assistant", "content": final_response}]
-
-        try:
-            save_interaction(username, user_message, final_response, topic_str, conversation_id)
-        except Exception as e:
-            logger.error(f"Error saving interaction: {e}")
-
-        processing_time = round(time.time() - start_time, 1)
-        return {
-            "response": final_response,
-            "topic": topic_str,
-            "history": final_history,
-            "conversation_id": conversation_id or datetime.now().strftime('%Y-%m-%d-%H-%M-%S'),
-            "processing_time": processing_time
-        }
-
-    # Fallback: if parsing fails, use direct response
-    logger.warning("Failed to parse capability assessment, using direct response")
-    fallback_response = response_formatter.format_response("I apologize, but I encountered an issue processing your request. Please try again.")
-
-    processing_time = round(time.time() - start_time, 1)
-    return {
-        "response": fallback_response,
-        "topic": "error_fallback",
-        "history": messages_for_ollama[2:] + [{"role": "assistant", "content": fallback_response}],
-        "conversation_id": conversation_id or datetime.now().strftime('%Y-%m-%d-%H-%M-%S'),
-        "processing_time": processing_time
-    }

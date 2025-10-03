@@ -12,7 +12,7 @@ This section provides guidelines for AI assistants (like Cursor, GitHub Copilot,
 
 - **Versioning**: When asked to update the application version, you must follow the full "Versioning and Releases" workflow. This includes updating `changelog.md` with all changes since the last version, committing it with the `pyproject.toml` update, and creating a Git tag.
 - **Troubleshooting**: When a fix resolves a common installation or runtime issue, suggest an addition to `troubleshooting.md` to help future users.
-- **Testing**: All new code, whether adding features or fixing bugs, must be accompanied by corresponding tests to ensure correctness and prevent regressions.
+- **Testing**: All new code, whether adding features or fixing bugs, must be accompanied by corresponding tests to ensure correctness and prevent regressions. **CRITICAL**: Always use authenticated testing fixtures (`authenticated_admin_client`, `authenticated_user_client`) for API endpoints and core functionality tests.
 - **Code Organization**: Keep the codebase clean and maintainable. If code is used in multiple places, refactor it into a new shared file, following the Don't Repeat Yourself (DRY) principle. When creating new files, place them in the appropriate module directory, adhering to the existing filesystem structure patterns.
 
 ### General Guidance
@@ -1838,6 +1838,113 @@ def test_create_user(sample_user):
 - **Pattern**: `test_module_name.py`
 - **Location**: `tests/` directory
 - **Coverage**: Unit tests, integration tests, and end-to-end tests
+
+#### Authentication Testing Patterns
+
+**CRITICAL**: Always test API endpoints and core functionality with proper user authentication. Tatlock has robust authentication testing infrastructure that must be used.
+
+**Available Authentication Fixtures** (from `tests/conftest.py`):
+
+```python
+# Fixtures for authenticated testing
+def test_api_endpoint(authenticated_admin_client):
+    """Test API endpoint with real authenticated user session."""
+    response = authenticated_admin_client.post("/cortex", json={
+        "message": "Hello",
+        "history": []
+    })
+    assert response.status_code == 200
+
+def test_with_regular_user(authenticated_user_client):
+    """Test with regular user permissions."""
+    response = authenticated_user_client.get("/profile")
+    assert response.status_code == 200
+```
+
+**API Test Harness** (from `tests/api_harness.py`):
+
+```python
+from tests.api_harness import TestAPIHarness
+
+def test_custom_user_scenario():
+    """Test with custom user creation and authentication."""
+    harness = TestAPIHarness()
+
+    # Create user with specific roles/groups
+    user_details = harness.create_user("testuser", roles=["user"], groups=["users"])
+
+    # Get authenticated client via real login
+    client = harness.get_authenticated_client(user_details['username'], user_details['password'])
+
+    # Test with real authentication
+    response = client.post("/cortex", json={"message": "Test", "history": []})
+    assert response.status_code == 200
+```
+
+**User Context Testing** (for tools and internal functions):
+
+```python
+@patch('stem.security.current_user')
+def test_tool_with_user_context(mock_current_user):
+    """Test tool functionality with mocked user context."""
+    mock_user = MagicMock()
+    mock_user.username = "testuser"
+    mock_current_user.return_value = mock_user
+
+    result = execute_memory_tool("overview")
+    assert result["status"] == "success"
+```
+
+**Key Authentication Testing Principles**:
+
+1. **Use Real Authentication**: Prefer `authenticated_admin_client` and `authenticated_user_client` fixtures for API tests
+2. **Test User Isolation**: Verify users can only access their own data
+3. **Session Management**: Tests use real login via `/login/auth` endpoint
+4. **Automatic Cleanup**: All user fixtures automatically clean up created users
+5. **Role-Based Testing**: Test different user roles (admin, user, moderator)
+
+**When to Use Each Pattern**:
+
+- **API Endpoints**: Always use `authenticated_admin_client` or `authenticated_user_client`
+- **Tool Functions**: Use `@patch('stem.security.current_user')` for unit tests
+- **Custom Scenarios**: Use `TestAPIHarness` for complex authentication scenarios
+- **Integration Tests**: Use authenticated fixtures to test complete request flow
+
+**Example: Testing New Architecture Component**:
+
+```python
+class TestNewArchitectureAuthenticated:
+    """Test new architecture with proper authentication."""
+
+    def test_capability_guard_flow(self, authenticated_admin_client):
+        """Test CAPABILITY_GUARD with real user session."""
+        response = authenticated_admin_client.post("/cortex", json={
+            "message": "What's your name?",
+            "history": []
+        })
+
+        assert response.status_code == 200
+        data = response.json()
+        assert "Tatlock" in data["response"]  # Should trigger butler identity
+
+    def test_tool_execution_with_user_context(self, authenticated_admin_client):
+        """Test tool execution with proper user context."""
+        response = authenticated_admin_client.post("/cortex", json={
+            "message": "What did we discuss before?",
+            "history": []
+        })
+
+        assert response.status_code == 200
+        # Tool should execute with proper username context
+```
+
+**Why This Matters**:
+
+- **Real User Sessions**: Tests authenticate through actual login flow
+- **User Isolation**: Verifies data access control works correctly
+- **Tool Context**: Ensures tools receive proper user context
+- **Security Validation**: Catches authentication and authorization bugs
+- **Production Parity**: Tests match production authentication behavior
 
 ### Documentation Standards
 

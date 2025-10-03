@@ -20,12 +20,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Installation-time hardware config file generation (`hardware_config.py`)
   - Manual override documentation for testing different models via `hardware_config.py` editing
 
-- **Lean Agent System**: Two-phase architecture for performance optimization
-  - **Phase 1**: Capability assessment with minimal tool context (2-3 prompts vs 27)
-  - **Phase 2**: Selective tool execution only when needed
-  - Structured output parsing with Pydantic and instructor library
-  - Core vs extended tool separation (memory tools always available, others catalog-based)
-  - 45% performance improvement: 35+ seconds → 19 seconds for complex queries
+- **Advanced 4.5-Phase Prompt Architecture**: Complete redesign for optimal performance and reliability
+  - **Phase 1**: Initial Assessment - Structured capability detection with CAPABILITY_GUARD routing
+  - **Phase 2**: Tool Selection - Intelligent tool catalog selection when needed
+  - **Phase 3**: Tool Execution - Parallel execution of selected tools with error handling
+  - **Phase 4**: Response Formatting - Butler persona application with context integration
+  - **Phase 4.5**: Quality Gate - Final validation and edge case detection with fallback mechanisms
+  - **CAPABILITY_GUARD**: LLM-based detection system preventing identity/capability leakage in lean phases
+  - **File renamed**: `cortex/agent.py` → `cortex/tatlock.py` using `git mv` (represents the essence of the butler)
+  - **Code optimization**: Removed 319 lines (24% reduction) while adding comprehensive functionality
+  - **Performance**: Phase 1: 5-7 seconds, Total response: 8-27 seconds with graceful degradation
 
 - **Middleware Architecture Refactoring**: Clean separation following FastAPI best practices
   - New `stem/middleware.py` for request timing, exception handling, and logging
@@ -38,16 +42,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Configuration**: `config.py` now uses `get_automatic_ollama_model()` instead of database lookup
 - **Database Schema**: Removed `ollama_model` setting from system_settings with migration support
 - **Tool Loading**: Core tools (memory/personal data) always loaded, extended tools (weather/web) catalog-based only
-- **Agent Processing**: `cortex/agent.py` now uses lean two-phase system for improved performance
+- **Agent Processing**: `cortex/tatlock.py` (renamed from `agent.py`) now uses advanced 4.5-phase system
+  - Completely refactored `TatlockProcessor` class with phase-specific prompt construction
+  - Implemented `PromptBuilder` class for consistent prompt formatting across phases
+  - Added `QualityGate` class for edge case detection and response validation
+  - Enhanced structured parsing with Pydantic models (`CapabilityAssessment`, `ToolSelection`)
+  - Improved error handling with graceful fallback mechanisms for LLM parsing failures
 - **Database Optimization**: Updated `hippocampus/database.py` for core vs extended tool separation
 - **Installer**: Hardware detection and model-specific downloads during `install_tatlock.sh`
 - **Documentation**: Updated README.md, AGENTS.md, CLAUDE.md, and parietal/readme.md with hardware selection info
 
-- **Performance Testing**: Added comprehensive benchmark testing capability
-  - New `tests/benchmark_all_tiers.py` script for systematic performance testing across all hardware tiers
-  - Automated testing of Phase 1 (simple) and Phase 2 (tool-assisted) queries on all three models
-  - Incremental CSV output with timing data, response content, and quality analysis
-  - Authentication handling for automated testing workflows
+- **Enhanced Testing Infrastructure**: Comprehensive test suite for new architecture
+  - New `tests/test_4_5_phase_architecture.py` with full authentication-based testing patterns
+  - Updated `tests/benchmark_all_tiers.py` compatible with 4.5-phase system performance measurement
+  - Systematic testing of all phase flows (direct answers, CAPABILITY_GUARD, tool execution, edge cases)
+  - Test isolation with proper user data cleanup and session management
+  - Authentication fixtures following existing patterns in `tests/conftest.py`
+
+- **Dynamic Tool System Enhancements**: Improved modularity and error handling
+  - Enhanced `stem/tools.py` with better LazyToolDict implementation for testing compatibility
+  - Updated tool execution error handling and user context management
+  - Fixed `execute_find_personal_variables` parameter compatibility issues
+  - Improved tool loading and caching mechanisms for better performance
+
+- **Comprehensive Documentation Updates**: Complete specification and usage guides
+  - **New `sample.md`**: 1000+ line comprehensive 4.5-phase architecture specification
+  - Detailed flow examples for all scenarios (direct answers, identity questions, weather queries, complex memory)
+  - CAPABILITY_GUARD mechanism documentation with reasoning examples
+  - Quality Gate implementation guide with edge case database and mitigation strategies
+  - Updated `CLAUDE.md` with complete 4.5-phase architecture section and debugging guidance
+  - Enhanced `AGENTS.md` with authentication testing patterns and development standards
 
 - **Agent Response Optimization**: Fixed system prompts to reduce verbosity and tool bias
   - Updated personality prompt to preserve British butler character while emphasizing conciseness
@@ -55,6 +79,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Added explicit guidance to answer name questions directly without memory checks
   - Fixed overly verbose responses for simple questions like "what is your name?"
   - Updated database setup script (`stem/installation/database_setup.py`) with improved prompts for fresh installations
+
+- **Enhanced Debug Logging System**: Comprehensive phase tracking and error diagnosis
+  - Updated `stem/debug_logger.py` with Quality Gate logging support (`log_quality_gate_result()`)
+  - Session-based log file generation with conversation ID tracking
+  - Phase-specific timing and error logging for performance analysis
+  - Structured logging for 4.5-phase architecture debugging and monitoring
 
 - **Logging Cleanup**: Removed decorative emoji characters from server logging output
   - Removed rockets (🚀), sparkles (✨), locks (🔒), and document (📝) emojis from logging

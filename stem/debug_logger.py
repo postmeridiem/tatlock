@@ -195,6 +195,22 @@ class DebugLogger:
                 f.write(f"Notes: {notes}\n")
             f.write(f"{'='*60}\n")
 
+    def log_quality_gate_result(self, approved: bool, reasoning: str, fallback_type: str = None):
+        """Log quality gate evaluation results."""
+        if not DEBUG_MODE or not self.log_file_path:
+            return
+
+        timestamp = datetime.now().isoformat()
+
+        with open(self.log_file_path, 'a', encoding='utf-8') as f:
+            f.write(f"\nQUALITY GATE RESULT\n")
+            f.write(f"Timestamp: {timestamp}\n")
+            f.write(f"Approved: {approved}\n")
+            f.write(f"Reasoning: {reasoning}\n")
+            if fallback_type:
+                f.write(f"Fallback Type: {fallback_type}\n")
+            f.write(f"{'='*40}\n")
+
     def log_session_end(self, total_duration_seconds: float):
         """Log session completion summary."""
         if not DEBUG_MODE or not self.log_file_path:

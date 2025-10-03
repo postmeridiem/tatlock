@@ -11,12 +11,13 @@ from stem.security import current_user
 # Set up logging for this module
 logger = logging.getLogger(__name__)
 
-def execute_find_personal_variables(searchkey: str) -> dict:
+def execute_find_personal_variables(searchkey: str, username: str = None) -> dict:
     """
     Find and retrieve personal properties of the current user by searching a local database.
     
     Args:
         searchkey (str): The key for the personal variable to find (e.g., 'name', 'hometown', 'age').
+        username (str, optional): Username for tool context (ignored - uses current_user global).
         
     Returns:
         dict: Status and data or message.

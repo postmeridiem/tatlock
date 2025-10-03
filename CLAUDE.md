@@ -12,7 +12,7 @@ Tatlock is a brain-inspired conversational AI platform with built-in authenticat
 
 The codebase is organized into modules inspired by brain regions:
 
-- **cortex/**: Core agent logic and decision-making with agentic loop
+- **cortex/**: Core agent logic implementing 4.5-phase prompt architecture with butler personality
 - **hippocampus/**: Memory system with per-user databases and conversation storage
 - **stem/**: Authentication, admin dashboard, tools, utilities, and Jinja2 templating
 - **parietal/**: Hardware monitoring, performance analysis, and automatic model selection
@@ -28,6 +28,61 @@ Key architectural principles:
 - **Tool-Driven**: Modular tool system with database-driven registration
 - **Session Authentication**: Secure session-based authentication with cookies
 - **Brain-Inspired Design**: Modules mirror brain functions for intuitive organization
+
+## Core Processing: 4.5-Phase Architecture
+
+Tatlock's cortex module implements a sophisticated 4.5-phase prompt processing architecture for optimal performance and context management:
+
+### Phase Flow Overview
+
+```
+User Request → Phase 1: Assessment → Phase 2/4: Routing → Phase 4.5: Quality Gate → Response
+```
+
+### Phase Details
+
+**Phase 1: Initial Assessment**
+- **Purpose**: Intelligent routing with CAPABILITY_GUARD protection
+- **Function**: Determines if question needs tools, triggers guards, or can be answered directly
+- **CAPABILITY_GUARD**: Detects sensitive topics (identity, capabilities, temporal, security) for full-context processing
+- **Outputs**: `DIRECT`, `TOOLS_NEEDED`, or `CAPABILITY_GUARD: [REASON]`
+
+**Phase 2: Tool Selection** *(Conditional)*
+- **Purpose**: Efficient tool selection when tools are needed
+- **Function**: Selects minimal required toolset from available tools
+- **Optimization**: Reduces tool schema overhead from 17 tools to 0-5 tools per request
+
+**Phase 3: Tool Execution** *(Conditional)*
+- **Purpose**: Execute selected tools with proper user context
+- **Function**: Handles tool calls, retries, and result aggregation
+- **Security**: Automatic username injection for memory/personal tools
+
+**Phase 4: Response Formatting**
+- **Purpose**: Apply butler personality and format final response
+- **Standard Path**: Butler formatting (concise, formal, ends with "sir")
+- **CAPABILITY_GUARD Path**: Full rise_and_shine context for sensitive topics
+- **Output**: Properly formatted response ready for quality validation
+
+**Phase 4.5: Quality Gate**
+- **Purpose**: Final validation and edge case protection
+- **Checks**: Safety, completeness, butler persona, known edge case patterns
+- **Fallbacks**: Generates appropriate responses for detected issues
+- **Result**: Approved response or corrected fallback
+
+### Key Architecture Benefits
+
+- **Performance**: 2-7 second Phase 1 analysis, ~0.003 second routing decisions
+- **Context Management**: Proper butler identity in sensitive scenarios
+- **Tool Efficiency**: Dynamic tool loading with minimal overhead
+- **Quality Assurance**: Comprehensive edge case detection and handling
+- **Maintainability**: Clear separation of concerns across phases
+
+### Implementation Files
+
+- **`cortex/tatlock.py`**: Main 4.5-phase processor with all classes
+- **`sample.md`**: Complete architecture specification and examples
+- **`tests/test_4_5_phase_architecture.py`**: Comprehensive test suite
+- **`stem/debug_logger.py`**: Phase-specific debug logging
 
 ## Common Development Commands
 
@@ -57,6 +112,9 @@ python main.py
 python -m pytest tests/
 
 # Run specific test file
+python -m pytest tests/test_4_5_phase_architecture.py
+
+# Test specific architecture components
 python -m pytest tests/test_cortex_agent.py
 
 # Run with verbose output
@@ -104,6 +162,41 @@ if user is None:
 
 username = user.username
 ```
+
+### 4.5-Phase Architecture Debugging
+
+The new architecture includes comprehensive debug logging for development and troubleshooting:
+
+```python
+# Debug logs are automatically created in logs/conversations/ directory
+# Each conversation gets a session-specific log file
+
+# Key log patterns to look for:
+# Phase transitions: "Phase 1: Initial Assessment", "Phase 4.5: Quality Gate"
+# LLM calls: Request/response pairs with timing
+# Tool execution: Tool name, arguments, results, timing
+# Quality Gate: Approval/rejection decisions with reasoning
+
+# Manual testing with debug output:
+from cortex.tatlock import process_chat_interaction
+result = process_chat_interaction("Test message", [], "admin", "debug-session-123")
+# Check logs/conversations/debug-session-123_*.log for detailed phase tracking
+```
+
+**Debug Log Structure:**
+- **Session Initialization**: User, message preview, setup timing
+- **Phase 1**: Assessment prompt, LLM response, routing decision
+- **Phase 2**: Tool selection (if applicable)
+- **Phase 3**: Tool execution with individual tool timing
+- **Phase 4**: Response formatting (butler vs capability guard)
+- **Phase 4.5**: Quality gate evaluation and final approval
+
+**Performance Monitoring:**
+- Phase 1: 2-7 seconds (LLM-intensive analysis)
+- Phase 2: ~0.003 seconds (efficient routing)
+- Tool execution: Variable based on tools used
+- Phase 4: 1-3 seconds (response formatting)
+- Phase 4.5: <1 second (quality validation)
 
 ### Database Patterns
 
