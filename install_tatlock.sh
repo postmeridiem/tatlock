@@ -664,11 +664,35 @@ if [[ "$SYSTEM" == "macos_arm" || "$SYSTEM" == "macos_intel" ]]; then
     # On macOS, Ollama runs as a user service
     ollama serve &> /dev/null &
     echo "Ollama service started in background on macOS."
+
+    # Wait for Ollama to be ready
+    echo "Waiting for Ollama to initialize..."
+    sleep 3
+
+    # Verify Ollama is responding
+    max_attempts=10
+    attempt=0
+    while [ $attempt -lt $max_attempts ]; do
+        if curl -s http://localhost:11434/ &> /dev/null; then
+            echo "Ollama is ready!"
+            break
+        fi
+        attempt=$((attempt + 1))
+        if [ $attempt -lt $max_attempts ]; then
+            echo "Waiting for Ollama to start (attempt $attempt/$max_attempts)..."
+            sleep 2
+        fi
+    done
+
+    if [ $attempt -eq $max_attempts ]; then
+        echo "Warning: Ollama may not be fully initialized yet, but continuing..."
+    fi
 else
     # On Linux, use systemctl
     if command -v systemctl &> /dev/null; then
         sudo systemctl enable ollama
         sudo systemctl start ollama
+        sleep 2
     else
         echo "Warning: systemctl not found. Ollama may need to be started manually."
     fi
