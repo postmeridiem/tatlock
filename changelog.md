@@ -7,6 +7,42 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.19] - 2025-10-03
+
+### Added
+
+- **User-Selectable Performance Tier**: Installation now prompts for automatic or manual tier selection
+  - Choose between automatic hardware detection (recommended) or manual tier selection
+  - Manual selection offers three options: Low (phi4-mini:3.8b-q4_K_M), Medium (mistral:7b), High (gemma3-cortex:latest)
+  - Re-running installer detects existing configuration and offers reconfiguration without breaking install
+  - Added `SELECTION_METHOD` field to `hardware_config.py` tracking whether tier was auto or manually selected
+  - Updated installer to display hardware detection results before prompting user
+  - Enhanced user experience with clear tier descriptions and model information
+
+### Changed
+
+- **Installer Flow**: Enhanced `install_tatlock.sh` with user-friendly tier selection prompts
+  - Detects existing `hardware_config.py` and offers to keep or reconfigure
+  - Shows automatic hardware detection results with reasoning
+  - Presents clear choice between automatic (recommended) and manual selection
+  - Displays final configuration summary before continuing
+  - Safe to re-run without reinstalling dependencies unnecessarily
+
+- **Documentation**: Updated AGENTS.md with comprehensive performance tier selection guide
+  - Added "Performance Tier Selection" section with installation workflow
+  - Documented reconfiguration process for existing installations
+  - Updated manual override instructions for testing
+  - Cleaned up CLAUDE.md to simple pointer to AGENTS.md for authoritative guidance
+
+### Fixed
+
+- **Dependency Resolution**: Updated jinja2 from 3.1.3 to 3.1.4 to resolve conflict with instructor==1.7.5
+- **Ollama Startup**: Added wait and verification logic for Ollama service initialization
+  - macOS: 3-second initial wait + up to 10 verification attempts
+  - Linux: 2-second wait after systemctl start
+  - Prevents EOF errors when models download before Ollama is ready
+- **Hardware Config Syntax**: Fixed HARDWARE_SUMMARY quote escaping in generated `hardware_config.py`
+
 ### Added
 
 - **Hardware-Dependent Model Selection**: Automatic LLM model selection based on system hardware capabilities

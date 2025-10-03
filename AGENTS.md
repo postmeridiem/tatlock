@@ -498,35 +498,62 @@ python -m pytest tests/test_cortex_agent.py
 python -m pytest -v tests/
 ```
 
-### Hardware Configuration Testing
+### Performance Tier Selection
 
-Tatlock automatically selects the optimal model based on hardware detection during installation. For testing different models or performance tiers, you can manually override the hardware configuration.
+Tatlock supports both automatic hardware detection and manual performance tier selection during installation. The installer prompts you to choose between:
 
-#### Manual Model Override
+1. **Automatic Detection (Recommended)**: Hardware is analyzed and the optimal tier is selected automatically
+2. **Manual Selection**: Choose from low/medium/high tiers based on your preferences
 
-The `hardware_config.py` file controls which model is used:
+#### Installation-Time Configuration
 
-```python
-# hardware_config.py
-RECOMMENDED_MODEL = "mistral:7b"        # Current model
-PERFORMANCE_TIER = "medium"             # Current tier
+During `./install_tatlock.sh`, you will be prompted:
+
+```
+Performance Tier Selection:
+──────────────────────────────────────────────────────────────────────────────────
+You can use automatic hardware detection (recommended) or manually select a tier.
+
+  1) Automatic (use detected tier: low)
+  2) Manual selection
+
+Choose selection method [1]:
 ```
 
-To test different models, simply edit this file:
+If you choose manual selection, you'll see:
+
+```
+Manual Performance Tier Selection:
+──────────────────────────────────────────────────────────────────────────────────
+  1) Low    - phi4-mini:3.8b-q4_K_M    (Fastest, minimal resources, tool support)
+  2) Medium - mistral:7b               (Balanced performance and quality)
+  3) High   - gemma3-cortex:latest     (Best quality, requires powerful hardware)
+
+Select performance tier [1]:
+```
+
+#### Reconfiguring Performance Tier
+
+You can re-run the installer to change your performance tier without reinstalling everything:
 
 ```bash
-# Test low-spec model (phi4-mini with tool support)
-echo 'RECOMMENDED_MODEL = "phi4-mini:3.8b-q4_K_M"' > hardware_config.py
-echo 'PERFORMANCE_TIER = "low"' >> hardware_config.py
-
-# Test high-spec model (gemma3-cortex)
-echo 'RECOMMENDED_MODEL = "gemma3-cortex:latest"' > hardware_config.py
-echo 'PERFORMANCE_TIER = "high"' >> hardware_config.py
-
-# Test medium-spec model (mistral for Apple Silicon)
-echo 'RECOMMENDED_MODEL = "mistral:7b"' > hardware_config.py
-echo 'PERFORMANCE_TIER = "medium"' >> hardware_config.py
+./install_tatlock.sh
 ```
+
+If `hardware_config.py` exists, the installer will detect it and offer to reconfigure:
+
+```
+Existing hardware configuration detected.
+
+Current Configuration:
+  Performance Tier: low
+  Model: phi4-mini:3.8b-q4_K_M
+  Selection Method: manual
+
+Do you want to reconfigure the performance tier? (y/N):
+```
+
+Answer `y` to change your tier, or `N` to keep the current configuration.
 
 #### Available Model Tiers
 
@@ -534,7 +561,33 @@ echo 'PERFORMANCE_TIER = "medium"' >> hardware_config.py
 - **Medium**: `mistral:7b` - Balanced performance for mid-range systems or Apple Silicon M2/M3 with >16GB RAM
 - **High**: `gemma3-cortex:latest` - Maximum performance for high-spec non-Apple Silicon systems (8GB+ RAM, 4+ cores)
 
-#### Testing Performance
+#### Hardware Configuration File
+
+The installer creates `hardware_config.py` with your selected configuration:
+
+```python
+# hardware_config.py
+RECOMMENDED_MODEL = "mistral:7b"        # Selected model
+PERFORMANCE_TIER = "medium"             # Selected tier
+SELECTION_METHOD = "auto"               # "auto" or "manual"
+HARDWARE_REASON = "Automatic detection: Medium tier..."
+```
+
+#### Manual Model Override (Testing Only)
+
+For testing different models without re-running the installer, you can manually edit `hardware_config.py`:
+
+```bash
+# Test low-spec model (phi4-mini with tool support)
+echo 'RECOMMENDED_MODEL = "phi4-mini:3.8b-q4_K_M"' > hardware_config.py
+echo 'PERFORMANCE_TIER = "low"' >> hardware_config.py
+echo 'SELECTION_METHOD = "manual"' >> hardware_config.py
+
+# Test high-spec model (gemma3-cortex)
+echo 'RECOMMENDED_MODEL = "gemma3-cortex:latest"' > hardware_config.py
+echo 'PERFORMANCE_TIER = "high"' >> hardware_config.py
+echo 'SELECTION_METHOD = "manual"' >> hardware_config.py
+```
 
 After changing the model, restart the application to test performance:
 
@@ -555,7 +608,7 @@ time curl -X POST http://localhost:8000/cortex \
   -d '{"message": "What did we discuss before?", "history": [], "conversation_id": "test"}'
 ```
 
-**Note**: Manual edits to `hardware_config.py` will be overwritten on next installation. This approach is intended for testing and development only.
+**Note**: Manual edits to `hardware_config.py` will be overwritten if you re-run the installer without choosing to reconfigure. For permanent changes, use the installer's reconfiguration option.
 
 #### Comprehensive Performance Benchmarking
 

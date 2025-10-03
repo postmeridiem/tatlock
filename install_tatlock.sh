@@ -664,11 +664,35 @@ if [[ "$SYSTEM" == "macos_arm" || "$SYSTEM" == "macos_intel" ]]; then
     # On macOS, Ollama runs as a user service
     ollama serve &> /dev/null &
     echo "Ollama service started in background on macOS."
+
+    # Wait for Ollama to be ready
+    echo "Waiting for Ollama to initialize..."
+    sleep 3
+
+    # Verify Ollama is responding
+    max_attempts=10
+    attempt=0
+    while [ $attempt -lt $max_attempts ]; do
+        if curl -s http://localhost:11434/ &> /dev/null; then
+            echo "Ollama is ready!"
+            break
+        fi
+        attempt=$((attempt + 1))
+        if [ $attempt -lt $max_attempts ]; then
+            echo "Waiting for Ollama to start (attempt $attempt/$max_attempts)..."
+            sleep 2
+        fi
+    done
+
+    if [ $attempt -eq $max_attempts ]; then
+        echo "Warning: Ollama may not be fully initialized yet, but continuing..."
+    fi
 else
     # On Linux, use systemctl
     if command -v systemctl &> /dev/null; then
         sudo systemctl enable ollama
         sudo systemctl start ollama
+        sleep 2
     else
         echo "Warning: systemctl not found. Ollama may need to be started manually."
     fi
@@ -809,13 +833,111 @@ fi
 # Clean up temporary file
 rm -f /tmp/hardware_classifier.py
 
-echo -e "${CYAN}Hardware Classification Results:${NC}"
-echo -e "${CYAN}──────────────────────────────────────────────────────────────────────────────────${NC}"
-echo -e "  ${GREEN}Performance Tier:${NC}    ${BOLD}$HARDWARE_TIER${NC}"
-echo -e "  ${GREEN}Recommended Model:${NC}   ${BOLD}$RECOMMENDED_MODEL${NC}"
-echo -e "  ${GREEN}Reasoning:${NC}           $HARDWARE_REASON"
-echo -e "${CYAN}──────────────────────────────────────────────────────────────────────────────────${NC}"
-echo ""
+# Check if hardware_config.py already exists
+if [ -f "hardware_config.py" ]; then
+    echo -e "${YELLOW}Existing hardware configuration detected.${NC}"
+    echo ""
+
+    # Read current configuration
+    CURRENT_TIER=$(grep "PERFORMANCE_TIER" hardware_config.py | cut -d'"' -f2 2>/dev/null || echo "unknown")
+    CURRENT_MODEL=$(grep "RECOMMENDED_MODEL" hardware_config.py | cut -d'"' -f2 2>/dev/null || echo "unknown")
+    CURRENT_METHOD=$(grep "SELECTION_METHOD" hardware_config.py | cut -d'"' -f2 2>/dev/null || echo "auto")
+
+    echo -e "${CYAN}Current Configuration:${NC}"
+    echo -e "  Performance Tier: ${BOLD}$CURRENT_TIER${NC}"
+    echo -e "  Model: ${BOLD}$CURRENT_MODEL${NC}"
+    echo -e "  Selection Method: ${BOLD}$CURRENT_METHOD${NC}"
+    echo ""
+
+    read -p "Do you want to reconfigure the performance tier? (y/N): " reconfigure_tier
+    if [[ ! "$reconfigure_tier" =~ ^[Yy]$ ]]; then
+        echo -e "${GREEN}Keeping existing hardware configuration.${NC}"
+        RECOMMENDED_MODEL="$CURRENT_MODEL"
+        HARDWARE_TIER="$CURRENT_TIER"
+        HARDWARE_REASON="Using existing configuration (unchanged)"
+        SELECTION_METHOD="$CURRENT_METHOD"
+        SKIP_TIER_SELECTION=true
+    else
+        echo -e "${CYAN}Reconfiguring performance tier...${NC}"
+        SKIP_TIER_SELECTION=false
+    fi
+    echo ""
+fi
+
+# Only prompt for tier selection if not skipping
+if [ "$SKIP_TIER_SELECTION" != "true" ]; then
+    # Display automatic hardware detection results
+    echo -e "${CYAN}Automatic Hardware Detection Results:${NC}"
+    echo -e "${CYAN}──────────────────────────────────────────────────────────────────────────────────${NC}"
+    echo -e "  ${GREEN}Detected Tier:${NC}       ${BOLD}$HARDWARE_TIER${NC}"
+    echo -e "  ${GREEN}Recommended Model:${NC}   ${BOLD}$RECOMMENDED_MODEL${NC}"
+    echo -e "  ${GREEN}Reasoning:${NC}           $HARDWARE_REASON"
+    echo -e "${CYAN}──────────────────────────────────────────────────────────────────────────────────${NC}"
+    echo ""
+
+    # Prompt user for selection method
+    echo -e "${BOLD}${CYAN}Performance Tier Selection:${NC}"
+    echo -e "${CYAN}──────────────────────────────────────────────────────────────────────────────────${NC}"
+    echo -e "You can use automatic hardware detection (recommended) or manually select a tier."
+    echo ""
+    echo -e "  ${BOLD}1)${NC} Automatic (use detected tier: ${BOLD}$HARDWARE_TIER${NC})"
+    echo -e "  ${BOLD}2)${NC} Manual selection"
+    echo ""
+    read -p "Choose selection method [1]: " selection_choice
+    selection_choice=${selection_choice:-1}
+
+    if [ "$selection_choice" = "2" ]; then
+        # Manual tier selection
+        SELECTION_METHOD="manual"
+        echo ""
+        echo -e "${BOLD}${CYAN}Manual Performance Tier Selection:${NC}"
+        echo -e "${CYAN}──────────────────────────────────────────────────────────────────────────────────${NC}"
+        echo -e "  ${BOLD}1)${NC} Low    - phi4-mini:3.8b-q4_K_M    (Fastest, minimal resources, tool support)"
+        echo -e "  ${BOLD}2)${NC} Medium - mistral:7b               (Balanced performance and quality)"
+        echo -e "  ${BOLD}3)${NC} High   - gemma3-cortex:latest     (Best quality, requires powerful hardware)"
+        echo ""
+        read -p "Select performance tier [1]: " tier_choice
+        tier_choice=${tier_choice:-1}
+
+        case $tier_choice in
+            1)
+                HARDWARE_TIER="low"
+                RECOMMENDED_MODEL="phi4-mini:3.8b-q4_K_M"
+                HARDWARE_REASON="Manually selected: Low tier - Fastest with minimal resources"
+                ;;
+            2)
+                HARDWARE_TIER="medium"
+                RECOMMENDED_MODEL="mistral:7b"
+                HARDWARE_REASON="Manually selected: Medium tier - Balanced performance"
+                ;;
+            3)
+                HARDWARE_TIER="high"
+                RECOMMENDED_MODEL="gemma3-cortex:latest"
+                HARDWARE_REASON="Manually selected: High tier - Best quality"
+                ;;
+            *)
+                echo -e "${YELLOW}Invalid selection, defaulting to low tier.${NC}"
+                HARDWARE_TIER="low"
+                RECOMMENDED_MODEL="phi4-mini:3.8b-q4_K_M"
+                HARDWARE_REASON="Manually selected: Low tier (default)"
+                ;;
+        esac
+    else
+        # Automatic selection
+        SELECTION_METHOD="auto"
+        echo -e "${GREEN}Using automatic hardware detection.${NC}"
+    fi
+
+    echo ""
+    echo -e "${CYAN}Final Configuration:${NC}"
+    echo -e "${CYAN}──────────────────────────────────────────────────────────────────────────────────${NC}"
+    echo -e "  ${GREEN}Selection Method:${NC}    ${BOLD}$SELECTION_METHOD${NC}"
+    echo -e "  ${GREEN}Performance Tier:${NC}    ${BOLD}$HARDWARE_TIER${NC}"
+    echo -e "  ${GREEN}Selected Model:${NC}      ${BOLD}$RECOMMENDED_MODEL${NC}"
+    echo -e "  ${GREEN}Reasoning:${NC}           $HARDWARE_REASON"
+    echo -e "${CYAN}──────────────────────────────────────────────────────────────────────────────────${NC}"
+    echo ""
+fi
 
 # Check if the recommended model is already installed
 if ollama list | grep -q "$RECOMMENDED_MODEL"; then
@@ -870,6 +992,7 @@ runtime hardware detection overhead.
 RECOMMENDED_MODEL = "$RECOMMENDED_MODEL"
 PERFORMANCE_TIER = "$HARDWARE_TIER"
 HARDWARE_REASON = "$HARDWARE_REASON"
+SELECTION_METHOD = "${SELECTION_METHOD:-auto}"
 
 # Hardware details (for reference)
 HARDWARE_SUMMARY = "$(echo "$HARDWARE_RESULT" | python3 -c "import sys, json; data=json.load(sys.stdin); print(json.dumps(data.get('hardware', {}), separators=(',', ':')))" 2>/dev/null || echo "{}")"
