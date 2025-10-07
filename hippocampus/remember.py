@@ -169,10 +169,10 @@ def create_or_update_conversation(conversation_id: str, username: str, title: st
         cursor = conn.cursor()
         
         cursor.execute("""
-            INSERT OR REPLACE INTO conversations 
+            INSERT OR REPLACE INTO conversations
             (conversation_id, title, started_at, last_activity, message_count)
             VALUES (?, ?, COALESCE((SELECT started_at FROM conversations WHERE conversation_id = ?), CURRENT_TIMESTAMP), CURRENT_TIMESTAMP,
-                   COALESCE((SELECT message_count FROM conversations WHERE conversation_id = ?), 0) + 1)
+                   COALESCE((SELECT message_count FROM conversations WHERE conversation_id = ?), 0) + 2)
         """, (conversation_id, title, conversation_id, conversation_id))
         
         conn.commit()

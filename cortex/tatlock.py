@@ -27,6 +27,8 @@ from hippocampus.database import get_base_instructions
 from hippocampus.reference_frame import get_tool_catalog_for_selection, get_selected_tools
 from stem.tools import AVAILABLE_TOOLS, execute_tool
 from hippocampus.remember import save_interaction
+from hippocampus.conversation_compact import trigger_compact_if_needed, get_conversation_context
+from hippocampus.user_database import ensure_user_database
 from cortex.response_parser import response_parser, response_formatter
 from stem.debug_logger import get_debug_logger, reset_debug_logger
 
@@ -123,6 +125,7 @@ class ProcessingContext(BaseModel):
     tool_selection_result: Optional[ToolSelectionResult] = None
     tool_execution_results: List[Dict[str, Any]] = Field(default_factory=list)
     formatted_response: Optional[str] = None
+    compact_summary: Optional[str] = None  # Compacted conversation summary if available
 
 
 # Initialize instructor client for structured output
@@ -181,9 +184,19 @@ If TOOLS_NEEDED, describe what tools you think you need."""
             {'role': 'system', 'content': capability_guard_prompt}
         ]
 
-        # Add recent history for context (only last 3 messages)
+        # Add compacted conversation summary if available
+        if context.compact_summary:
+            messages.append({
+                'role': 'system',
+                'content': f'[CONVERSATION HISTORY - COMPACTED]\n{context.compact_summary}\n\n[END COMPACTED HISTORY]'
+            })
+
+        # Add recent history for context (only last 3 messages if no compact, or all recent if compact exists)
         if context.history:
-            messages.extend(context.history[-3:])
+            # If we have a compact, all history messages are recent uncompacted ones
+            # Otherwise, only use last 3 to avoid token waste
+            history_to_add = context.history if context.compact_summary else context.history[-3:]
+            messages.extend(history_to_add)
 
         messages.append({"role": "user", "content": context.original_question})
 
@@ -612,7 +625,7 @@ class TatlockProcessor:
         """Process question through 4.5-phase architecture"""
 
         start_time = time.time()
-        logger.info(f"[NEW ARCHITECTURE] Processing: '{user_message[:50]}...'")
+        logger.info(f"[TIERED LLM ARCHITECTURE] Processing: '{user_message[:50]}...'")
 
         # Initialize debug logger
         debug_logger = get_debug_logger(conversation_id)
@@ -669,7 +682,26 @@ class TatlockProcessor:
             # Save interaction
             try:
                 topic_str = self._determine_topic(assessment_result)
-                save_interaction(username, user_message, final_response, topic_str, conversation_id)
+                save_interaction(
+                    user_prompt=user_message,
+                    llm_reply=final_response,
+                    full_llm_history=[],  # Empty - we now use database context loading
+                    topic=topic_str,
+                    username=username,
+                    conversation_id=conversation_id
+                )
+
+                # Trigger automatic compacting if threshold reached (every 25 messages)
+                # Run in thread but wait for completion to ensure serial execution
+                db_path = ensure_user_database(username)
+                import threading
+                compact_thread = threading.Thread(
+                    target=trigger_compact_if_needed,
+                    args=(username, conversation_id, db_path),
+                    daemon=True
+                )
+                compact_thread.start()
+                compact_thread.join()  # Block until compacting completes
             except Exception as e:
                 logger.error(f"Error saving interaction: {e}")
 
@@ -698,7 +730,7 @@ class TatlockProcessor:
             }
 
     def _build_context(self, user_message: str, history: List[Dict], username: str, conversation_id: str) -> ProcessingContext:
-        """Build initial processing context"""
+        """Build initial processing context with compacted conversation awareness"""
 
         # Get user location
         location = "unknown location"
@@ -712,6 +744,37 @@ class TatlockProcessor:
         # Get base instructions
         base_instructions = get_base_instructions(username)
 
+        # Load conversation context from database (replacing client-side history)
+        compact_summary = None
+        context_history = []
+
+        if conversation_id:
+            try:
+                db_path = ensure_user_database(username)
+
+                # Get conversation context (uses smart query based on message count)
+                compact_summary, recent_messages = get_conversation_context(username, conversation_id, db_path)
+
+                # Always use database context when conversation_id exists
+                context_history = [
+                    {"role": msg["role"], "content": msg["content"]}
+                    for msg in recent_messages
+                ]
+
+                if compact_summary:
+                    logger.info(f"Loaded compacted context: {len(context_history)} recent messages + compact summary")
+                else:
+                    logger.info(f"Loaded conversation context: {len(context_history)} messages from database")
+            except Exception as e:
+                logger.error(f"Could not load conversation context: {e}")
+                # For existing conversations, we NEED database context
+                # Don't fallback to client history as it's unreliable
+                context_history = []
+        else:
+            # New conversation (no conversation_id yet)
+            # Client can pass initial history for edge cases, but typically empty
+            context_history = history if history else []
+
         return ProcessingContext(
             original_question=user_message,
             username=username,
@@ -719,8 +782,9 @@ class TatlockProcessor:
             location=location,
             date_time=datetime.now().strftime("%A, %B %d, %Y at %I:%M %p"),
             base_instructions=base_instructions,
-            history=history,
-            current_phase=PromptPhase.INITIAL_ASSESSMENT
+            history=context_history,
+            current_phase=PromptPhase.INITIAL_ASSESSMENT,
+            compact_summary=compact_summary  # Add compact summary to context
         )
 
     def _phase_1_assessment(self, context: ProcessingContext, debug_logger) -> AssessmentResult:

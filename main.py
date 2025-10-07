@@ -37,10 +37,11 @@ from hippocampus.hippocampus import router as hippocampus_router
 from parietal.parietal import router as parietal_router
 from fastapi.openapi.utils import get_openapi
 from config import (
-    OLLAMA_MODEL, PORT, HOSTNAME, APP_VERSION
+    OLLAMA_MODEL, PORT, HOSTNAME, APP_VERSION, SYSTEM_DB_PATH
 )
 from temporal.voice_service import VoiceService
 from contextlib import asynccontextmanager
+from stem.installation.database_setup import check_and_run_migrations
 import base64
 from hippocampus.user_database import get_user_image_path
 from fastapi.logger import logger
@@ -63,25 +64,35 @@ voice_service = VoiceService()
 async def lifespan(app: FastAPI):
     """
     Lifespan event handler for FastAPI application startup and shutdown.
-    Initializes voice service on startup and performs cleanup on shutdown.
+    Runs system database migrations and initializes services on startup.
     """
     # Startup
     logger.info("Wake up (wake up)")
     logger.info("Grab a brush and put a little make-up")
     logger.info(f"Tatlock starting up with LLM model: {OLLAMA_MODEL}")
-    
+
     logger.info("Starting Tatlock application...")
+
+    # Run system database migrations
     try:
-        # Initialize voice service
+        logger.info("Checking and running system database migrations...")
+        check_and_run_migrations(SYSTEM_DB_PATH)
+        logger.info("System database migrations completed")
+    except Exception as e:
+        logger.error(f"Failed to run system database migrations: {e}", exc_info=True)
+        raise  # Critical - can't start without system database
+
+    # Initialize voice service
+    try:
         logger.info("Initializing voice service...")
         await voice_service.initialize()
         logger.info("Voice service initialized successfully")
     except Exception as e:
         logger.error(f"Failed to initialize voice service: {e}", exc_info=True)
         # Continue startup even if voice service fails
-    
+
     yield
-    
+
     # Shutdown
     logger.info("Shutting down Tatlock application...")
     # Add any cleanup logic here if needed
