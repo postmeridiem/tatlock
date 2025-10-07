@@ -35,3 +35,5 @@ ide_screenshots/
 
 # Temporary directory for IDE/agent debugging files
 ide_debugging/
+cookies.txt
+usertodo.md
