@@ -7,6 +7,56 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Conversation Compacting System**: Automatic conversation summarization to reduce token usage
+  - Conservative LLM-based summarization preserving ALL facts, names, dates, and numbers
+  - Automatic compacting every 50 messages (25 user+assistant interaction pairs)
+  - Non-overlapping compact mechanism (messages 1-50, 51-100, 101-150, etc.)
+  - Smart context loading combining compact summary with recent uncompacted messages
+  - New `conversation_compacts` table with indexes for efficient querying
+  - Background thread execution for transparent user experience
+  - Enables conversations of 200+ messages without context window limitations
+
+- **Memory System Documentation**: Comprehensive documentation for memory architecture
+  - `hippocampus/MEMORY_SYSTEM.md` (43KB) - Complete reference covering database architecture, 4.5-phase prompt system, conversation compacting, and implementation patterns
+  - Clear terminology definitions (message vs interaction vs turn)
+  - Complete 4.5-phase flow examples with CAPABILITY_GUARD
+  - Conservative summarization prompt design
+  - Database context loading patterns
+
+- **Conversation Compacting Tests**: Comprehensive test suite for compacting system
+  - 7 test functions covering threshold detection, context loading, incremental compacting, and data preservation
+  - Tests validate non-overlapping guarantee and conservative summarization
+  - Full API stack integration following Tatlock testing standards
+  - 100% test coverage of compacting functionality
+
+### Changed
+
+- **Cortex Integration**: 4.5-phase architecture now uses database context loading
+  - Phase 1 assessment loads compact summary + recent messages from database
+  - Eliminates client-side history management (passes empty array for `full_llm_history`)
+  - Solves exponential data duplication problem in `full_conversation_history` field
+  - Background compacting triggered automatically after each interaction
+  - Context loading integrated into `ProcessingContext` model
+
+- **Documentation Updates**: Corrected COMPACT_INTERVAL documentation across all files
+  - Fixed AGENTS.md, CLAUDE.md, and hippocampus/readme.md to reflect COMPACT_INTERVAL=50
+  - Updated all examples to show correct boundaries (1-50, 51-100, 101-150)
+  - Clarified terminology: 50 messages = 25 interactions
+
+### Fixed
+
+- **Message Count Tracking**: Fixed conversation message_count increment bug
+  - Changed from +1 to +2 per interaction in `remember.py`
+  - Ensures `conversations.message_count` accurately reflects total messages (user + assistant)
+  - Each `save_interaction()` adds 1 user message + 1 assistant reply = 2 messages
+
+### Removed
+
+- **Old Flow Documentation**: Removed obsolete `tatlock_prompt_flow_examples.md` (1014 lines)
+  - Replaced by comprehensive MEMORY_SYSTEM.md documentation
+
 ## [0.3.19] - 2025-10-03
 
 ### Added
