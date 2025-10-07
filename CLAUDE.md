@@ -26,4 +26,6 @@ Any conflicting guidance between this file and `AGENTS.md` should defer to `AGEN
 
 **Architecture**: Brain-inspired modules (cortex, hippocampus, stem, parietal, occipital, cerebellum, temporal)
 
-**Full Documentation**: See `AGENTS.md` for comprehensive developer guidance
+**Documentation**:
+- **Developer Guide**: See `AGENTS.md` for comprehensive developer guidance
+- **Memory & Prompt System**: See `hippocampus/MEMORY_SYSTEM.md` for conversation, memory, and prompt architecture
