@@ -185,6 +185,19 @@ CREATE TABLE IF NOT EXISTS conversations (
     message_count INTEGER DEFAULT 0
 );
 
+CREATE TABLE IF NOT EXISTS conversation_compacts (
+    compact_id TEXT PRIMARY KEY,
+    conversation_id TEXT NOT NULL,
+    compact_timestamp TEXT NOT NULL,
+    messages_up_to INTEGER NOT NULL,
+    compact_summary TEXT NOT NULL,
+    topics_covered TEXT,
+    FOREIGN KEY (conversation_id) REFERENCES conversations (conversation_id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_compacts_conversation ON conversation_compacts(conversation_id);
+CREATE INDEX IF NOT EXISTS idx_compacts_timestamp ON conversation_compacts(compact_timestamp);
+
 CREATE TABLE IF NOT EXISTS personal_variables_keys (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     key TEXT NOT NULL
@@ -348,9 +361,89 @@ def migrate_remove_ollama_model_setting(cursor: sqlite3.Cursor) -> None:
         logger.error(f"Error during ollama_model migration: {e}")
         raise
 
+
+def migrate_add_conversation_compacts_table(cursor: sqlite3.Cursor) -> None:
+    """
+    Add conversation_compacts table for conversation summarization.
+    This enables automatic compacting of conversations every 25 messages.
+    """
+    try:
+        # Check if table already exists
+        cursor.execute("""
+            SELECT name FROM sqlite_master
+            WHERE type='table' AND name='conversation_compacts'
+        """)
+        table_exists = cursor.fetchone()
+
+        if not table_exists:
+            # Create conversation_compacts table
+            cursor.execute("""
+                CREATE TABLE conversation_compacts (
+                    compact_id TEXT PRIMARY KEY,
+                    conversation_id TEXT NOT NULL,
+                    compact_timestamp TEXT NOT NULL,
+                    messages_up_to INTEGER NOT NULL,
+                    compact_summary TEXT NOT NULL,
+                    topics_covered TEXT,
+                    FOREIGN KEY (conversation_id) REFERENCES conversations (conversation_id) ON DELETE CASCADE
+                )
+            """)
+
+            # Create indexes
+            cursor.execute("""
+                CREATE INDEX idx_compacts_conversation ON conversation_compacts(conversation_id)
+            """)
+            cursor.execute("""
+                CREATE INDEX idx_compacts_timestamp ON conversation_compacts(compact_timestamp)
+            """)
+
+            logger.info("Created conversation_compacts table with indexes")
+        else:
+            logger.info("conversation_compacts table already exists, migration not needed")
+
+    except Exception as e:
+        logger.error(f"Error during conversation_compacts migration: {e}")
+        raise
+
+def check_and_run_user_database_migrations(db_path: str) -> None:
+    """
+    Check for and run any necessary user database migrations.
+    This function is called on existing user databases to add new tables/columns.
+    """
+    try:
+        conn = sqlite3.connect(db_path)
+        cursor = conn.cursor()
+
+        # Create migrations table if it doesn't exist
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS migrations (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                migration_name TEXT UNIQUE NOT NULL,
+                applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+
+        # Check if conversation_compacts migration has been applied
+        cursor.execute("SELECT COUNT(*) FROM migrations WHERE migration_name = 'add_conversation_compacts_table'")
+        compacts_migration_applied = cursor.fetchone()[0] > 0
+
+        if not compacts_migration_applied:
+            logger.info(f"Running conversation_compacts migration on {db_path}...")
+            migrate_add_conversation_compacts_table(cursor)
+            cursor.execute("INSERT INTO migrations (migration_name) VALUES (?)", ('add_conversation_compacts_table',))
+            logger.info("conversation_compacts migration completed")
+
+        conn.commit()
+        conn.close()
+
+    except Exception as e:
+        logger.error(f"Error during user database migration check: {e}")
+        raise
+
+
 def check_and_run_migrations(db_path: str) -> None:
     """
-    Check for and run any necessary database migrations.
+    Check for and run any necessary system database migrations.
     """
     try:
         conn = sqlite3.connect(db_path)
