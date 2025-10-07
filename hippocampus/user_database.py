@@ -132,6 +132,27 @@ def execute_user_query(username: str, query: str, params: tuple = ()) -> list[di
     return results
 
 
+def get_all_usernames() -> list[str]:
+    """
+    Get all usernames that have longterm databases.
+
+    Returns:
+        list[str]: List of usernames with existing databases
+    """
+    longterm_dir = os.path.join("hippocampus", "longterm")
+
+    if not os.path.exists(longterm_dir):
+        return []
+
+    usernames = []
+    for filename in os.listdir(longterm_dir):
+        if filename.endswith('.db'):
+            username = filename[:-3]  # Remove .db extension
+            usernames.append(username)
+
+    return sorted(usernames)
+
+
 def get_user_image_path(username: str, session_id: str, ext: str = 'png') -> str:
     """
     Get the per-user, per-session image storage path.

@@ -42,6 +42,7 @@ from config import (
 from temporal.voice_service import VoiceService
 from contextlib import asynccontextmanager
 from stem.installation.database_setup import check_and_run_migrations
+from stem.installation.migration_runner import migrate_if_needed
 import base64
 from hippocampus.user_database import get_user_image_path
 from fastapi.logger import logger
@@ -73,13 +74,22 @@ async def lifespan(app: FastAPI):
 
     logger.info("Starting Tatlock application...")
 
-    # Run system database migrations
+    # Run version-based database migrations (new system)
     try:
-        logger.info("Checking and running system database migrations...")
-        check_and_run_migrations(SYSTEM_DB_PATH)
-        logger.info("System database migrations completed")
+        logger.info("Checking database schema version...")
+        migrate_if_needed()
+        logger.info("Database schema version check completed")
     except Exception as e:
-        logger.error(f"Failed to run system database migrations: {e}", exc_info=True)
+        logger.error(f"Failed to run database migrations: {e}", exc_info=True)
+        raise  # Critical - can't start without proper database schema
+
+    # Run legacy system database migrations (to be phased out)
+    try:
+        logger.info("Checking and running legacy system database migrations...")
+        check_and_run_migrations(SYSTEM_DB_PATH)
+        logger.info("Legacy system database migrations completed")
+    except Exception as e:
+        logger.error(f"Failed to run legacy system database migrations: {e}", exc_info=True)
         raise  # Critical - can't start without system database
 
     # Initialize voice service
