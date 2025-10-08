@@ -116,10 +116,9 @@ def create_conversation_compact(
 
         # Get total message count first to calculate target boundary
         cursor.execute("""
-            SELECT COUNT(*) FROM memories WHERE conversation_id = ?
+            SELECT COUNT(*) FROM conversation_messages WHERE conversation_id = ?
         """, (conversation_id,))
-        total_interactions = cursor.fetchone()[0]
-        total_messages = total_interactions * 2
+        total_messages = cursor.fetchone()[0]
         target_boundary = (total_messages // COMPACT_INTERVAL) * COMPACT_INTERVAL
 
         # Check if compact already exists for this boundary (prevent race conditions)
@@ -144,15 +143,13 @@ def create_conversation_compact(
         last_compact = cursor.fetchone()
         start_from = last_compact[0] + 1 if last_compact else 1
 
-        # Get messages to compact using UNION ALL pattern from memories table
+        # Get messages to compact from conversation_messages table
         cursor.execute("""
-            SELECT 'user' as role, user_prompt as content, timestamp
-            FROM memories WHERE conversation_id = ?
-            UNION ALL
-            SELECT 'assistant' as role, llm_reply as content, timestamp
-            FROM memories WHERE conversation_id = ?
-            ORDER BY timestamp ASC
-        """, (conversation_id, conversation_id))
+            SELECT role, content, timestamp
+            FROM conversation_messages
+            WHERE conversation_id = ?
+            ORDER BY message_number ASC
+        """, (conversation_id,))
 
         all_messages = cursor.fetchall()
 
@@ -275,13 +272,11 @@ def get_conversation_context(
         conn = sqlite3.connect(db_path)
         cursor = conn.cursor()
 
-        # Get total message count for this conversation using memories table
-        # Each row in memories = 2 messages (user_prompt + llm_reply)
+        # Get total message count for this conversation
         cursor.execute("""
-            SELECT COUNT(*) FROM memories WHERE conversation_id = ?
+            SELECT COUNT(*) FROM conversation_messages WHERE conversation_id = ?
         """, (conversation_id,))
-        total_interactions = cursor.fetchone()[0]
-        total_messages = total_interactions * 2  # Each interaction = 2 messages
+        total_messages = cursor.fetchone()[0]
 
         if total_messages == 0:
             conn.close()
@@ -303,42 +298,37 @@ def get_conversation_context(
             compact_row = cursor.fetchone()
             compact_summary = compact_row[0] if compact_row else None
 
-            # Load messages AFTER the last compact boundary using UNION ALL pattern
+            # Load messages AFTER the last compact boundary
             cursor.execute("""
-                SELECT 'user' as role, user_prompt as content, timestamp
-                FROM memories WHERE conversation_id = ?
-                UNION ALL
-                SELECT 'assistant' as role, llm_reply as content, timestamp
-                FROM memories WHERE conversation_id = ?
-                ORDER BY timestamp ASC
-            """, (conversation_id, conversation_id))
+                SELECT role, content, timestamp
+                FROM conversation_messages
+                WHERE conversation_id = ? AND message_number > ?
+                ORDER BY message_number ASC
+            """, (conversation_id, last_compact_boundary))
 
-            all_messages = cursor.fetchall()
+            uncompacted_rows = cursor.fetchall()
 
-            # Get messages after last compact boundary
+            # Convert to list of dicts
             uncompacted_messages = [
                 {
                     'role': msg[0],
                     'content': msg[1],
                     'timestamp': msg[2]
                 }
-                for idx, msg in enumerate(all_messages, 1)
-                if idx > last_compact_boundary
+                for msg in uncompacted_rows
             ]
 
             conn.close()
             return (compact_summary, uncompacted_messages)
         else:
             # Less than COMPACT_INTERVAL messages, no compact exists
-            # Use UNION ALL pattern to get all messages
+            # Get all messages
             cursor.execute("""
-                SELECT 'user' as role, user_prompt as content, timestamp
-                FROM memories WHERE conversation_id = ?
-                UNION ALL
-                SELECT 'assistant' as role, llm_reply as content, timestamp
-                FROM memories WHERE conversation_id = ?
-                ORDER BY timestamp ASC
-            """, (conversation_id, conversation_id))
+                SELECT role, content, timestamp
+                FROM conversation_messages
+                WHERE conversation_id = ?
+                ORDER BY message_number ASC
+            """, (conversation_id,))
 
             all_messages = cursor.fetchall()
             recent_messages = [
@@ -370,13 +360,11 @@ def should_compact_conversation(username: str, conversation_id: str, db_path: st
         conn = sqlite3.connect(db_path)
         cursor = conn.cursor()
 
-        # Get total message count from memories table
-        # Each row in memories = 2 messages (user_prompt + llm_reply)
+        # Get total message count
         cursor.execute("""
-            SELECT COUNT(*) FROM memories WHERE conversation_id = ?
+            SELECT COUNT(*) FROM conversation_messages WHERE conversation_id = ?
         """, (conversation_id,))
-        total_interactions = cursor.fetchone()[0]
-        total_count = total_interactions * 2  # Each interaction = 2 messages
+        total_count = cursor.fetchone()[0]
 
         # Get last compact
         cursor.execute("""
