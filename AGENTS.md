@@ -14,6 +14,7 @@ This section provides guidelines for AI assistants (like Cursor, GitHub Copilot,
 - **Troubleshooting**: When a fix resolves a common installation or runtime issue, suggest an addition to `troubleshooting.md` to help future users.
 - **Testing**: All new code, whether adding features or fixing bugs, must be accompanied by corresponding tests to ensure correctness and prevent regressions. **CRITICAL**: Always use authenticated testing fixtures (`authenticated_admin_client`, `authenticated_user_client`) for API endpoints and core functionality tests.
 - **Code Organization**: Keep the codebase clean and maintainable. If code is used in multiple places, refactor it into a new shared file, following the Don't Repeat Yourself (DRY) principle. When creating new files, place them in the appropriate module directory, adhering to the existing filesystem structure patterns.
+- **Git Commits**: **NEVER** add co-authored-by messages, "Generated with Claude Code" attribution, or emojis to commits unless explicitly requested. Write clean, professional commit messages that describe WHAT changed and WHY, nothing more.
 
 ### General Guidance
 
