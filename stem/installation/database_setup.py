@@ -182,8 +182,25 @@ CREATE TABLE IF NOT EXISTS conversations (
     title TEXT,
     started_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     last_activity TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    message_count INTEGER DEFAULT 0
+    message_count INTEGER DEFAULT 0,
+    schema_version INTEGER DEFAULT 2,
+    compact_summary TEXT,
+    compacted_up_to INTEGER DEFAULT 0
 );
+
+CREATE TABLE IF NOT EXISTS conversation_messages (
+    message_id TEXT PRIMARY KEY,
+    conversation_id TEXT NOT NULL,
+    message_number INTEGER NOT NULL,
+    role TEXT NOT NULL CHECK(role IN ('user', 'assistant')),
+    content TEXT NOT NULL,
+    timestamp TEXT NOT NULL,
+    FOREIGN KEY (conversation_id) REFERENCES conversations(conversation_id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_messages_conversation ON conversation_messages(conversation_id);
+CREATE INDEX IF NOT EXISTS idx_messages_number ON conversation_messages(conversation_id, message_number);
+CREATE INDEX IF NOT EXISTS idx_messages_timestamp ON conversation_messages(timestamp);
 
 CREATE TABLE IF NOT EXISTS conversation_compacts (
     compact_id TEXT PRIMARY KEY,

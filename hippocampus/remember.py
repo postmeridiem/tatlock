@@ -66,7 +66,7 @@ def save_interaction(user_prompt: str, llm_reply: str, full_llm_history: list[di
     
     # Create or update conversation record
     create_or_update_conversation(conversation_id, username, title=f"Conversation about {topic}")
-    
+
     conn = None
 
     try:
@@ -77,12 +77,60 @@ def save_interaction(user_prompt: str, llm_reply: str, full_llm_history: list[di
 
         history_json = json.dumps(full_llm_history, indent=2)
 
-        # Step 1: Save the main memory
+        # === DUAL-WRITE SYSTEM ===
+        # Write to BOTH old (memories) and new (conversation_messages) schemas
+        # This ensures data consistency during gradual migration
+        # New conversations use schema_version=2, old conversations stay at schema_version=1
+
+        # Get next message number for new schema
+        cursor.execute("""
+            SELECT COALESCE(MAX(message_number), 0)
+            FROM conversation_messages
+            WHERE conversation_id = ?
+        """, (conversation_id,))
+        max_message_num = cursor.fetchone()[0]
+        user_message_num = max_message_num + 1
+        assistant_message_num = max_message_num + 2
+
+        # Check if this is a new conversation (for schema_version tracking)
+        cursor.execute("SELECT schema_version FROM conversations WHERE conversation_id = ?", (conversation_id,))
+        conv_row = cursor.fetchone()
+        is_new_conversation = (conv_row is None)
+
+        # BEGIN TRANSACTION for dual-write
+        cursor.execute("BEGIN")
+
+        # Step 1a: Save to OLD schema (memories table)
         query = """
         INSERT INTO memories (interaction_id, conversation_id, timestamp, user_prompt, llm_reply, full_conversation_history)
         VALUES (?, ?, ?, ?, ?, ?)
         """
         cursor.execute(query, (interaction_id, conversation_id, timestamp, user_prompt, llm_reply, history_json))
+
+        # Step 1b: Save to NEW schema (conversation_messages table) - DUAL WRITE
+        # Insert user message
+        user_message_id = f"{interaction_id}_user"
+        cursor.execute("""
+            INSERT INTO conversation_messages
+            (message_id, conversation_id, message_number, role, content, timestamp)
+            VALUES (?, ?, ?, 'user', ?, ?)
+        """, (user_message_id, conversation_id, user_message_num, user_prompt, timestamp))
+
+        # Insert assistant message
+        assistant_message_id = f"{interaction_id}_assistant"
+        cursor.execute("""
+            INSERT INTO conversation_messages
+            (message_id, conversation_id, message_number, role, content, timestamp)
+            VALUES (?, ?, ?, 'assistant', ?, ?)
+        """, (assistant_message_id, conversation_id, assistant_message_num, llm_reply, timestamp))
+
+        # Step 1c: Mark conversation as using new schema if it's new
+        if is_new_conversation:
+            cursor.execute("""
+                UPDATE conversations
+                SET schema_version = 2
+                WHERE conversation_id = ?
+            """, (conversation_id,))
 
         # Step 2: Get or Create the Topic
         topic_id = get_or_create_topic(conn, topic)
