@@ -75,14 +75,7 @@ def save_interaction(user_prompt: str, llm_reply: str, full_llm_history: list[di
         conn = sqlite3.connect(db_path)
         cursor = conn.cursor()
 
-        history_json = json.dumps(full_llm_history, indent=2)
-
-        # === DUAL-WRITE SYSTEM ===
-        # Write to BOTH old (memories) and new (conversation_messages) schemas
-        # This ensures data consistency during gradual migration
-        # New conversations use schema_version=2, old conversations stay at schema_version=1
-
-        # Get next message number for new schema
+        # Get next message number for sequential ordering
         cursor.execute("""
             SELECT COALESCE(MAX(message_number), 0)
             FROM conversation_messages
@@ -92,22 +85,10 @@ def save_interaction(user_prompt: str, llm_reply: str, full_llm_history: list[di
         user_message_num = max_message_num + 1
         assistant_message_num = max_message_num + 2
 
-        # Check if this is a new conversation (for schema_version tracking)
-        cursor.execute("SELECT schema_version FROM conversations WHERE conversation_id = ?", (conversation_id,))
-        conv_row = cursor.fetchone()
-        is_new_conversation = (conv_row is None)
-
-        # BEGIN TRANSACTION for dual-write
+        # BEGIN TRANSACTION
         cursor.execute("BEGIN")
 
-        # Step 1a: Save to OLD schema (memories table)
-        query = """
-        INSERT INTO memories (interaction_id, conversation_id, timestamp, user_prompt, llm_reply, full_conversation_history)
-        VALUES (?, ?, ?, ?, ?, ?)
-        """
-        cursor.execute(query, (interaction_id, conversation_id, timestamp, user_prompt, llm_reply, history_json))
-
-        # Step 1b: Save to NEW schema (conversation_messages table) - DUAL WRITE
+        # Step 1: Save messages to conversation_messages table
         # Insert user message
         user_message_id = f"{interaction_id}_user"
         cursor.execute("""
@@ -124,26 +105,26 @@ def save_interaction(user_prompt: str, llm_reply: str, full_llm_history: list[di
             VALUES (?, ?, ?, 'assistant', ?, ?)
         """, (assistant_message_id, conversation_id, assistant_message_num, llm_reply, timestamp))
 
-        # Step 1c: Mark conversation as using new schema if it's new
-        if is_new_conversation:
-            cursor.execute("""
-                UPDATE conversations
-                SET schema_version = 2
-                WHERE conversation_id = ?
-            """, (conversation_id,))
+        # Step 2: Save to memories table for backward compatibility with tools
+        # (This provides interaction-level granularity for analytics tools)
+        history_json = json.dumps(full_llm_history, indent=2)
+        cursor.execute("""
+            INSERT INTO memories (interaction_id, conversation_id, timestamp, user_prompt, llm_reply, full_conversation_history)
+            VALUES (?, ?, ?, ?, ?, ?)
+        """, (interaction_id, conversation_id, timestamp, user_prompt, llm_reply, history_json))
 
-        # Step 2: Get or Create the Topic
+        # Step 3: Get or Create the Topic
         topic_id = get_or_create_topic(conn, topic)
         if not topic_id:
             logger.warning(f"Warning: Could not get or create topic ID for '{topic}' in user '{username}' database.")
             conn.commit()
             return interaction_id
 
-        # Step 3: Link Memory and Topic
+        # Step 4: Link Memory and Topic
         cursor.execute("INSERT OR IGNORE INTO memory_topics (interaction_id, topic_id) VALUES (?, ?)",
                        (interaction_id, topic_id))
 
-        # Step 4: Update conversation_topics relationship
+        # Step 5: Update conversation_topics relationship
         update_conversation_topics(conn, conversation_id, topic_id, timestamp)
 
         conn.commit()
