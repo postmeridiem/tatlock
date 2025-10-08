@@ -14,6 +14,7 @@ This section provides guidelines for AI assistants (like Cursor, GitHub Copilot,
 - **Troubleshooting**: When a fix resolves a common installation or runtime issue, suggest an addition to `troubleshooting.md` to help future users.
 - **Testing**: All new code, whether adding features or fixing bugs, must be accompanied by corresponding tests to ensure correctness and prevent regressions. **CRITICAL**: Always use authenticated testing fixtures (`authenticated_admin_client`, `authenticated_user_client`) for API endpoints and core functionality tests.
 - **Code Organization**: Keep the codebase clean and maintainable. If code is used in multiple places, refactor it into a new shared file, following the Don't Repeat Yourself (DRY) principle. When creating new files, place them in the appropriate module directory, adhering to the existing filesystem structure patterns.
+- **Git Commits**: **NEVER** add co-authored-by messages, "Generated with Claude Code" attribution, or emojis to commits unless explicitly requested. Write clean, professional commit messages that describe WHAT changed and WHY, nothing more.
 
 ### General Guidance
 
@@ -2386,6 +2387,38 @@ Each user has their own isolated database containing:
 - Maintains clean separation between base system behavior and tool-specific guidance
 
 **NEVER move this table to user databases** - it would break the system architecture and create inconsistencies.
+
+## Memory, Conversation, and Prompt System
+
+**IMPORTANT**: All documentation for Tatlock's memory system, conversation tracking, prompt architecture, and database design has been consolidated into a single comprehensive document:
+
+**See: [`hippocampus/MEMORY_SYSTEM.md`](hippocampus/MEMORY_SYSTEM.md)**
+
+This consolidated documentation includes:
+
+- **Database Architecture**: System and user database schemas
+- **4.5-Phase Prompt Architecture**: Complete flow examples and implementation patterns
+- **Conversation Compacting System**: Conservative summarization every 50 messages (25 interactions)
+- **Memory Storage and Retrieval**: Storage patterns and recall functions
+- **System Prompts (rise_and_shine)**: Global instruction management
+- **Implementation Patterns**: Tool integration, user isolation, error handling
+- **Testing Strategy**: Authenticated API testing and isolation patterns
+- **Future Schema Refactoring**: Planned improvements to conversation_messages table
+
+For quick reference:
+
+- **Conversation compacting**: Automatic every 50 messages (25 interactions) with conservative LLM summarization
+- **Compact interval**: `COMPACT_INTERVAL = 50` in `hippocampus/conversation_compact.py`
+- **Phase 1 integration**: Loads compact summary + recent uncompacted messages
+- **Non-overlapping guarantee**: Messages 1-50, 51-100, 101-150 (no duplicates)
+- **Testing**: `python -m pytest tests/test_conversation_compact.py -v`
+
+**Module Files**:
+- `hippocampus/conversation_compact.py`: Compacting logic
+- `hippocampus/remember.py`: Memory storage
+- `hippocampus/recall.py`: Memory retrieval
+- `cortex/tatlock.py`: 4.5-phase prompt processor
+- `stem/installation/database_setup.py`: Database schemas
 
 ## User Context Management
 

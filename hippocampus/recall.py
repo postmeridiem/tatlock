@@ -369,23 +369,16 @@ def search_conversations(user: UserModel, search_term: str, limit: int = 50) -> 
 def get_conversation_messages(user: UserModel, conversation_id: str) -> list:
     """
     Retrieves all messages for a specific conversation.
+    Uses the new conversation_messages table for efficient message retrieval.
     """
     query = """
-        SELECT 
-            interaction_id as id,
-            'user' as role,
-            user_prompt as content,
+        SELECT
+            message_id as id,
+            role,
+            content,
             timestamp
-        FROM memories 
-        WHERE conversation_id = ? 
-        UNION ALL
-        SELECT 
-            interaction_id as id,
-            'assistant' as role,
-            llm_reply as content,
-            timestamp
-        FROM memories 
+        FROM conversation_messages
         WHERE conversation_id = ?
-        ORDER BY timestamp;
+        ORDER BY message_number;
     """
-    return execute_user_query(user.username, query, (conversation_id, conversation_id))
+    return execute_user_query(user.username, query, (conversation_id,))

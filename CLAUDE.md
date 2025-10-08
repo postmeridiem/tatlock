@@ -26,4 +26,25 @@ Any conflicting guidance between this file and `AGENTS.md` should defer to `AGEN
 
 **Architecture**: Brain-inspired modules (cortex, hippocampus, stem, parietal, occipital, cerebellum, temporal)
 
-**Full Documentation**: See `AGENTS.md` for comprehensive developer guidance
+**Documentation**:
+- **Developer Guide**: See `AGENTS.md` for comprehensive developer guidance
+- **Memory & Prompt System**: See `hippocampus/MEMORY_SYSTEM.md` for conversation, memory, and prompt architecture
+
+## Git Commit Guidelines
+
+**CRITICAL - NEVER VIOLATE THESE RULES:**
+
+- **NEVER** add co-authored-by messages to commits unless explicitly requested by the user
+- **NEVER** add "Generated with Claude Code" or similar attribution messages
+- **NEVER** add emojis to commit messages unless explicitly requested
+- Write clean, professional commit messages ONLY
+- Follow conventional commit format when appropriate
+- Commit messages should describe WHAT changed and WHY, nothing more
+
+**Examples of FORBIDDEN commit footers:**
+```
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+Co-Authored-By: Claude <noreply@anthropic.com>
+```
+
+**These additions are NOT requested and violate the principle of doing exactly what was asked, nothing more.**

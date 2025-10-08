@@ -170,3 +170,9 @@ def get_app_version():
         return "0.0.0-dev (pyproject.toml not found)"
 
 APP_VERSION = get_app_version()
+
+# --- Database Version ---
+# This tracks the current database schema version. It is automatically updated by the
+# migration system during startup when pyproject.toml version is newer.
+# WARNING: Do not manually edit this value - it is managed by migration_runner.py
+DB_VERSION = "0.3.20"

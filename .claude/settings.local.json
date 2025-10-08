@@ -7,7 +7,9 @@
       "Bash(python -m pytest tests/test_hippocampus_recall.py::test_conversation_summary_edge_cases -v)",
       "Bash(python -m pytest tests/test_tools.py -v)",
       "Bash(python -m pytest tests/*)",
-      "Bash(python -m pytest tests/ --tb=short)"
+      "Bash(python -m pytest tests/ --tb=short)",
+      "Bash(curl -X POST http://localhost:8000/cortex -H \"Content-Type: application/json\" -b cookies.txt -d '{\"\"\"\"message\"\"\"\":\"\"\"\"who is the mayor of rotterdam in 2025\"\"\"\",\"\"\"\"history\"\"\"\":[],\"\"\"\"conversation_id\"\"\"\":\"\"\"\"test-conv-001\"\"\"\"}')",
+      "Read(//tmp/**)"
     ],
     "deny": [],
     "ask": []

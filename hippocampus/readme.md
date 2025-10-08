@@ -10,6 +10,20 @@ The Hippocampus module manages all forms of persistent memory for Tatlock, inclu
 - **Memory Functions**: Storage, recall, and retrieval of conversation data
 - **Tool Integration**: Memory tools for the AI agent (see AGENTS.md for patterns)
 - **Advanced Analytics**: Memory insights, cleanup, and export capabilities
+- **Conversation Compacting**: Automatic summarization every 25 messages
+- **4.5-Phase Prompt Integration**: Smart context loading for Phase 1 assessments
+
+## Complete Documentation
+
+**See [`MEMORY_SYSTEM.md`](MEMORY_SYSTEM.md) for comprehensive documentation** covering:
+
+- Database architecture (system.db and {username}_longterm.db)
+- 4.5-phase prompt architecture with complete flow examples
+- Conversation compacting system (conservative summarization)
+- Memory storage and retrieval patterns
+- System prompts (rise_and_shine table)
+- Implementation patterns and testing strategy
+- Future schema refactoring plans
 
 ## Database Architecture
 
@@ -42,5 +56,6 @@ All coding, tool, and database standards are defined in [AGENTS.md](../AGENTS.md
 
 ## See Also
 
+- **[MEMORY_SYSTEM.md](MEMORY_SYSTEM.md)** – Complete memory, conversation, and prompt documentation
 - [Developer Guide](../AGENTS.md) – All standards and patterns
 - [Module Docs](../README.md)

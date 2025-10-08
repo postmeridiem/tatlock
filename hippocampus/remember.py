@@ -66,7 +66,7 @@ def save_interaction(user_prompt: str, llm_reply: str, full_llm_history: list[di
     
     # Create or update conversation record
     create_or_update_conversation(conversation_id, username, title=f"Conversation about {topic}")
-    
+
     conn = None
 
     try:
@@ -75,27 +75,56 @@ def save_interaction(user_prompt: str, llm_reply: str, full_llm_history: list[di
         conn = sqlite3.connect(db_path)
         cursor = conn.cursor()
 
+        # Get next message number for sequential ordering
+        cursor.execute("""
+            SELECT COALESCE(MAX(message_number), 0)
+            FROM conversation_messages
+            WHERE conversation_id = ?
+        """, (conversation_id,))
+        max_message_num = cursor.fetchone()[0]
+        user_message_num = max_message_num + 1
+        assistant_message_num = max_message_num + 2
+
+        # BEGIN TRANSACTION
+        cursor.execute("BEGIN")
+
+        # Step 1: Save messages to conversation_messages table
+        # Insert user message
+        user_message_id = f"{interaction_id}_user"
+        cursor.execute("""
+            INSERT INTO conversation_messages
+            (message_id, conversation_id, message_number, role, content, timestamp)
+            VALUES (?, ?, ?, 'user', ?, ?)
+        """, (user_message_id, conversation_id, user_message_num, user_prompt, timestamp))
+
+        # Insert assistant message
+        assistant_message_id = f"{interaction_id}_assistant"
+        cursor.execute("""
+            INSERT INTO conversation_messages
+            (message_id, conversation_id, message_number, role, content, timestamp)
+            VALUES (?, ?, ?, 'assistant', ?, ?)
+        """, (assistant_message_id, conversation_id, assistant_message_num, llm_reply, timestamp))
+
+        # Step 2: Save to memories table for backward compatibility with tools
+        # (This provides interaction-level granularity for analytics tools)
         history_json = json.dumps(full_llm_history, indent=2)
+        cursor.execute("""
+            INSERT INTO memories (interaction_id, conversation_id, timestamp, user_prompt, llm_reply, full_conversation_history)
+            VALUES (?, ?, ?, ?, ?, ?)
+        """, (interaction_id, conversation_id, timestamp, user_prompt, llm_reply, history_json))
 
-        # Step 1: Save the main memory
-        query = """
-        INSERT INTO memories (interaction_id, conversation_id, timestamp, user_prompt, llm_reply, full_conversation_history)
-        VALUES (?, ?, ?, ?, ?, ?)
-        """
-        cursor.execute(query, (interaction_id, conversation_id, timestamp, user_prompt, llm_reply, history_json))
-
-        # Step 2: Get or Create the Topic
+        # Step 3: Get or Create the Topic
         topic_id = get_or_create_topic(conn, topic)
         if not topic_id:
             logger.warning(f"Warning: Could not get or create topic ID for '{topic}' in user '{username}' database.")
             conn.commit()
             return interaction_id
 
-        # Step 3: Link Memory and Topic
+        # Step 4: Link Memory and Topic
         cursor.execute("INSERT OR IGNORE INTO memory_topics (interaction_id, topic_id) VALUES (?, ?)",
                        (interaction_id, topic_id))
 
-        # Step 4: Update conversation_topics relationship
+        # Step 5: Update conversation_topics relationship
         update_conversation_topics(conn, conversation_id, topic_id, timestamp)
 
         conn.commit()
@@ -169,10 +198,10 @@ def create_or_update_conversation(conversation_id: str, username: str, title: st
         cursor = conn.cursor()
         
         cursor.execute("""
-            INSERT OR REPLACE INTO conversations 
+            INSERT OR REPLACE INTO conversations
             (conversation_id, title, started_at, last_activity, message_count)
             VALUES (?, ?, COALESCE((SELECT started_at FROM conversations WHERE conversation_id = ?), CURRENT_TIMESTAMP), CURRENT_TIMESTAMP,
-                   COALESCE((SELECT message_count FROM conversations WHERE conversation_id = ?), 0) + 1)
+                   COALESCE((SELECT message_count FROM conversations WHERE conversation_id = ?), 0) + 2)
         """, (conversation_id, title, conversation_id, conversation_id))
         
         conn.commit()

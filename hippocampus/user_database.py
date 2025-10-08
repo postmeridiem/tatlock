@@ -8,11 +8,14 @@ Handles creation, deletion, and access to per-user longterm databases.
 import sqlite3
 import os
 import logging
-from typing import Optional
-from stem.installation.database_setup import create_longterm_db_tables
+from typing import Optional, Set
+from stem.installation.database_setup import create_longterm_db_tables, check_and_run_user_database_migrations
 
 # Set up logging for this module
 logger = logging.getLogger(__name__)
+
+# Cache of users whose databases have been migrated this session
+_migrated_users: Set[str] = set()
 
 
 def get_user_database_path(username: str) -> str:
@@ -30,21 +33,29 @@ def get_user_database_path(username: str) -> str:
 def ensure_user_database(username: str) -> str:
     """
     Ensure a user's longterm database exists, creating it if necessary.
+    Runs migrations once per user session on first access.
     Args:
         username (str): The username.
     Returns:
         str: Path to the user's longterm database.
     """
     db_path = get_user_database_path(username)
-    
+
     if not os.path.exists(db_path):
         # Create the database directory if it doesn't exist
         os.makedirs(os.path.dirname(db_path), exist_ok=True)
-        
+
         # Create the database with all required tables
         create_longterm_db_tables(db_path)
         logger.debug(f"Created a new longterm memory database for user '{username}' at {db_path}")
-    
+
+        # Mark as migrated (new databases don't need migration)
+        _migrated_users.add(username)
+    elif username not in _migrated_users:
+        # Run migrations on existing user database (once per session)
+        check_and_run_user_database_migrations(db_path)
+        _migrated_users.add(username)
+
     return db_path
 
 
@@ -119,6 +130,27 @@ def execute_user_query(username: str, query: str, params: tuple = ()) -> list[di
         conn.close()
     
     return results
+
+
+def get_all_usernames() -> list[str]:
+    """
+    Get all usernames that have longterm databases.
+
+    Returns:
+        list[str]: List of usernames with existing databases
+    """
+    longterm_dir = os.path.join("hippocampus", "longterm")
+
+    if not os.path.exists(longterm_dir):
+        return []
+
+    usernames = []
+    for filename in os.listdir(longterm_dir):
+        if filename.endswith('.db'):
+            username = filename[:-3]  # Remove .db extension
+            usernames.append(username)
+
+    return sorted(usernames)
 
 
 def get_user_image_path(username: str, session_id: str, ext: str = 'png') -> str:

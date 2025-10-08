@@ -203,15 +203,23 @@ def authenticated_user_client(client, test_user):
 @pytest.fixture(autouse=True)
 def mock_ollama():
     """Mock Ollama calls to avoid external dependencies in tests."""
-    with patch('cortex.tatlock.ollama') as mock_ollama:
-        # Mock the chat method to return a message with 'role': 'assistant'
-        mock_ollama.chat.return_value = {
+    with patch('cortex.tatlock.ollama') as mock_tatlock, \
+         patch('hippocampus.conversation_compact.ollama') as mock_compact:
+        # Mock the chat method for cortex
+        mock_tatlock.chat.return_value = {
             'message': {
                 'role': 'assistant',
                 'content': 'This is a mocked response from the AI assistant.'
             }
         }
-        yield mock_ollama
+        # Mock the chat method for conversation compacting
+        mock_compact.chat.return_value = {
+            'message': {
+                'role': 'assistant',
+                'content': 'TOPICS DISCUSSED:\n- Test topics\n\nFACTUAL TIMELINE:\nUser sent test messages.\n\nCONSERVATIVE SUMMARY:\nThis is a test conversation with multiple messages.'
+            }
+        }
+        yield mock_tatlock
 
 
 @pytest.fixture(autouse=True)
