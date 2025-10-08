@@ -7,6 +7,65 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.21] - 2025-10-08
+
+### Added
+
+- **Version-Based Migration System**: Complete database migration infrastructure
+  - database_migrations.md for tracking SQL migrations by version
+  - migration_runner.py for automated migration execution on startup
+  - Pre-boot admin mode prevents user connections during migrations
+  - Automatic integrity checks (foreign keys, schema validation)
+  - Transaction-based rollback support
+  - migrate_database.sh CLI tool for manual migrations
+
+- **Message-Level Storage Schema**: New conversation_messages table for efficient message storage
+  - Sequential message numbering (1, 2, 3...) for direct range queries
+  - Separate rows for user and assistant messages
+  - Eliminates ~93% data duplication from full_conversation_history JSON blobs
+  - Indexed on conversation_id, message_number, and timestamp
+  - Schema version tracking in conversations table
+
+- **Git Commit Guidelines**: Explicit rules added to CLAUDE.md and AGENTS.md
+  - Prohibits unsolicited co-authored-by messages
+  - Prohibits "Generated with Claude Code" attribution
+  - Enforces clean, professional commit messages only
+
+### Changed
+
+- **Memory System Architecture**: Migrated from interaction-level to message-level storage
+  - Primary storage: conversation_messages table (one row per message)
+  - Analytics storage: memories table retained for interaction-level queries
+  - Conversations table extended with schema_version, compact_summary, compacted_up_to
+  - All read operations now use conversation_messages for better performance
+  - Simplified write path with single transaction for both tables
+
+- **Database Baseline Schema**: Updated to include v0.3.20 schema by default
+  - New databases created with conversation_messages table
+  - Default schema_version=2 for new conversations
+  - Existing databases migrated automatically on startup
+
+- **Test Infrastructure**: Enhanced Ollama mocking for conversation compacting tests
+  - Mock now covers both cortex.tatlock.ollama and hippocampus.conversation_compact.ollama
+  - All 37 memory system tests passing
+
+### Fixed
+
+- **Foreign Key Bug**: Fixed conversation_topics foreign key reference
+  - Changed from memories(conversation_id) to conversations(conversation_id)
+  - Resolved integrity check failures on migration
+
+- **Query Performance**: Eliminated UNION ALL pattern for message retrieval
+  - Direct indexed queries using message_number
+  - Range queries: WHERE message_number > ? ORDER BY message_number
+  - Significantly faster than timestamp-based sorting
+
+### Removed
+
+- MEMORY_SYSTEM_ANALYSIS.md (analysis complete, refactoring implemented)
+
+## [0.3.20] - 2025-10-04
+
 ### Added
 
 - **Conversation Compacting System**: Automatic conversation summarization to reduce token usage
