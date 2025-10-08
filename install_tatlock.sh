@@ -995,7 +995,7 @@ HARDWARE_REASON = "$HARDWARE_REASON"
 SELECTION_METHOD = "${SELECTION_METHOD:-auto}"
 
 # Hardware details (for reference)
-HARDWARE_SUMMARY = "$(echo "$HARDWARE_RESULT" | python3 -c "import sys, json; data=json.load(sys.stdin); print(json.dumps(data.get('hardware', {}), separators=(',', ':')))" 2>/dev/null || echo "{}")"
+HARDWARE_SUMMARY = '$(echo "$HARDWARE_RESULT" | python3 -c "import sys, json; data=json.load(sys.stdin); print(json.dumps(data.get('hardware', {}), separators=(',', ':')))" 2>/dev/null || echo "{}")'
 EOF
 
 echo -e "${GREEN}[✓]${NC} Ollama model configuration complete"

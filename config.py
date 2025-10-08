@@ -71,16 +71,16 @@ def load_hardware_configuration() -> tuple[str, str]:
         try:
             from parietal.hardware import classify_hardware_performance
             classification = classify_hardware_performance()
-            model = classification.get("recommended_model", "gemma2:2b")
+            model = classification.get("recommended_model", "phi4-mini:3.8b-q4_K_M")
             tier = classification.get("performance_tier", "low")
             return model, tier
         except Exception as e:
             logger.warning(f"Hardware classification failed: {e}")
-            fallback_model = os.getenv("OLLAMA_MODEL", "gemma2:2b")
+            fallback_model = os.getenv("OLLAMA_MODEL", "phi4-mini:3.8b-q4_K_M")
             return fallback_model, "unknown"
     except Exception as e:
         logger.error(f"Error loading hardware config: {e}")
-        fallback_model = os.getenv("OLLAMA_MODEL", "gemma2:2b")
+        fallback_model = os.getenv("OLLAMA_MODEL", "phi4-mini:3.8b-q4_K_M")
         return fallback_model, "unknown"
 
 # Global hardware configuration - loaded once at startup

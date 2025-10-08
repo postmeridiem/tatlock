@@ -886,11 +886,11 @@ def classify_hardware_performance() -> Dict[str, Any]:
 
     except Exception as e:
         logger.error(f"Hardware classification failed: {e}")
-        # Safe fallback to low performance
+        # Safe fallback to low performance with tool-capable model
         return {
             "timestamp": datetime.now().isoformat(),
             "performance_tier": "low",
-            "recommended_model": "gemma2:2b",
+            "recommended_model": "phi4-mini:3.8b-q4_K_M",
             "hardware_summary": {},
             "reasoning": [f"Classification failed: {str(e)}, using safe fallback"],
             "error": str(e)
