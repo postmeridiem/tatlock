@@ -173,7 +173,7 @@ CREATE TABLE IF NOT EXISTS conversation_topics (
     last_occurrence TEXT NOT NULL,
     topic_count INTEGER DEFAULT 1,
     PRIMARY KEY (conversation_id, topic_id),
-    FOREIGN KEY (conversation_id) REFERENCES memories (conversation_id) ON DELETE CASCADE,
+    FOREIGN KEY (conversation_id) REFERENCES conversations (conversation_id) ON DELETE CASCADE,
     FOREIGN KEY (topic_id) REFERENCES topics (topic_id) ON DELETE CASCADE
 );
 

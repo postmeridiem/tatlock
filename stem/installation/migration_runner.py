@@ -90,23 +90,27 @@ class MigrationRunner:
         with open(self.migrations_file, 'r') as f:
             content = f.read()
 
-        # Pattern to find SQL blocks with version tags
-        # Example: -- [system:0.3.19→0.3.20:start] ... -- [system:0.3.19→0.3.20:end]
-        system_pattern = rf'-- \[system:{re.escape(from_version)}→{re.escape(to_version)}:start\](.*?)-- \[system:{re.escape(from_version)}→{re.escape(to_version)}:end\]'
-        user_pattern = rf'-- \[user:{re.escape(from_version)}→{re.escape(to_version)}:start\](.*?)-- \[user:{re.escape(from_version)}→{re.escape(to_version)}:end\]'
+        # Pattern to find SQL blocks with version tags inside markdown code fences
+        # Example: ```sql\n-- [system:0.3.19→0.3.20:start] ... -- [system:0.3.19→0.3.20:end]\n```
+        system_pattern = rf'```sql\s*-- \[system:{re.escape(from_version)}→{re.escape(to_version)}:start\](.*?)-- \[system:{re.escape(from_version)}→{re.escape(to_version)}:end\]\s*```'
+        user_pattern = rf'```sql\s*-- \[user:{re.escape(from_version)}→{re.escape(to_version)}:start\](.*?)-- \[user:{re.escape(from_version)}→{re.escape(to_version)}:end\]\s*```'
 
         # Find system migrations
         system_matches = re.findall(system_pattern, content, re.DOTALL)
         for match in system_matches:
             sql = match.strip()
-            if sql and not sql.startswith('--') and sql.lower() not in ('', 'no system database changes for this migration'):
+            # Remove comment lines and check if there's actual SQL
+            sql_lines = [line for line in sql.split('\n') if line.strip() and not line.strip().startswith('--')]
+            if sql_lines:
                 migrations['system'].append(sql)
 
         # Find user migrations
         user_matches = re.findall(user_pattern, content, re.DOTALL)
         for match in user_matches:
             sql = match.strip()
-            if sql and not sql.startswith('--'):
+            # Remove comment lines and check if there's actual SQL
+            sql_lines = [line for line in sql.split('\n') if line.strip() and not line.strip().startswith('--')]
+            if sql_lines:
                 migrations['user'].append(sql)
 
         logger.info(f"Parsed migrations {from_version}→{to_version}: "
