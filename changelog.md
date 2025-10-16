@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Bazzite Support**: Full compatibility with Bazzite immutable Fedora-based gaming distro
+  - Automatic detection of Bazzite system using rpm-ostree and /etc/os-release
+  - Homebrew-based installation for all dependencies (Python 3.10, Ollama, etc.)
+  - User systemd service support (no root privileges required)
+  - Comprehensive troubleshooting documentation for immutable systems
+  - PATH configuration for Homebrew Python 3.10 vs system Python 3.13
+
 ## [0.3.21] - 2025-10-08
 
 ### Added
