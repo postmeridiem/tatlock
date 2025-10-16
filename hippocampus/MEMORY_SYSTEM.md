@@ -215,14 +215,18 @@ CREATE TABLE personal_variables_join (
 );
 ```
 
-**Known Issues with Current Schema:**
+**Current Schema Status (v0.3.22):**
 
-1. **`memories` table stores one row per interaction** (user_prompt + llm_reply together), making message-level queries complex
-2. **`full_conversation_history` field** causes massive data duplication
-3. **No message_number sequencing**, requires COUNT(*) queries and index math
-4. **Compact system separated from conversations table**, adding query complexity
+✅ **Message-Level Storage**: `conversation_messages` table implemented with proper indexing
+✅ **Sequential Numbering**: `message_number` field provides efficient message sequencing  
+✅ **Conversation Compacting**: Integrated compacting system with `conversation_compacts` table
+✅ **Dual-Write System**: Both old (`memories`) and new (`conversation_messages`) schemas maintained for compatibility
 
-**See "Future Schema Refactoring" section for planned improvements.**
+**Remaining Optimization Opportunities:**
+
+1. **Data Duplication**: `full_conversation_history` field in `memories` table still causes duplication (legacy support)
+2. **Analytics Tools**: Some tools still use `memories` table instead of optimized `conversation_messages`
+3. **Legacy Cleanup**: Consider deprecation timeline for `memories` table after analytics migration
 
 ---
 
@@ -1213,96 +1217,90 @@ python -m pytest tests/test_conversation_compact.py::test_conversation_compactin
 
 ---
 
-## Future Schema Refactoring
+## Schema Implementation Status (v0.3.22)
 
-### Current Issues
+### ✅ **COMPLETED: Message-Level Schema Implementation**
 
-The current `memories` table schema has several architectural issues:
+The schema refactoring described below has been **fully implemented and is in production use**.
 
-1. **One row per interaction**: Each row contains `user_prompt` + `llm_reply` together, making message-level queries complex
-2. **`full_conversation_history` field**: Causes massive data duplication
-3. **No message sequencing**: Requires COUNT(*) queries and index math to determine message boundaries
-4. **Compact system separated from conversations**: Adds query complexity and potential for inconsistency
-
-### Planned New Schema
-
-**New `conversation_messages` table:**
+**Implemented `conversation_messages` table:**
 
 ```sql
 CREATE TABLE conversation_messages (
     message_id TEXT PRIMARY KEY,
     conversation_id TEXT NOT NULL,
     message_number INTEGER NOT NULL,  -- Sequential number within conversation
-    role TEXT NOT NULL,                -- 'user' or 'assistant'
+    role TEXT NOT NULL CHECK(role IN ('user', 'assistant')),
     content TEXT NOT NULL,
-    timestamp TIMESTAMP NOT NULL,
-    FOREIGN KEY (conversation_id) REFERENCES conversations(conversation_id) ON DELETE CASCADE,
-    UNIQUE(conversation_id, message_number)
+    timestamp TEXT NOT NULL,
+    FOREIGN KEY (conversation_id) REFERENCES conversations(conversation_id) ON DELETE CASCADE
 );
 
-CREATE INDEX idx_conversation_messages_conv ON conversation_messages(conversation_id);
-CREATE INDEX idx_conversation_messages_number ON conversation_messages(conversation_id, message_number);
+CREATE INDEX idx_messages_conversation ON conversation_messages(conversation_id);
+CREATE INDEX idx_messages_number ON conversation_messages(conversation_id, message_number);
+CREATE INDEX idx_messages_timestamp ON conversation_messages(timestamp);
 ```
 
-**Enhanced `conversations` table:**
+**Enhanced `conversations` table with compacting fields:**
 
 ```sql
-ALTER TABLE conversations ADD COLUMN compact_summary TEXT;
-ALTER TABLE conversations ADD COLUMN compacted_up_to INTEGER DEFAULT 0;
-
--- compact_summary: Current compact text (replaces conversation_compacts table)
--- compacted_up_to: Last message_number included in compact
+CREATE TABLE conversations (
+    conversation_id TEXT PRIMARY KEY,
+    title TEXT,
+    started_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    last_activity TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    message_count INTEGER DEFAULT 0,
+    schema_version INTEGER DEFAULT 2,        -- ✅ IMPLEMENTED
+    compact_summary TEXT,                     -- ✅ IMPLEMENTED  
+    compacted_up_to INTEGER DEFAULT 0         -- ✅ IMPLEMENTED
+);
 ```
 
-### Benefits of New Schema
+### ✅ **ACTIVE: Dual-Write System**
 
-1. **Message-level queries**: Direct SELECT with message_number ranges
-2. **No data duplication**: Removes `full_conversation_history`
-3. **Count-aware queries**: `SELECT * FROM conversation_messages WHERE message_number > 25` instead of complex index math
-4. **Simplified compacting**: Update `conversations.compact_summary` instead of separate table
-5. **Easier debugging**: Clear message sequencing
+**Current Implementation Status:**
+- ✅ **Phase 1 COMPLETE**: Dual-write system active (both old and new schemas)
+- ✅ **Phase 2 COMPLETE**: Reading from new schema for conversation context
+- ✅ **Phase 3 ACTIVE**: Legacy support maintained for analytics tools
 
-### Migration Strategy
-
-**Phase 1: Dual-Write System**
+**Active Dual-Write Implementation:**
 
 ```python
-def save_interaction(username, user_prompt, llm_reply, topics, conversation_id):
-    # Write to OLD schema (memories table)
-    save_to_memories_table(...)
-
-    # Write to NEW schema (conversation_messages table)
-    save_to_conversation_messages_table(...)
-```
-
-**Phase 2: Read from New Schema**
-
-```python
-def get_conversation_context(username, conversation_id, db_path):
-    # Read from conversation_messages table
+# Current implementation in hippocampus/remember.py
+def save_interaction(user_prompt, llm_reply, full_llm_history, topic, username, conversation_id):
+    # Step 1: Save to NEW schema (conversation_messages table)
     cursor.execute("""
-        SELECT role, content, timestamp
-        FROM conversation_messages
-        WHERE conversation_id = ? AND message_number > ?
-        ORDER BY message_number ASC
-    """, (conversation_id, compacted_up_to))
+        INSERT INTO conversation_messages
+        (message_id, conversation_id, message_number, role, content, timestamp)
+        VALUES (?, ?, ?, 'user', ?, ?)
+    """, (user_message_id, conversation_id, user_message_num, user_prompt, timestamp))
+
+    # Step 2: Save to OLD schema (memories table) for backward compatibility
+    cursor.execute("""
+        INSERT INTO memories (interaction_id, conversation_id, timestamp, user_prompt, llm_reply, full_conversation_history)
+        VALUES (?, ?, ?, ?, ?, ?)
+    """, (interaction_id, conversation_id, timestamp, user_prompt, llm_reply, history_json))
 ```
 
-**Phase 3: Background Migration**
+### ✅ **ACHIEVED: Schema Benefits**
 
-```python
-def migrate_old_conversations_to_new_schema():
-    """Background job to migrate existing data"""
-    # For each conversation in memories table:
-    #   1. Extract messages in order
-    #   2. Assign sequential message_number
-    #   3. Insert into conversation_messages
-    #   4. Mark migration complete
-```
+1. ✅ **Message-level queries**: Direct SELECT with message_number ranges
+2. ✅ **Efficient sequencing**: `message_number` field provides optimal query performance
+3. ✅ **Count-aware queries**: `SELECT * FROM conversation_messages WHERE message_number > 25`
+4. ✅ **Integrated compacting**: `conversation_compacts` table with proper indexing
+5. ✅ **Backward compatibility**: Analytics tools continue using `memories` table
 
-**Phase 4: Deprecate Old Schema**
+### 🔄 **CURRENT: Legacy Support Strategy**
 
-After verification period, deprecate `memories` table and `conversation_compacts` table.
+**Active Legacy Support:**
+- `memories` table maintained for analytics tools
+- `conversation_compacts` table for compacting system
+- All existing tools continue to work without modification
+
+**Future Optimization Opportunities:**
+- Consider migrating analytics tools to use `conversation_messages` table
+- Evaluate deprecation timeline for `memories` table after analytics migration
+- Remove `full_conversation_history` duplication (legacy support only)
 
 ### Example New Schema Queries
 
