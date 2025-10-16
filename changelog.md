@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.22] - 2025-01-16
+
 ### Added
 
 - **Bazzite Support**: Full compatibility with Bazzite immutable Fedora-based gaming distro
