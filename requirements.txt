@@ -21,16 +21,23 @@ instructor==1.7.5
 itsdangerous==2.2.0
 psutil==6.1.0
 jinja2==3.1.4
-watchdog
-tomli; python_version < "3.11"
+watchdog==6.0.0
+tomli==2.0.1; python_version < "3.11"
 
 # Visual testing dependencies
 playwright==1.45.0
 pytest-playwright==0.4.4
 Pillow==11.0.0
+# Note: greenlet==3.0.3 is compatible with Python 3.10
+greenlet==3.0.3
 
 # WebSocket dependencies
 websockets==13.1
 
 # Added from the code block
-nest_asyncio
+nest_asyncio==1.6.0
+
+# Security scanning tools
+safety==3.2.0
+bandit==1.7.10
+pip-audit==2.7.3

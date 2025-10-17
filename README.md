@@ -10,7 +10,7 @@ Tatlock is a modular, brain-inspired conversational AI platform with built-in au
 
 - **Linux**: Ubuntu/Debian, CentOS/RHEL/Fedora, Arch Linux, or Bazzite (immutable)
 - **macOS**: Intel or Apple Silicon (M1/M2/M3)
-- Python 3.10 or higher
+- **Python 3.10 exactly** (required for optimal compatibility and to avoid dependency issues)
 - Git
 - Ollama (for local LLM inference)
 

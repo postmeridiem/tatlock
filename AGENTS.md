@@ -1811,7 +1811,53 @@ function setupEventListeners() {
 
 ### Security Standards
 
-#### Authentication & Authorization
+### Supply Chain Security
+
+#### Dependency Management
+
+- **Version Pinning**: ALL dependencies MUST be pinned to exact versions using `==`
+- **No Loose Specifiers**: NEVER use `>=`, `>`, `<=`, `<`, `~=`, or `!=` for dependencies
+- **Lock Files**: Maintain `requirements-lock.txt` with all transitive dependencies
+- **Security Scanning**: Use `safety`, `bandit`, and `pip-audit` for vulnerability detection
+- **Compatibility Testing**: Test all version changes before deployment
+
+```python
+# ✅ Correct: Exact version pinning
+fastapi==0.115.13
+uvicorn[standard]==0.34.3
+pydantic==2.11.7
+
+# ❌ Incorrect: Loose version specifiers
+fastapi>=0.115.0
+uvicorn~=0.34.0
+pydantic>=2.11.0
+```
+
+#### Security Tools Integration
+
+```bash
+# Install security tools
+pip install safety==3.2.0 bandit==1.7.10 pip-audit==2.7.3
+
+# Run comprehensive security scan
+cd stem/scripts && ./security_scan.sh
+
+# Individual security scans
+safety check --json --output safety-report.json
+bandit -r . -f json -o bandit-report.json -ll
+pip-audit --format=json --output=audit-report.json
+```
+
+#### Dependency Security Checklist
+
+- [ ] All dependencies pinned to exact versions
+- [ ] No loose version specifiers in requirements.txt
+- [ ] Security scan passes with zero critical vulnerabilities
+- [ ] Lock file generated and committed
+- [ ] Compatibility test passes after version changes
+- [ ] Application starts successfully with pinned versions
+
+### Authentication & Authorization
 
 - **Session-Based**: Secure session management with cookies
 - **Password Hashing**: PBKDF2 with unique salts
@@ -1847,6 +1893,111 @@ cursor.execute("SELECT * FROM users WHERE username = ?", (username,))
 # ❌ Incorrect: String formatting
 cursor.execute(f"SELECT * FROM users WHERE username = '{username}'")
 ```
+
+### AI Assistant Security Guidelines
+
+#### Mandatory Security Checks
+
+When using AI assistants (Cursor, GitHub Copilot, Claude, GPT, etc.), you MUST:
+
+1. **Always Pin Dependencies**: Never suggest loose version specifiers
+2. **Security Scan**: Run security scans on all dependency changes
+3. **Compatibility Test**: Verify application starts after changes
+4. **Document Changes**: Update security documentation for any changes
+
+#### Security-Focused AI Prompts
+
+```
+Please help me implement [specific feature] following Tatlock security standards:
+
+Security requirements:
+- Pin ALL dependencies to exact versions using ==
+- Run security scans (safety, bandit, pip-audit)
+- Test application startup after changes
+- Update security documentation
+- Follow supply chain security best practices
+
+[Your specific request here]
+```
+
+#### Prohibited AI Suggestions
+
+- **NEVER** suggest loose version specifiers (`>=`, `>`, `<=`, `<`, `~=`)
+- **NEVER** suggest unpinned dependencies
+- **NEVER** bypass security scanning
+- **NEVER** skip compatibility testing
+- **NEVER** ignore security documentation updates
+
+### Security Testing Requirements
+
+#### Startup Testing
+
+```python
+def test_security_startup():
+    """Test that Tatlock starts successfully after version pinning."""
+    # Test all core imports
+    # Test configuration loading
+    # Test database initialization
+    # Test security manager
+    # Test hardware classification
+    # Test tool system
+    # Test application startup
+    # Test dependency compatibility
+```
+
+#### Security Scanning
+
+```bash
+# Run comprehensive security scan
+python -m pytest tests/test_security_startup.py -v
+safety check
+bandit -r . -ll
+pip-audit
+```
+
+#### Compatibility Testing
+
+```bash
+# Test with different Python versions
+python3.10 -m pytest tests/test_security_startup.py
+python3.11 -m pytest tests/test_security_startup.py
+python3.12 -m pytest tests/test_security_startup.py
+```
+
+### Security Incident Response
+
+#### Dependency Conflicts
+
+1. **Identify Conflict**: Document the specific conflict
+2. **Research Alternatives**: Find compatible versions
+3. **Test Compatibility**: Run full test suite
+4. **Update Documentation**: Document the resolution
+5. **Security Scan**: Verify no new vulnerabilities
+
+#### Supply Chain Attacks
+
+1. **Immediate Assessment**: Check for compromised packages
+2. **Rollback**: Revert to last known good state
+3. **Security Scan**: Run comprehensive vulnerability scan
+4. **Documentation**: Update security procedures
+5. **Prevention**: Implement additional security measures
+
+### Security Documentation Requirements
+
+#### Required Documentation
+
+- **SECURITY_STRATEGY.md**: Comprehensive security strategy
+- **Security Test Results**: All security scan results
+- **Dependency Audit**: Regular dependency reviews
+- **Incident Reports**: Security incident documentation
+- **Update Procedures**: Security update processes
+
+#### Security Metrics
+
+- **Zero Critical Vulnerabilities**: No critical security issues
+- **100% Version Pinning**: All dependencies pinned
+- **Automated Scanning**: Daily security scans
+- **Compliance Rate**: Security standard adherence
 
 ### Testing Standards
 
