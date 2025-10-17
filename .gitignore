@@ -1,5 +1,6 @@
 .env
 .venv/
+test_env/
 hardware_config.py
 
 # Python cache files
