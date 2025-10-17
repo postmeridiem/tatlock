@@ -7,7 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.3.22] - 2025-01-15
+## [0.3.22] - 2025-01-16
+
+### Added
+
+- **Bazzite Support**: Full compatibility with Bazzite immutable Fedora-based gaming distro
+  - Automatic detection of Bazzite system using rpm-ostree and /etc/os-release
+  - Homebrew-based installation for all dependencies (Python 3.10, Ollama, etc.)
+  - User systemd service support (no root privileges required)
+  - Comprehensive troubleshooting documentation for immutable systems
+  - PATH configuration for Homebrew Python 3.10 vs system Python 3.13
 
 ### Fixed
 
@@ -17,6 +26,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Fixed hardware config generation to properly escape JSON in HARDWARE_SUMMARY
   - Ensures all fallback scenarios use models that support function calling
   - Prevents tool execution failures when hardware classification fails
+
+- **Documentation Accuracy**: Updated MEMORY_SYSTEM.md to reflect actual implemented state
+  - Removed outdated "Future Schema Refactoring" section (schema already implemented)
+  - Updated "Known Issues" to reflect resolved problems
+  - Documented active dual-write system as current implementation
+  - Corrected schema status from "planned" to "completed" for message-level storage
+  - Updated optimization opportunities to reflect current state vs future plans
 
 ## [0.3.21] - 2025-10-08
 

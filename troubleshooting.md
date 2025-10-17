@@ -210,6 +210,58 @@ The installation script now supports:
 - **CentOS/RHEL/Fedora systems** (yum/dnf package manager)
 - **macOS** (Intel and Apple Silicon, using Homebrew)
 - **Arch Linux** (pacman package manager)
+- **Bazzite** (immutable Fedora, using Homebrew)
+
+## Bazzite (Immutable System) Installation
+
+Bazzite is an immutable Fedora-based gaming distro. The installer automatically detects Bazzite and uses Homebrew instead of system package managers.
+
+### Requirements
+- Homebrew must be installed (usually pre-installed on Bazzite)
+- Python 3.10 will be installed via Homebrew
+- User systemd services are supported (no root required)
+
+### Installation Process
+1. The installer detects Bazzite's immutable filesystem
+2. Uses Homebrew to install Python 3.10 and dependencies
+3. Ollama is installed via Homebrew
+4. Creates user systemd service for auto-start (no root required)
+
+### Common Issues
+
+**Python 3.13 vs 3.10 Conflict:**
+- System has Python 3.13, but Tatlock needs 3.10
+- Installer automatically installs Python 3.10 via Homebrew
+- Ensure PATH prioritizes Homebrew Python: `export PATH="/home/linuxbrew/.linuxbrew/opt/python@3.10/bin:$PATH"`
+
+**Service Management:**
+- Uses user systemd services (no root required)
+- Service auto-starts on login
+- Manage with: `systemctl --user status/start/stop/restart tatlock`
+
+**Homebrew PATH Issues:**
+```bash
+# Add to ~/.bashrc or ~/.zshrc
+export PATH="/home/linuxbrew/.linuxbrew/bin:$PATH"
+export PATH="/home/linuxbrew/.linuxbrew/opt/python@3.10/bin:$PATH"
+```
+
+**Service Commands:**
+```bash
+# Check service status
+systemctl --user status tatlock
+
+# Start/stop service
+systemctl --user start tatlock
+systemctl --user stop tatlock
+
+# View logs
+journalctl --user -u tatlock -f
+
+# Enable/disable auto-start
+systemctl --user enable tatlock
+systemctl --user disable tatlock
+```
 
 ## Password Management and Authentication
 

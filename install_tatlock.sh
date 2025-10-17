@@ -102,6 +102,10 @@ detect_system() {
                     SYSTEM="arch"
                     PACKAGE_MANAGER="pacman"
                     ;;
+                "bazzite")
+                    SYSTEM="bazzite"
+                    PACKAGE_MANAGER="brew"
+                    ;;
                 *)
                     SYSTEM="unknown"
                     PACKAGE_MANAGER="unknown"
@@ -154,6 +158,13 @@ check_package_manager() {
                 exit 1
             fi
             ;;
+        "brew")
+            if ! command -v brew &> /dev/null; then
+                echo -e "${RED}Error: Homebrew not found. Please install Homebrew first:${NC}"
+                echo -e "  ${CYAN}/bin/bash -c \"\$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)\"${NC}"
+                exit 1
+            fi
+            ;;
         *)
             echo -e "${RED}Error: Unsupported system or package manager not detected.${NC}"
             echo -e "Please install dependencies manually or use a supported system."
@@ -189,7 +200,13 @@ check_python_version() {
     fi
     
     # Also check common installation paths
-    local common_paths=("/usr/bin/python3.10" "/usr/local/bin/python3.10" "/opt/homebrew/bin/python3.10")
+    local common_paths=(
+        "/home/linuxbrew/.linuxbrew/opt/python@3.10/bin/python3.10"
+        "/home/linuxbrew/.linuxbrew/bin/python3.10"
+        "/usr/bin/python3.10"
+        "/usr/local/bin/python3.10"
+        "/opt/homebrew/bin/python3.10"
+    )
     for path in "${common_paths[@]}"; do
         if [ -f "$path" ]; then
             local version=$("$path" -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')" 2>/dev/null)
@@ -335,12 +352,21 @@ install_python310() {
             ;;
             
         "brew")
-            echo "Installing Python 3.10 on macOS..."
-            brew install python@3.10
-            
-            # Add to PATH
-            echo 'export PATH="/opt/homebrew/opt/python@3.10/bin:$PATH"' >> ~/.zshrc
-            export PATH="/opt/homebrew/opt/python@3.10/bin:$PATH"
+            if [[ "$SYSTEM" == "bazzite" ]]; then
+                echo "Installing Python 3.10 on Bazzite via Homebrew..."
+                brew install python@3.10
+                
+                # Add to PATH for Bazzite
+                echo 'export PATH="/home/linuxbrew/.linuxbrew/opt/python@3.10/bin:$PATH"' >> ~/.bashrc
+                export PATH="/home/linuxbrew/.linuxbrew/opt/python@3.10/bin:$PATH"
+            else
+                echo "Installing Python 3.10 on macOS..."
+                brew install python@3.10
+                
+                # Add to PATH for macOS
+                echo 'export PATH="/opt/homebrew/opt/python@3.10/bin:$PATH"' >> ~/.zshrc
+                export PATH="/opt/homebrew/opt/python@3.10/bin:$PATH"
+            fi
             ;;
             
         "pacman")
@@ -519,6 +545,34 @@ install_system_dependencies() {
                 exit 1
             fi
             ;;
+            
+        "brew")
+            echo -e "${BOLD}Using Homebrew on immutable Bazzite system...${NC}"
+            
+            # Check Homebrew is available
+            if ! command -v brew &> /dev/null; then
+                echo -e "${RED}Error: Homebrew not found. Install from https://brew.sh${NC}"
+                exit 1
+            fi
+            
+            # Install Python 3.10
+            echo -e "${CYAN}Installing Python 3.10 via Homebrew...${NC}"
+            if ! brew install python@3.10; then
+                echo -e "${RED}Error: Failed to install Python 3.10 via Homebrew.${NC}"
+                exit 1
+            fi
+            
+            # Add to PATH
+            export PATH="/home/linuxbrew/.linuxbrew/opt/python@3.10/bin:$PATH"
+            echo 'export PATH="/home/linuxbrew/.linuxbrew/opt/python@3.10/bin:$PATH"' >> ~/.bashrc
+            
+            # Install other dependencies
+            echo -e "${CYAN}Installing required packages...${NC}"
+            if ! brew install sqlite curl wget; then
+                echo -e "${RED}Error: Failed to install required packages via Homebrew.${NC}"
+                exit 1
+            fi
+            ;;
     esac
 }
 
@@ -647,6 +701,14 @@ else
             echo "Please check your Homebrew installation and try again."
             exit 1
         fi
+    elif [[ "$SYSTEM" == "bazzite" ]]; then
+        # On Bazzite, use Homebrew
+        echo "Installing Ollama via Homebrew on Bazzite..."
+        if ! brew install ollama; then
+            echo "Error: Failed to install Ollama via Homebrew."
+            echo "Please check your Homebrew installation and try again."
+            exit 1
+        fi
     else
         # On Linux, use the official install script
         echo "Installing Ollama via official install script on Linux..."
@@ -664,6 +726,33 @@ if [[ "$SYSTEM" == "macos_arm" || "$SYSTEM" == "macos_intel" ]]; then
     # On macOS, Ollama runs as a user service
     ollama serve &> /dev/null &
     echo "Ollama service started in background on macOS."
+
+    # Wait for Ollama to be ready
+    echo "Waiting for Ollama to initialize..."
+    sleep 3
+
+    # Verify Ollama is responding
+    max_attempts=10
+    attempt=0
+    while [ $attempt -lt $max_attempts ]; do
+        if curl -s http://localhost:11434/ &> /dev/null; then
+            echo "Ollama is ready!"
+            break
+        fi
+        attempt=$((attempt + 1))
+        if [ $attempt -lt $max_attempts ]; then
+            echo "Waiting for Ollama to start (attempt $attempt/$max_attempts)..."
+            sleep 2
+        fi
+    done
+
+    if [ $attempt -eq $max_attempts ]; then
+        echo "Warning: Ollama may not be fully initialized yet, but continuing..."
+    fi
+elif [[ "$SYSTEM" == "bazzite" ]]; then
+    # On Bazzite, start Ollama manually (no systemd service)
+    ollama serve &> /dev/null &
+    echo "Ollama service started in background on Bazzite."
 
     # Wait for Ollama to be ready
     echo "Waiting for Ollama to initialize..."
@@ -1445,6 +1534,49 @@ if [[ "$install_service" =~ ^[Yy]$ ]]; then
     fi
     
     case $SYSTEM in
+        "bazzite")
+            # Bazzite - Create user systemd service (no root required)
+            echo "Creating user systemd service for Bazzite..."
+            
+            # Create user service file
+            mkdir -p ~/.config/systemd/user
+            cat > ~/.config/systemd/user/tatlock.service << EOF
+[Unit]
+Description=Tatlock Conversational AI Platform
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=$SERVICE_DIR
+Environment=PATH=$SERVICE_DIR/.venv/bin:/home/linuxbrew/.linuxbrew/bin:/usr/local/bin:/usr/bin:/bin
+Environment=HOSTNAME=$SERVICE_HOSTNAME
+Environment=PORT=$SERVICE_PORT
+ExecStart=$SERVICE_DIR/.venv/bin/python $SERVICE_DIR/main.py
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=default.target
+EOF
+
+            # Enable and start the user service
+            if command -v systemctl &> /dev/null; then
+                systemctl --user daemon-reload
+                systemctl --user enable tatlock.service
+                systemctl --user start tatlock.service
+                
+                echo "- Tatlock user service installed and started"
+                echo "- Service will auto-start on login"
+                echo "- Service configured to run on $SERVICE_HOSTNAME:$SERVICE_PORT"
+                echo "- Use 'systemctl --user status tatlock' to check status"
+                echo "- Use 'systemctl --user restart tatlock' to restart"
+            else
+                echo "Error: systemctl not found. Cannot install user service."
+                echo "Please run Tatlock manually using './wakeup.sh'"
+            fi
+            ;;
         "debian"|"rhel"|"arch")
             # Linux - Create systemd service
             echo "Creating systemd service for Linux..."
@@ -1559,6 +1691,29 @@ else
     echo "Checking for existing Tatlock services..."
     
     case $SYSTEM in
+        "bazzite")
+            # Bazzite - Check for user systemd service
+            if command -v systemctl &> /dev/null; then
+                if systemctl --user is-active --quiet tatlock.service 2>/dev/null; then
+                    echo "Found running Tatlock user service. Stopping and removing..."
+                    systemctl --user stop tatlock.service
+                    systemctl --user disable tatlock.service
+                    rm -f ~/.config/systemd/user/tatlock.service
+                    systemctl --user daemon-reload
+                    echo "- Existing Tatlock user service removed"
+                elif [ -f "~/.config/systemd/user/tatlock.service" ]; then
+                    echo "Found inactive Tatlock user service. Removing..."
+                    systemctl --user disable tatlock.service 2>/dev/null
+                    rm -f ~/.config/systemd/user/tatlock.service
+                    systemctl --user daemon-reload
+                    echo "- Existing Tatlock user service removed"
+                else
+                    echo "- No existing Tatlock user service found"
+                fi
+            else
+                echo "- No systemctl available for service cleanup"
+            fi
+            ;;
         "debian"|"rhel"|"arch")
             # Linux - Check for systemd service
             if command -v systemctl &> /dev/null; then
