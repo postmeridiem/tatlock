@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.23] - 2025-01-17
+
+### Added
+
+- **Comprehensive Security Hardening**: Complete security strategy implementation
+  - Pinned all package versions to exact versions (84 dependencies) to prevent supply chain attacks
+  - Created requirements-lock.txt with all transitive dependencies for reproducible builds
+  - Added security scanning tools: safety==3.2.0, bandit==1.7.10, pip-audit==2.7.3
+  - Created comprehensive security scan script in stem/scripts/security_scan.sh
+  - Updated AGENTS.md with security guidelines for LLMs to prevent "poisoned well" attacks
+  - Created stem/SECURITY_STRATEGY.md with complete security strategy documentation
+  - Added security startup tests to verify compatibility after version pinning
+  - Updated README to specify Python 3.10 exactly (matching install script requirements)
+  - Fixed greenlet compatibility issue with Python 3.10 (was causing build failures on Python 3.13)
+
+### Security
+
+- **Supply Chain Protection**: All dependencies now pinned to exact versions
+- **Vulnerability Scanning**: Automated security scanning with Safety, Bandit, and pip-audit
+- **Dependency Auditing**: Comprehensive dependency vulnerability detection
+- **AI Assistant Security**: Mandatory security guidelines for all LLM interactions
+- **Version Control**: Lock files ensure reproducible builds across environments
+- **Compatibility Testing**: Verified Tatlock starts successfully with all pinned dependencies
+
 ## [0.3.22] - 2025-01-16
 
 ### Added
