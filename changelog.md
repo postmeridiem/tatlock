@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.22] - 2025-01-15
+
+### Fixed
+
+- **Model Fallback Updates**: Replaced gemma2:2b fallbacks with phi4-mini:3.8b-q4_K_M for better tool support
+  - Updated hardware classification fallback from gemma2:2b to phi4-mini:3.8b-q4_K_M
+  - Updated config.py fallback models to use tool-capable phi4-mini model
+  - Fixed hardware config generation to properly escape JSON in HARDWARE_SUMMARY
+  - Ensures all fallback scenarios use models that support function calling
+  - Prevents tool execution failures when hardware classification fails
+
 ## [0.3.21] - 2025-10-08
 
 ### Added
