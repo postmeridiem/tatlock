@@ -129,9 +129,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Enables conversations of 200+ messages without context window limitations
 
 - **Memory System Documentation**: Comprehensive documentation for memory architecture
-  - `hippocampus/MEMORY_SYSTEM.md` (43KB) - Complete reference covering database architecture, 4.5-phase prompt system, conversation compacting, and implementation patterns
+  - `hippocampus/MEMORY_SYSTEM.md` (43KB) - Complete reference covering database architecture, Multi-phase prompt system, conversation compacting, and implementation patterns
   - Clear terminology definitions (message vs interaction vs turn)
-  - Complete 4.5-phase flow examples with CAPABILITY_GUARD
+  - Complete Multi-phase flow examples with CAPABILITY_GUARD
   - Conservative summarization prompt design
   - Database context loading patterns
 
@@ -143,7 +143,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **Cortex Integration**: 4.5-phase architecture now uses database context loading
+- **Cortex Integration**: Multi-phase architecture now uses database context loading
   - Phase 1 assessment loads compact summary + recent messages from database
   - Eliminates client-side history management (passes empty array for `full_llm_history`)
   - Solves exponential data duplication problem in `full_conversation_history` field
@@ -216,12 +216,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Installation-time hardware config file generation (`hardware_config.py`)
   - Manual override documentation for testing different models via `hardware_config.py` editing
 
-- **Advanced 4.5-Phase Prompt Architecture**: Complete redesign for optimal performance and reliability
+- **Advanced Multi-Phase Prompt Architecture**: Complete redesign for optimal performance and reliability
   - **Phase 1**: Initial Assessment - Structured capability detection with CAPABILITY_GUARD routing
   - **Phase 2**: Tool Selection - Intelligent tool catalog selection when needed
   - **Phase 3**: Tool Execution - Parallel execution of selected tools with error handling
   - **Phase 4**: Response Formatting - Butler persona application with context integration
-  - **Phase 4.5**: Quality Gate - Final validation and edge case detection with fallback mechanisms
+  - **Phase Multi**: Quality Gate - Final validation and edge case detection with fallback mechanisms
   - **CAPABILITY_GUARD**: LLM-based detection system preventing identity/capability leakage in lean phases
   - **File renamed**: `cortex/agent.py` → `cortex/tatlock.py` using `git mv` (represents the essence of the butler)
   - **Code optimization**: Removed 319 lines (24% reduction) while adding comprehensive functionality
@@ -238,7 +238,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Configuration**: `config.py` now uses `get_automatic_ollama_model()` instead of database lookup
 - **Database Schema**: Removed `ollama_model` setting from system_settings with migration support
 - **Tool Loading**: Core tools (memory/personal data) always loaded, extended tools (weather/web) catalog-based only
-- **Agent Processing**: `cortex/tatlock.py` (renamed from `agent.py`) now uses advanced 4.5-phase system
+- **Agent Processing**: `cortex/tatlock.py` (renamed from `agent.py`) now uses advanced Multi-phase system
   - Completely refactored `TatlockProcessor` class with phase-specific prompt construction
   - Implemented `PromptBuilder` class for consistent prompt formatting across phases
   - Added `QualityGate` class for edge case detection and response validation
@@ -249,8 +249,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Documentation**: Updated README.md, AGENTS.md, CLAUDE.md, and parietal/readme.md with hardware selection info
 
 - **Enhanced Testing Infrastructure**: Comprehensive test suite for new architecture
-  - New `tests/test_4_5_phase_architecture.py` with full authentication-based testing patterns
-  - Updated `tests/benchmark_all_tiers.py` compatible with 4.5-phase system performance measurement
+  - New `tests/test_5_phase_architecture.py` with full authentication-based testing patterns
+  - Updated `tests/benchmark_all_tiers.py` compatible with Multi-phase system performance measurement
   - Systematic testing of all phase flows (direct answers, CAPABILITY_GUARD, tool execution, edge cases)
   - Test isolation with proper user data cleanup and session management
   - Authentication fixtures following existing patterns in `tests/conftest.py`
@@ -262,11 +262,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Improved tool loading and caching mechanisms for better performance
 
 - **Comprehensive Documentation Updates**: Complete specification and usage guides
-  - **New `sample.md`**: 1000+ line comprehensive 4.5-phase architecture specification
+  - **New `sample.md`**: 1000+ line comprehensive Multi-phase architecture specification
   - Detailed flow examples for all scenarios (direct answers, identity questions, weather queries, complex memory)
   - CAPABILITY_GUARD mechanism documentation with reasoning examples
   - Quality Gate implementation guide with edge case database and mitigation strategies
-  - Updated `CLAUDE.md` with complete 4.5-phase architecture section and debugging guidance
+  - Updated `CLAUDE.md` with complete Multi-phase architecture section and debugging guidance
   - Enhanced `AGENTS.md` with authentication testing patterns and development standards
 
 - **Agent Response Optimization**: Fixed system prompts to reduce verbosity and tool bias
@@ -280,7 +280,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Updated `stem/debug_logger.py` with Quality Gate logging support (`log_quality_gate_result()`)
   - Session-based log file generation with conversation ID tracking
   - Phase-specific timing and error logging for performance analysis
-  - Structured logging for 4.5-phase architecture debugging and monitoring
+  - Structured logging for Multi-phase architecture debugging and monitoring
 
 - **Logging Cleanup**: Removed decorative emoji characters from server logging output
   - Removed rockets (🚀), sparkles (✨), locks (🔒), and document (📝) emojis from logging

@@ -1,5 +1,5 @@
 """
-Tests for the new 4.5-phase prompt architecture in cortex.tatlock
+Tests for the new Multi-phase prompt architecture in cortex.tatlock
 Following authentication testing patterns documented in AGENTS.md
 """
 import pytest
@@ -19,10 +19,10 @@ class TestPromptPhaseEnum:
 
 
 class TestNewArchitectureAuthenticated:
-    """Test the new 4.5-phase architecture with proper authentication."""
+    """Test the new Multi-phase architecture with proper authentication."""
 
     def test_direct_question_flow(self, authenticated_admin_client):
-        """Test direct question flow (Phase 1 -> Phase 4.5) with real authentication."""
+        """Test direct question flow (Phase 1 -> Phase 5) with real authentication."""
         response = authenticated_admin_client.post("/cortex", json={
             "message": "What is the capital of France?",
             "history": []
@@ -229,7 +229,7 @@ class TestNewArchitectureAuthenticated:
 
 
 class TestArchitectureEdgeCases:
-    """Test edge cases in the 4.5-phase architecture with real authentication."""
+    """Test edge cases in the Multi-phase architecture with real authentication."""
 
     def test_malformed_history(self, authenticated_admin_client):
         """Test handling of malformed conversation history."""

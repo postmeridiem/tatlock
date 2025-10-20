@@ -2548,7 +2548,7 @@ Each user has their own isolated database containing:
 This consolidated documentation includes:
 
 - **Database Architecture**: System and user database schemas
-- **4.5-Phase Prompt Architecture**: Complete flow examples and implementation patterns
+- **Multi-Phase Prompt Architecture**: Complete flow examples and implementation patterns
 - **Conversation Compacting System**: Conservative summarization every 50 messages (25 interactions)
 - **Memory Storage and Retrieval**: Storage patterns and recall functions
 - **System Prompts (rise_and_shine)**: Global instruction management
@@ -2568,7 +2568,7 @@ For quick reference:
 - `hippocampus/conversation_compact.py`: Compacting logic
 - `hippocampus/remember.py`: Memory storage
 - `hippocampus/recall.py`: Memory retrieval
-- `cortex/tatlock.py`: 4.5-phase prompt processor
+- `cortex/tatlock.py`: Multi-phase prompt processor
 - `stem/installation/database_setup.py`: Database schemas
 
 ## User Context Management

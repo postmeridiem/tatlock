@@ -225,6 +225,6 @@ def mock_ollama():
 @pytest.fixture(autouse=True)
 def mock_tools():
     """Mock tool calls to avoid external dependencies in tests."""
-    # TOOLS is no longer used in the new 4.5-phase architecture
+    # TOOLS is no longer used in the new Multi-phase architecture
     # The new system uses dynamic tool loading through stem.tools
     pass 

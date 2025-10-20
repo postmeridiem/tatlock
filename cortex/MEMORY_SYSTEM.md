@@ -462,7 +462,7 @@ Quality assessment: APPROVED or FALLBACK: [TYPE with reason]
 
 **Phase 4**: Applies butler formatting → "The capital of France is Paris, of course, sir."
 
-**Phase 5**: Quality Gate approves response
+**Phase Multi**: Quality Gate approves response
 
 **Final Response**: ✅ "The capital of France is Paris, of course, sir."
 
@@ -478,7 +478,7 @@ Quality assessment: APPROVED or FALLBACK: [TYPE with reason]
 
 **Phase 4**: Routes to CAPABILITY_GUARD path with full rise_and_shine context → "My name is Tatlock, sir."
 
-**Phase 5**: Quality Gate validates identity preserved
+**Phase Multi**: Quality Gate validates identity preserved
 
 **Final Response**: ✅ "My name is Tatlock, sir."
 
@@ -498,7 +498,7 @@ Quality assessment: APPROVED or FALLBACK: [TYPE with reason]
 
 **Phase 4**: Formats response with tool results → "Today's forecast shows partly cloudy skies with a high of 72°F and light western winds, sir."
 
-**Phase 5**: Quality Gate approves response
+**Phase Multi**: Quality Gate approves response
 
 **Final Response**: ✅ "Today's forecast shows partly cloudy skies with a high of 72°F and light western winds, sir."
 
@@ -514,7 +514,7 @@ Quality assessment: APPROVED or FALLBACK: [TYPE with reason]
 
 **Phase 4**: Attempts to handle both identity and weather, produces: "I am an AI assistant and I don't have access to current weather data, sir."
 
-**Phase 5**: Quality Gate detects edge case:
+**Phase Multi**: Quality Gate detects edge case:
 - Question asked for name AND weather
 - Response only addressed weather portion
 - Identity leaked as "AI assistant" instead of "Tatlock"
