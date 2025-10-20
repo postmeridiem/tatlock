@@ -1,7 +1,7 @@
 """
 cortex/tatlock.py
 
-Core agent logic for Tatlock implementing 4.5-phase prompt architecture.
+Core agent logic for Tatlock implementing Multi-phase prompt architecture.
 Handles chat interaction, tool dispatch, and butler personality.
 """
 
@@ -20,6 +20,7 @@ from openai import OpenAI
 from pydantic import BaseModel, Field
 from enum import Enum
 from typing import Optional, Dict, Any
+import re
 
 # Import from our new, organized modules
 from config import OLLAMA_MODEL
@@ -41,7 +42,7 @@ print("MODULE RELOAD: cortex.tatlock module loaded with debug functionality")
 # --- Tool Dispatcher ---
 # AVAILABLE_TOOLS now provided by dynamic tool system in stem/tools.py
 
-# === NEW 4.5-PHASE ARCHITECTURE CLASSES ===
+# === NEW Multi-PHASE ARCHITECTURE CLASSES ===
 
 class PromptPhase(Enum):
     """Enum representing the different phases of prompt processing"""
@@ -91,7 +92,7 @@ class ToolSelectionResult(BaseModel):
     )
 
 class QualityResult(BaseModel):
-    """Result from Phase 4.5 quality gate"""
+    """Result from Phase Multi quality gate"""
     approved: bool = Field(
         description="Whether the response is approved for delivery"
     )
@@ -299,7 +300,7 @@ Provide the properly formatted butler response:"""
         return messages
 
     def build_quality_gate_prompt(self, context: ProcessingContext, proposed_response: str) -> List[Dict[str, str]]:
-        """Build Phase 4.5 quality gate prompt"""
+        """Build Phase Multi quality gate prompt"""
 
         edge_case_list = '\n'.join([f"- {pattern}" for pattern in self.edge_case_patterns])
 
@@ -610,10 +611,10 @@ class CapabilityGuardParser:
             )
 
 
-# === NEW 4.5-PHASE PROCESSOR ===
+# === NEW Multi-PHASE PROCESSOR ===
 
 class TatlockProcessor:
-    """Main processor implementing the 4.5-phase architecture"""
+    """Main processor implementing the Multi-phase architecture"""
 
     def __init__(self):
         self.prompt_builder = PromptBuilder()
@@ -622,64 +623,154 @@ class TatlockProcessor:
 
     def process_question(self, user_message: str, history: List[Dict], username: str = "admin",
                         conversation_id: str = None) -> Dict:
-        """Process question through 4.5-phase architecture"""
+        """Process question through Multi-phase architecture"""
 
         start_time = time.time()
         logger.info(f"[TIERED LLM ARCHITECTURE] Processing: '{user_message[:50]}...'")
 
         # Initialize debug logger
         debug_logger = get_debug_logger(conversation_id)
-        debug_logger.log_phase_start("NEW 4.5-Phase Processing", f"User: {username}, Message: {user_message[:100]}")
+        debug_logger.log_phase_start("NEW Multi-Phase Processing", f"User: {username}, Message: {user_message[:100]}")
 
         # Build processing context
         context = self._build_context(user_message, history, username, conversation_id)
 
         try:
+            phase1_t0 = time.time()
             # Phase 1: Initial Assessment
             assessment_result = self._phase_1_assessment(context, debug_logger)
+            logger.info(f"Phase 1 duration: {round(time.time()-phase1_t0,2)}s")
             context.assessment_result = assessment_result
             context.current_phase = PromptPhase.INITIAL_ASSESSMENT
 
             # Route based on assessment
+            # Force guard if the question clearly matches identity/temporal even if Phase 1 missed it
+            if assessment_result.assessment_type == "DIRECT":
+                forced_guard_reason = self._detect_guard_reason(context.original_question)
+                if forced_guard_reason is not None:
+                    assessment_result.assessment_type = "CAPABILITY_GUARD"
+                    assessment_result.guard_reason = forced_guard_reason
+
             if assessment_result.assessment_type == "CAPABILITY_GUARD":
-                # Direct to Phase 4 with full context
+                # Fast path: for CAPABILITY_GUARD, keep processing minimal
                 context.current_phase = PromptPhase.RESPONSE_FORMATTING
+                phase4_t0 = time.time()
                 formatted_response = self._phase_4_formatting(context, debug_logger, is_capability_guard=True)
+                logger.info(f"Phase 4 (guard) duration: {round(time.time()-phase4_t0,2)}s")
+
+                # Skip tool selection/execution entirely for guard path
+                context.formatted_response = formatted_response
+                context.current_phase = PromptPhase.QUALITY_GATE
+                phase5_t0 = time.time()
+                quality_result = self._phase_5_quality_gate(context, debug_logger)
+                logger.info(f"Quality Gate duration: {round(time.time()-phase5_t0,2)}s")
+
+                final_response = quality_result.response
+                processing_time = round(time.time() - start_time, 1)
+
+                # Save interaction asynchronously, but do not block
+                try:
+                    topic_str = self._determine_topic(assessment_result)
+                    save_interaction(
+                        user_prompt=user_message,
+                        llm_reply=final_response,
+                        full_llm_history=[],
+                        topic=topic_str,
+                        username=username,
+                        conversation_id=conversation_id
+                    )
+                    db_path = ensure_user_database(username)
+                    import threading
+                    threading.Thread(target=trigger_compact_if_needed, args=(username, conversation_id, db_path), daemon=True).start()
+                except Exception as e:
+                    logger.error(f"Error saving interaction (guard path): {e}")
+
+                return {
+                    "response": final_response,
+                    "topic": topic_str,
+                    "history": context.history + [{"role": "assistant", "content": final_response}],
+                    "conversation_id": conversation_id or datetime.now().strftime('%Y-%m-%d-%H-%M-%S'),
+                    "processing_time": processing_time
+                }
 
             elif assessment_result.assessment_type == "DIRECT":
-                # Direct to Phase 4 for butler formatting
+                # Direct to Phase 4 for butler formatting, then fast return
                 context.current_phase = PromptPhase.RESPONSE_FORMATTING
+                phase4_t0 = time.time()
                 formatted_response = self._phase_4_formatting(context, debug_logger, is_capability_guard=False)
+                logger.info(f"Phase 4 duration: {round(time.time()-phase4_t0,2)}s")
+
+                context.formatted_response = formatted_response
+                context.current_phase = PromptPhase.QUALITY_GATE
+                phase5_t0 = time.time()
+                quality_result = self._phase_5_quality_gate(context, debug_logger)
+                logger.info(f"Quality Gate duration: {round(time.time()-phase5_t0,2)}s")
+
+                final_response = quality_result.response
+                processing_time = round(time.time() - start_time, 1)
+
+                # Save asynchronously
+                try:
+                    topic_str = self._determine_topic(assessment_result)
+                    save_interaction(
+                        user_prompt=user_message,
+                        llm_reply=final_response,
+                        full_llm_history=[],
+                        topic=topic_str,
+                        username=username,
+                        conversation_id=conversation_id
+                    )
+                    db_path = ensure_user_database(username)
+                    import threading
+                    threading.Thread(target=trigger_compact_if_needed, args=(username, conversation_id, db_path), daemon=True).start()
+                except Exception as e:
+                    logger.error(f"Error saving interaction (direct path): {e}")
+
+                return {
+                    "response": final_response,
+                    "topic": topic_str,
+                    "history": context.history + [{"role": "assistant", "content": final_response}],
+                    "conversation_id": conversation_id or datetime.now().strftime('%Y-%m-%d-%H-%M-%S'),
+                    "processing_time": processing_time
+                }
 
             elif assessment_result.assessment_type == "TOOLS_NEEDED":
                 # Phase 2: Tool Selection
                 context.current_phase = PromptPhase.TOOL_SELECTION
+                phase2_t0 = time.time()
                 tool_selection_result = self._phase_2_tool_selection(context, debug_logger)
+                logger.info(f"Phase 2 duration: {round(time.time()-phase2_t0,2)}s")
                 context.tool_selection_result = tool_selection_result
 
                 # Phase 3: Tool Execution
                 context.current_phase = PromptPhase.TOOL_EXECUTION
+                phase3_t0 = time.time()
                 tool_results = self._phase_3_tool_execution(context, debug_logger)
+                logger.info(f"Phase 3 duration: {round(time.time()-phase3_t0,2)}s")
                 context.tool_execution_results = tool_results
 
                 # Phase 4: Response Formatting
                 context.current_phase = PromptPhase.RESPONSE_FORMATTING
+                phase4_t0 = time.time()
                 formatted_response = self._phase_4_formatting(context, debug_logger, is_capability_guard=False)
+                logger.info(f"Phase 4 duration: {round(time.time()-phase4_t0,2)}s")
             else:
                 # Fallback
                 formatted_response = "I apologize, sir, but I encountered an issue processing your request."
 
             context.formatted_response = formatted_response
 
-            # Phase 4.5: Quality Gate
+            # Phase Multi: Quality Gate
             context.current_phase = PromptPhase.QUALITY_GATE
-            quality_result = self._phase_4_5_quality_gate(context, debug_logger)
+            phase5_t0 = time.time()
+            quality_result = self._phase_5_quality_gate(context, debug_logger)
+            logger.info(f"Quality Gate duration: {round(time.time()-phase5_t0,2)}s")
 
             # Finalize response
             final_response = quality_result.response
             processing_time = round(time.time() - start_time, 1)
 
-            # Save interaction
+            # Save interaction (non-blocking compacting)
             try:
                 topic_str = self._determine_topic(assessment_result)
                 save_interaction(
@@ -692,7 +783,7 @@ class TatlockProcessor:
                 )
 
                 # Trigger automatic compacting if threshold reached (every 25 messages)
-                # Run in thread but wait for completion to ensure serial execution
+                # Run in background and do NOT block the response path
                 db_path = ensure_user_database(username)
                 import threading
                 compact_thread = threading.Thread(
@@ -701,7 +792,8 @@ class TatlockProcessor:
                     daemon=True
                 )
                 compact_thread.start()
-                compact_thread.join()  # Block until compacting completes
+                # Do not join: avoid blocking response on compacting
+                logger.debug("Compacting thread started (non-blocking)")
             except Exception as e:
                 logger.error(f"Error saving interaction: {e}")
 
@@ -717,7 +809,7 @@ class TatlockProcessor:
             }
 
         except Exception as e:
-            logger.error(f"Error in 4.5-phase processing: {e}", exc_info=True)
+            logger.error(f"Error in Multi-phase processing: {e}", exc_info=True)
             processing_time = round(time.time() - start_time, 1)
             fallback_response = "I apologize, sir, but I encountered an issue processing your request. Please try again."
 
@@ -728,6 +820,15 @@ class TatlockProcessor:
                 "conversation_id": conversation_id or datetime.now().strftime('%Y-%m-%d-%H-%M-%S'),
                 "processing_time": processing_time
             }
+
+    def _detect_guard_reason(self, question: str) -> Optional[CapabilityGuardReason]:
+        """Lightweight regex-based guard detection for identity/temporal."""
+        q = (question or "").lower()
+        if re.search(r"\bwhat'?s your name\b|\bwho are you\b|\byour name\b", q):
+            return CapabilityGuardReason.IDENTITY
+        if re.search(r"\bwhat time is it\b|\bcurrent time\b|\bwhat'?s the date\b|\btoday'?s date\b", q):
+            return CapabilityGuardReason.TEMPORAL
+        return None
 
     def _build_context(self, user_message: str, history: List[Dict], username: str, conversation_id: str) -> ProcessingContext:
         """Build initial processing context with compacted conversation awareness"""
@@ -804,7 +905,7 @@ class TatlockProcessor:
         try:
             # Call LLM for assessment
             phase1_start = time.time()
-            response = ollama.chat(model=OLLAMA_MODEL, messages=messages, tools=[])
+            response = ollama.chat(model=OLLAMA_MODEL, messages=messages, tools=[], options={"timeout": 20000})
             phase1_end = time.time()
 
             response_content = response['message']['content']
@@ -844,7 +945,7 @@ class TatlockProcessor:
 
         try:
             phase2_start = time.time()
-            response = ollama.chat(model=OLLAMA_MODEL, messages=messages, tools=[])
+            response = ollama.chat(model=OLLAMA_MODEL, messages=messages, tools=[], options={"timeout": 20000})
             phase2_end = time.time()
 
             response_content = response['message']['content']
@@ -988,10 +1089,10 @@ class TatlockProcessor:
             else:
                 return "I apologize, sir, but I encountered an issue processing your request."
 
-    def _phase_4_5_quality_gate(self, context: ProcessingContext, debug_logger) -> QualityResult:
-        """Phase 4.5: Quality Gate"""
+    def _phase_5_quality_gate(self, context: ProcessingContext, debug_logger) -> QualityResult:
+        """Phase Multi: Quality Gate"""
 
-        debug_logger.log_phase_start("Phase 4.5: Quality Gate", f"Validating response quality")
+        debug_logger.log_phase_start("Phase Multi: Quality Gate", f"Validating response quality")
 
         quality_result = self.quality_gate.evaluate_response(context, context.formatted_response)
 
@@ -1046,14 +1147,14 @@ def get_tatlock_processor() -> TatlockProcessor:
 
 def process_chat_interaction(user_message: str, history: list[dict], username: str = "admin", conversation_id: str | None = None) -> dict:
     """
-    4.5-phase architecture entry point - implements the sample.md specification
+    Multi-phase architecture entry point - implements the sample.md specification
 
     This function uses the complete new architecture:
     - Phase 1: Initial Assessment with CAPABILITY_GUARD
     - Phase 2: Tool Selection (if needed)
     - Phase 3: Tool Execution (if needed)
     - Phase 4: Response Formatting
-    - Phase 4.5: Quality Gate
+    - Phase 5: Quality Gate
     """
     processor = get_tatlock_processor()
     return processor.process_question(user_message, history, username, conversation_id)
