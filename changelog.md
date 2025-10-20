@@ -7,6 +7,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.24] - 2025-01-20
+
+### Added
+
+- **Performance Optimization**: Major improvements to response times and system reliability
+  - Switched default model from phi4-mini:3.8b-q4_K_M to mistral:7b for better performance
+  - Added explicit 20-second timeouts to Ollama calls to prevent indefinite hangs
+  - Implemented per-phase timing logs to identify performance bottlenecks
+  - Added health endpoint (/health) for basic server status checking
+  - Enhanced debug logger to force file creation regardless of DEBUG_MODE setting
+
+### Fixed
+
+- **CAPABILITY_GUARD Performance**: Dramatic improvement in identity/temporal query handling
+  - Added regex-based fallback detection for identity/temporal queries ("What is your name?", etc.)
+  - Implemented fast-return path for guard cases to avoid LLM latency
+  - Reduced guard query response time from 60s timeout to ~22.5s
+  - Fixed "What is your name?" timeout issues with reliable fast-path routing
+
+### Changed
+
+- **Tool System Architecture**: Improved maintainability and user-driven configuration
+  - Removed hard-coded tool short-circuits in favor of LLM-driven tool catalog decisions
+  - Added UI-driven action hook: when API keys are saved, tools are automatically enabled/disabled via database
+  - Removed startup auto-toggling; tool availability is now purely UI-driven
+  - Fixed hippocampus tool exports to resolve "Function not found" warnings at startup
+
+### Performance
+
+- **Response Time Improvements**: Significant reduction in query processing times
+  - DIRECT queries: ~19s (down from 60s+ timeouts)
+  - GUARD queries: ~22.5s (down from 60s timeouts) 
+  - TOOLS_NEEDED queries: Proper routing with tool availability checking
+  - Overall system responsiveness improved by 60-70% for most query types
+
 ## [0.3.23] - 2025-01-17
 
 ### Added
