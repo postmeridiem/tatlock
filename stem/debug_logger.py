@@ -14,6 +14,7 @@ from pathlib import Path
 import uuid
 
 from config import DEBUG_MODE
+_ENV_DEBUG = (os.getenv("DEBUG_MODE", "false").lower() == "true")
 
 class DebugLogger:
     """
@@ -28,7 +29,7 @@ class DebugLogger:
         self.step_counter = 0
         self.iteration_counter = 0
 
-        if DEBUG_MODE:
+        if DEBUG_MODE or _ENV_DEBUG:
             self._initialize_log_file()
 
     def _initialize_log_file(self):
@@ -59,7 +60,7 @@ class DebugLogger:
 
     def log_phase_start(self, phase_name: str, description: str = ""):
         """Log the start of a processing phase."""
-        if not DEBUG_MODE or not self.log_file_path:
+        if not (DEBUG_MODE or _ENV_DEBUG) or not self.log_file_path:
             return
 
         self.step_counter += 1
@@ -77,7 +78,7 @@ class DebugLogger:
     def log_llm_request(self, model: str, messages: List[Dict], tools: Optional[List] = None,
                        iteration_type: str = "main"):
         """Log an LLM request with full prompt details."""
-        if not DEBUG_MODE or not self.log_file_path:
+        if not (DEBUG_MODE or _ENV_DEBUG) or not self.log_file_path:
             return
 
         self.iteration_counter += 1
@@ -117,7 +118,7 @@ class DebugLogger:
     def log_llm_response(self, response: Dict[str, Any], duration_seconds: float,
                         tool_calls_made: Optional[List] = None):
         """Log an LLM response with timing and tool usage details."""
-        if not DEBUG_MODE or not self.log_file_path:
+        if not (DEBUG_MODE or _ENV_DEBUG) or not self.log_file_path:
             return
 
         timestamp = datetime.now().isoformat()
@@ -153,7 +154,7 @@ class DebugLogger:
 
     def log_tool_execution(self, tool_name: str, args: Dict, result: Dict, duration_seconds: float):
         """Log individual tool execution details."""
-        if not DEBUG_MODE or not self.log_file_path:
+        if not (DEBUG_MODE or _ENV_DEBUG) or not self.log_file_path:
             return
 
         timestamp = datetime.now().isoformat()
@@ -179,7 +180,7 @@ class DebugLogger:
     def log_phase_summary(self, phase_name: str, duration_seconds: float,
                          iterations: int, success: bool, notes: str = ""):
         """Log a summary of a completed phase."""
-        if not DEBUG_MODE or not self.log_file_path:
+        if not (DEBUG_MODE or _ENV_DEBUG) or not self.log_file_path:
             return
 
         timestamp = datetime.now().isoformat()
