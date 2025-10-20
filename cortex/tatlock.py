@@ -21,6 +21,7 @@ from pydantic import BaseModel, Field
 from enum import Enum
 from typing import Optional, Dict, Any
 import re
+import os
 
 # Import from our new, organized modules
 from config import OLLAMA_MODEL
@@ -643,6 +644,34 @@ class TatlockProcessor:
             context.assessment_result = assessment_result
             context.current_phase = PromptPhase.INITIAL_ASSESSMENT
 
+            # Early short-circuit: if external tool clearly needed but keys missing, return fast explanatory message
+            tool_needed = self._detect_external_tools_need(context.original_question)
+            if tool_needed == "weather" and not os.getenv("OPENWEATHER_API_KEY"):
+                fast_msg = (
+                    "I can fetch live weather when configured, but the weather API key is not set. "
+                    "Please set OPENWEATHER_API_KEY to enable this capability."
+                )
+                debug_logger.log_phase("tools_short_circuit", {"tool": tool_needed, "reason": "missing_api_key"})
+                return {
+                    "response": fast_msg,
+                    "topic": "tools_unavailable_weather",
+                    "history": context.history + [{"role": "assistant", "content": fast_msg}],
+                    "conversation_id": conversation_id or datetime.now().strftime('%Y-%m-%d-%H-%M-%S'),
+                    "processing_time": round(time.time() - overall_t0, 2)
+                }
+            if tool_needed == "web_search" and (not os.getenv("GOOGLE_API_KEY") or not os.getenv("GOOGLE_CSE_ID")):
+                fast_msg = (
+                    "Web search requires configuration. Please set GOOGLE_API_KEY and GOOGLE_CSE_ID to enable it."
+                )
+                debug_logger.log_phase("tools_short_circuit", {"tool": tool_needed, "reason": "missing_api_key"})
+                return {
+                    "response": fast_msg,
+                    "topic": "tools_unavailable_web_search",
+                    "history": context.history + [{"role": "assistant", "content": fast_msg}],
+                    "conversation_id": conversation_id or datetime.now().strftime('%Y-%m-%d-%H-%M-%S'),
+                    "processing_time": round(time.time() - overall_t0, 2)
+                }
+
             # Route based on assessment
             # Force guard if the question clearly matches identity/temporal even if Phase 1 missed it
             if assessment_result.assessment_type == "DIRECT":
@@ -828,6 +857,15 @@ class TatlockProcessor:
             return CapabilityGuardReason.IDENTITY
         if re.search(r"\bwhat time is it\b|\bcurrent time\b|\bwhat'?s the date\b|\btoday'?s date\b", q):
             return CapabilityGuardReason.TEMPORAL
+        return None
+
+    def _detect_external_tools_need(self, question: str) -> Optional[str]:
+        """Return a tool key if the question clearly needs an external tool."""
+        q = (question or "").lower()
+        if re.search(r"\bweather\b|\btemperature\b|\brain\b|\bforecast\b", q):
+            return "weather"
+        if re.search(r"\bsearch\b|\bgoogle\b|\bweb\b|\blook up\b", q):
+            return "web_search"
         return None
 
     def _build_context(self, user_message: str, history: List[Dict], username: str, conversation_id: str) -> ProcessingContext:
