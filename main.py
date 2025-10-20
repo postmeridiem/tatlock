@@ -48,6 +48,7 @@ from hippocampus.user_database import get_user_image_path
 from fastapi.logger import logger
 from stem.api_metadata import tags_metadata
 from stem.system_settings import system_settings_manager
+from stem.dynamic_tools import tool_registry
 
 # Load environment variables from .env file
 load_dotenv()
@@ -92,6 +93,8 @@ async def lifespan(app: FastAPI):
         logger.error(f"Failed to run legacy system database migrations: {e}", exc_info=True)
         raise  # Critical - can't start without system database
 
+    # No automatic enable/disable here; tool availability is managed via UI-driven settings updates
+
     # Initialize voice service
     try:
         logger.info("Initializing voice service...")
@@ -115,6 +118,11 @@ app = FastAPI(
     redoc_url=None,  # Disable ReDoc for security
     lifespan=lifespan
 )
+# --- Health endpoint ---
+@app.get("/health", tags=["root"])
+async def health_check():
+    return {"status": "ok", "version": APP_VERSION}
+
 
 # Configure security schemes for OpenAPI documentation
 app.openapi_schema = None  # Force regeneration

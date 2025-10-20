@@ -87,6 +87,18 @@ class SystemSettingsManager:
                     (setting_key, setting_value)
                 )
             conn.commit()
+            # After saving API keys, update tool enable flags accordingly
+            if setting_key in ("openweather_api_key", "google_api_key", "google_cse_id"):
+                try:
+                    from stem.installation.database_setup import update_tool_status_based_on_api_keys
+                    from stem.dynamic_tools import tool_registry
+                    update_tool_status_based_on_api_keys(cursor)
+                    conn.commit()
+                    # Refresh dynamic tool registry so agent sees up-to-date catalog
+                    tool_registry.initialize(self.db_path)
+                    logger.info("Synchronized tool availability with API key changes")
+                except Exception as e:
+                    logger.error(f"Failed to synchronize tools after API key update: {e}")
             conn.close()
             logger.info(f"Updated setting {setting_key}")
             return True

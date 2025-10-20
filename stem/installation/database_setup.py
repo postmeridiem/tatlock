@@ -793,9 +793,7 @@ def create_system_db_tables(db_path: str):
     populate_tools_table(cursor)
     create_default_rise_and_shine(cursor)
     create_default_system_settings(cursor)
-    
-    # Update tool status based on API key availability
-    update_tool_status_based_on_api_keys(cursor)
+    # Do not auto-toggle tools at startup; UI-driven updates will manage enable flags
     
     conn.commit()
     conn.close()
@@ -894,8 +892,7 @@ def migrate_env_to_settings(db_path: str = "hippocampus/system.db", hostname: st
                 updated_count += 1
                 logger.info(f"Updated {setting_key}={setting_value}")
         
-        # Update tool status based on API key availability
-        update_tool_status_based_on_api_keys(cursor)
+        # Do not auto-toggle tools here; UI-driven updates will manage enable flags
         
         conn.commit()
         conn.close()
