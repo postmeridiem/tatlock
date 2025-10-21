@@ -121,7 +121,11 @@ app = FastAPI(
 # --- Health endpoint ---
 @app.get("/health", tags=["root"])
 async def health_check():
-    return {"status": "ok", "version": APP_VERSION}
+    return {
+        "status": "ok", 
+        "version": APP_VERSION,
+        "model": OLLAMA_MODEL
+    }
 
 
 # Configure security schemes for OpenAPI documentation
