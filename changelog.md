@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.26] - 2025-01-21
+
+### Added
+
+- **Health Endpoint Enhancement**: Added currently loaded model to health endpoint output
+  - Health endpoint now returns the current OLLAMA_MODEL in addition to status and version
+  - Provides visibility into which model is being used for debugging and monitoring
+  - Useful for troubleshooting model selection and hardware configuration
+
 ## [0.3.25] - 2025-01-21
 
 ### Fixed
