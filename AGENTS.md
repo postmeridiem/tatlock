@@ -526,7 +526,7 @@ If you choose manual selection, you'll see:
 ```
 Manual Performance Tier Selection:
 ──────────────────────────────────────────────────────────────────────────────────
-  1) Low    - phi4-mini:3.8b-q4_K_M    (Fastest, minimal resources, tool support)
+  1) Low    - mistral:7b               (Reliable performance, minimal resources, tool support)
   2) Medium - mistral:7b               (Balanced performance and quality)
   3) High   - gemma3-cortex:latest     (Best quality, requires powerful hardware)
 
@@ -548,7 +548,7 @@ Existing hardware configuration detected.
 
 Current Configuration:
   Performance Tier: low
-  Model: phi4-mini:3.8b-q4_K_M
+  Model: mistral:7b
   Selection Method: manual
 
 Do you want to reconfigure the performance tier? (y/N):
@@ -558,7 +558,7 @@ Answer `y` to change your tier, or `N` to keep the current configuration.
 
 #### Available Model Tiers
 
-- **Low**: `phi4-mini:3.8b-q4_K_M` - Quantized model with tool support for low-spec hardware, M1 processors, or Apple Silicon ≤16GB RAM
+- **Low**: `mistral:7b` - Reliable performance with tool support for low-spec hardware, M1 processors, or Apple Silicon ≤16GB RAM
 - **Medium**: `mistral:7b` - Balanced performance for mid-range systems or Apple Silicon M2/M3 with >16GB RAM
 - **High**: `gemma3-cortex:latest` - Maximum performance for high-spec non-Apple Silicon systems (8GB+ RAM, 4+ cores)
 
@@ -579,8 +579,8 @@ HARDWARE_REASON = "Automatic detection: Medium tier..."
 For testing different models without re-running the installer, you can manually edit `hardware_config.py`:
 
 ```bash
-# Test low-spec model (phi4-mini with tool support)
-echo 'RECOMMENDED_MODEL = "phi4-mini:3.8b-q4_K_M"' > hardware_config.py
+# Test low-spec model (mistral:7b with tool support)
+echo 'RECOMMENDED_MODEL = "mistral:7b"' > hardware_config.py
 echo 'PERFORMANCE_TIER = "low"' >> hardware_config.py
 echo 'SELECTION_METHOD = "manual"' >> hardware_config.py
 
@@ -627,7 +627,7 @@ python tests/benchmark_all_tiers.py
 ```
 
 The benchmark script automatically:
-- Tests each tier with appropriate models (phi4-mini, mistral:7b, gemma3-cortex)
+- Tests each tier with appropriate models (mistral:7b, mistral:7b, gemma3-cortex)
 - Handles authentication and session management
 - Outputs incremental results to CSV for real-time monitoring
 - Provides comprehensive performance and quality analysis

@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Model Selection**: Replaced broken phi4-mini model with mistral:7b for low performance tier
+  - Updated hardware classification logic to use mistral:7b instead of phi4-mini:3.8b-q4_K_M
+  - Modified installation script to use mistral:7b for low tier systems
+  - Updated documentation to reflect new low tier model selection
+  - Ensures reliable performance for all hardware tiers
+
 ## [0.3.24] - 2025-01-20
 
 ### Added

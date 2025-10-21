@@ -860,7 +860,7 @@ def classify_hardware():
             # M1 or low RAM Apple Silicon should use low tier
             if is_m1_processor or total_ram_gb <= 16.0:
                 tier = "low"
-                model = "phi4-mini:3.8b-q4_K_M"
+                model = "mistral:7b"
                 reason = "Apple Silicon M1 or ≤16GB RAM detected - using low tier for better performance"
             else:
                 # M2/M3 with >16GB RAM can use medium tier
@@ -877,7 +877,7 @@ def classify_hardware():
         reason = f"Medium performance hardware: {total_ram_gb}GB RAM, {logical_cores} cores"
     else:
         tier = "low"
-        model = "phi4-mini:3.8b-q4_K_M"
+        model = "mistral:7b"
         reason = f"Limited resources: {total_ram_gb}GB RAM, {logical_cores} cores"
 
     return {
@@ -981,7 +981,7 @@ if [ "$SKIP_TIER_SELECTION" != "true" ]; then
         echo ""
         echo -e "${BOLD}${CYAN}Manual Performance Tier Selection:${NC}"
         echo -e "${CYAN}──────────────────────────────────────────────────────────────────────────────────${NC}"
-        echo -e "  ${BOLD}1)${NC} Low    - phi4-mini:3.8b-q4_K_M    (Fastest, minimal resources, tool support)"
+        echo -e "  ${BOLD}1)${NC} Low    - mistral:7b               (Reliable performance, minimal resources, tool support)"
         echo -e "  ${BOLD}2)${NC} Medium - mistral:7b               (Balanced performance and quality)"
         echo -e "  ${BOLD}3)${NC} High   - gemma3-cortex:latest     (Best quality, requires powerful hardware)"
         echo ""
@@ -991,8 +991,8 @@ if [ "$SKIP_TIER_SELECTION" != "true" ]; then
         case $tier_choice in
             1)
                 HARDWARE_TIER="low"
-                RECOMMENDED_MODEL="phi4-mini:3.8b-q4_K_M"
-                HARDWARE_REASON="Manually selected: Low tier - Fastest with minimal resources"
+                RECOMMENDED_MODEL="mistral:7b"
+                HARDWARE_REASON="Manually selected: Low tier - Reliable performance with minimal resources"
                 ;;
             2)
                 HARDWARE_TIER="medium"
@@ -1007,7 +1007,7 @@ if [ "$SKIP_TIER_SELECTION" != "true" ]; then
             *)
                 echo -e "${YELLOW}Invalid selection, defaulting to low tier.${NC}"
                 HARDWARE_TIER="low"
-                RECOMMENDED_MODEL="phi4-mini:3.8b-q4_K_M"
+                RECOMMENDED_MODEL="mistral:7b"
                 HARDWARE_REASON="Manually selected: Low tier (default)"
                 ;;
         esac

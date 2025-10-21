@@ -823,9 +823,9 @@ def classify_hardware_performance() -> Dict[str, Any]:
                 # M1 or low RAM Apple Silicon should use low tier
                 if is_m1_processor or total_ram_gb <= 16.0:
                     performance_tier = "low"
-                    recommended_model = "phi4-mini:3.8b-q4_K_M"
+                    recommended_model = "mistral:7b"
                     reasoning.append(f"Apple Silicon M1 or ≤16GB RAM detected - using low tier for better performance")
-                    reasoning.append(f"M1 processors perform better with lighter models")
+                    reasoning.append(f"Using mistral:7b for reliable performance on Apple Silicon")
                 else:
                     # M2/M3 with >16GB RAM can use medium tier
                     performance_tier = "medium"
@@ -843,11 +843,11 @@ def classify_hardware_performance() -> Dict[str, Any]:
             recommended_model = "mistral:7b"
             reasoning.append(f"Medium RAM ({total_ram_gb}GB) and CPU cores ({logical_cores})")
 
-        # Low performance (default) - use phi4-mini for tool support with better speed
+        # Low performance (default) - use mistral:7b for tool support with better speed
         else:
-            recommended_model = "phi4-mini:3.8b-q4_K_M"
+            recommended_model = "mistral:7b"
             reasoning.append(f"Limited resources: {total_ram_gb}GB RAM, {logical_cores} cores")
-            reasoning.append("Using phi4-mini for tool support with smaller model size")
+            reasoning.append("Using mistral:7b for tool support with reliable performance")
 
         # Additional considerations
         if architecture == "arm64" and os_type == "macOS":
@@ -877,7 +877,7 @@ def classify_hardware_performance() -> Dict[str, Any]:
             "classification_criteria": {
                 "high": "8GB+ RAM, 4+ CPU cores, non-Apple Silicon → gemma3-cortex:latest",
                 "medium": "4-8GB RAM, 2-4 CPU cores, or Apple Silicon M2/M3 with >16GB RAM → mistral:7b",
-                "low": "<4GB RAM, limited CPU, M1 processors, or Apple Silicon ≤16GB RAM → phi4-mini:3.8b-q4_K_M"
+                "low": "<4GB RAM, limited CPU, M1 processors, or Apple Silicon ≤16GB RAM → mistral:7b"
             }
         }
 
@@ -890,7 +890,7 @@ def classify_hardware_performance() -> Dict[str, Any]:
         return {
             "timestamp": datetime.now().isoformat(),
             "performance_tier": "low",
-            "recommended_model": "phi4-mini:3.8b-q4_K_M",
+            "recommended_model": "mistral:7b",
             "hardware_summary": {},
             "reasoning": [f"Classification failed: {str(e)}, using safe fallback"],
             "error": str(e)

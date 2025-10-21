@@ -155,8 +155,8 @@ Tatlock automatically detects your hardware capabilities and selects the optimal
 
 ### 💡 **Low Performance** (<4GB RAM or limited CPU)
 
-- **Model**: `phi4-mini:3.8b-q4_K_M` (Microsoft Phi-4 Mini Quantized)
-- **Features**: Quantized model with tool support, optimized for speed and low memory usage
+- **Model**: `mistral:7b` (Mistral 7B)
+- **Features**: Reliable performance with tool support, optimized for speed and low memory usage
 - **Best for**: Older hardware and resource-constrained environments
 
 ### 🔧 **Key Benefits**
