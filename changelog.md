@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.25] - 2025-01-21
+
 ### Fixed
 
 - **Model Selection**: Replaced broken phi4-mini model with mistral:7b for low performance tier
