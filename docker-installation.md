@@ -6,8 +6,34 @@ This guide covers running Tatlock using Docker and Docker Compose. The Docker se
 
 - **Docker** 20.10 or later
 - **Docker Compose** 2.0 or later
+- **Ollama** running on the host system or in a separate Docker container
 - **Minimum 4GB RAM** (8GB+ recommended for high-performance models)
 - **Internet connection** (for initial model download)
+
+### Setting Up Ollama
+
+Tatlock requires Ollama to be running separately. You have two options:
+
+**Option 1: Install Ollama on the Host System**
+
+```bash
+# macOS
+brew install ollama
+
+# Linux
+curl -fsSL https://ollama.ai/install.sh | sh
+
+# Start Ollama service
+ollama serve
+```
+
+**Option 2: Run Ollama in a Separate Docker Container**
+
+```bash
+docker run -d --name ollama -p 11434:11434 ollama/ollama:latest
+```
+
+**Important**: Ensure Ollama is accessible at `http://localhost:11434` (or configure `OLLAMA_HOST` accordingly).
 
 ## Quick Start
 
@@ -36,20 +62,28 @@ SKIP_MODEL_DOWNLOAD=false
 - Use default admin credentials (`admin` / `admin123`)
 - Automatically download the recommended Ollama model
 
-### 3. Start Tatlock
+### 3. Ensure Ollama is Running
+
+Make sure Ollama is running on your host system or in a separate container before starting Tatlock:
+
+```bash
+# Check if Ollama is running
+curl http://localhost:11434/api/tags
+```
+
+### 4. Start Tatlock
 
 ```bash
 docker compose up -d
 ```
 
 This will:
-1. Start the Ollama service (for LLM inference)
-2. Build and start the Tatlock application
-3. Automatically detect hardware and select the optimal model
-4. Initialize databases and create the admin user
-5. Download the recommended Ollama model
+1. Build and start the Tatlock application
+2. Automatically detect hardware and select the optimal model
+3. Initialize databases and create the admin user
+4. Download the recommended Ollama model (if Ollama is accessible)
 
-### 4. Access the Application
+### 5. Access the Application
 
 - **Login Page**: `http://localhost:8000/login`
 - **Default Admin Credentials**: `admin` / `admin123` (or your custom credentials)
@@ -67,7 +101,24 @@ You can customize the Docker setup using environment variables in `docker-compos
 
 - `HOSTNAME` (default: `0.0.0.0`) - Server hostname
 - `PORT` (default: `8000`) - Server port
-- `OLLAMA_HOST` (default: `http://ollama:11434`) - Ollama service URL
+- `OLLAMA_HOST` (default: `http://host.docker.internal:11434`) - Ollama service URL
+
+**OLLAMA_HOST Configuration**:
+
+The default `OLLAMA_HOST` works for Docker Desktop (macOS/Windows). For other setups:
+
+- **Docker Desktop (macOS/Windows)**: `http://host.docker.internal:11434` (default)
+- **Linux with host network**: `http://localhost:11434` or `http://127.0.0.1:11434`
+- **Linux with bridge network**: `http://172.17.0.1:11434` (default Docker bridge gateway)
+- **Separate Docker container**: `http://<container-name>:11434` (if on same network)
+- **Remote Ollama**: `http://<remote-ip>:11434`
+
+You can override this in `docker-compose.yml` or via environment variable:
+
+```yaml
+environment:
+  OLLAMA_HOST: http://172.17.0.1:11434  # Linux example
+```
 
 #### Security Configuration
 
@@ -119,7 +170,8 @@ Docker Compose creates persistent volumes for:
 
 - **`tatlock_hippocampus`**: User databases and memory storage
 - **`tatlock_logs`**: Application logs
-- **`ollama`**: Ollama models and configuration
+
+**Note**: Ollama models are stored separately (on the host system or in the Ollama container, depending on your setup).
 
 ### Viewing Volumes
 
@@ -177,10 +229,9 @@ docker compose logs -f
 
 # Tatlock only
 docker compose logs -f tatlock
-
-# Ollama only
-docker compose logs -f ollama
 ```
+
+**Note**: Ollama logs are separate. If Ollama is running on the host, check system logs. If in a Docker container, use `docker logs ollama`.
 
 ### Restart Services
 
@@ -218,15 +269,39 @@ docker compose up -d
 
 If you see errors about Ollama not being available:
 
+1. **Verify Ollama is running**:
+
 ```bash
-# Check Ollama service status
-docker compose ps ollama
+# Check if Ollama is accessible from host
+curl http://localhost:11434/api/tags
 
-# Check Ollama logs
-docker compose logs ollama
+# If Ollama is in a Docker container
+docker ps | grep ollama
+docker logs ollama
+```
 
-# Restart Ollama service
-docker compose restart ollama
+2. **Check OLLAMA_HOST configuration**:
+
+The default `OLLAMA_HOST` is `http://host.docker.internal:11434` which works for Docker Desktop. For Linux, you may need to:
+
+```bash
+# Option 1: Use host network mode (in docker-compose.yml)
+network_mode: "host"
+
+# Option 2: Set OLLAMA_HOST to Docker bridge gateway
+OLLAMA_HOST: http://172.17.0.1:11434
+
+# Option 3: Use host's IP address
+OLLAMA_HOST: http://<your-host-ip>:11434
+```
+
+3. **Restart Ollama** (if running on host):
+```bash
+# macOS/Linux
+ollama serve
+
+# Or if running in Docker
+docker restart ollama
 ```
 
 The initialization script waits up to 60 seconds for Ollama to become available. If it times out, the model download will be skipped, and you can manually download models later.
@@ -235,15 +310,19 @@ The initialization script waits up to 60 seconds for Ollama to become available.
 
 If model download fails during initialization:
 
-1. **Check Ollama service**: Ensure Ollama is running and accessible
-2. **Check network**: Ensure the container has internet access
-3. **Manual download**: You can manually download models:
+1. **Check Ollama service**: Ensure Ollama is running and accessible from the container
+2. **Check OLLAMA_HOST**: Verify the `OLLAMA_HOST` environment variable is correct
+3. **Check network**: Ensure the container can reach Ollama and has internet access
+4. **Manual download**: You can manually download models:
 
 ```bash
-# Access Ollama container
-docker compose exec ollama ollama pull mistral:7b
+# If Ollama is on the host
+ollama pull mistral:7b
 
-# Or use the Tatlock container
+# If Ollama is in a Docker container
+docker exec ollama ollama pull mistral:7b
+
+# Or use the Tatlock container (if Ollama is accessible)
 docker compose exec tatlock python -c "import ollama; ollama.pull('mistral:7b')"
 ```
 
@@ -301,10 +380,11 @@ docker compose exec -u root tatlock chown -R tatlock:tatlock /app
 ### What's Different
 
 - **No interactive prompts**: All configuration is done via environment variables
-- **Automatic Ollama service**: Ollama runs as a separate container
+- **Ollama runs separately**: Ollama must be running on the host or in a separate container (not managed by docker-compose)
 - **Persistent volumes**: Data persists across container restarts
 - **No system service installation**: Services are managed via Docker Compose
 - **No Material Icons download**: Icons are included in the Docker image
+- **Network configuration**: May need to configure `OLLAMA_HOST` depending on your Docker setup
 
 ## Production Considerations
 
@@ -340,13 +420,17 @@ services:
 
 ```bash
 # Monitor resource usage
-docker stats tatlock ollama
+docker stats tatlock
 
 # Check service health
 docker compose ps
 
 # View recent logs
 docker compose logs --tail=100 tatlock
+
+# Monitor Ollama (if running separately)
+# On host: Check system resources
+# In Docker: docker stats ollama
 ```
 
 ## Advanced Usage

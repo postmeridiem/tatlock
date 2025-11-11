@@ -67,9 +67,15 @@ Tatlock is a modular, brain-inspired conversational AI platform with built-in au
 
 Tatlock can also be run using Docker and Docker Compose. This method provides containerized deployment with automatic hardware classification, model selection, and database initialization.
 
+**Prerequisites**: Ollama must be running on the host system or in a separate Docker container.
+
 **Quick Start:**
 
 ```bash
+# Ensure Ollama is running (on host or in separate container)
+ollama serve  # or: docker run -d --name ollama -p 11434:11434 ollama/ollama:latest
+
+# Clone and start Tatlock
 git clone https://github.com/postmeridiem/tatlock.git
 cd tatlock
 docker compose up -d
@@ -78,8 +84,7 @@ docker compose up -d
 The Docker setup automatically:
 - Detects hardware and selects the optimal Ollama model
 - Initializes databases and creates the admin user
-- Downloads the recommended model
-- Starts both Tatlock and Ollama services
+- Downloads the recommended model (if Ollama is accessible)
 
 **Access**: `http://localhost:8000/login` (default credentials: `admin` / `admin123`)
 

@@ -26,7 +26,7 @@ logger = logging.getLogger(__name__)
 # Add project root to Python path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-def wait_for_ollama(ollama_host: str = "http://ollama:11434", max_attempts: int = 30, delay: int = 2):
+def wait_for_ollama(ollama_host: str = "http://host.docker.internal:11434", max_attempts: int = 30, delay: int = 2):
     """Wait for Ollama service to be ready."""
     try:
         import requests
@@ -290,7 +290,7 @@ def main():
     # Get configuration from environment variables
     hostname = os.getenv("HOSTNAME", "0.0.0.0")
     port = os.getenv("PORT", "8000")
-    ollama_host = os.getenv("OLLAMA_HOST", "http://ollama:11434")
+    ollama_host = os.getenv("OLLAMA_HOST", "http://host.docker.internal:11434")
     admin_username = os.getenv("ADMIN_USERNAME", "admin")
     admin_password = os.getenv("ADMIN_PASSWORD", "admin123")
     admin_first_name = os.getenv("ADMIN_FIRST_NAME", "Administrator")

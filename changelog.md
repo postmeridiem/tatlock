@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Docker Setup**: Updated Docker configuration to assume Ollama runs separately
+  - Removed Ollama service from `docker-compose.yml` (Ollama must run on host or in separate container)
+  - Updated default `OLLAMA_HOST` to `http://host.docker.internal:11434` for Docker Desktop compatibility
+  - Added platform-specific `OLLAMA_HOST` configuration guidance (Linux, Docker Desktop, etc.)
+  - Updated documentation with Ollama setup prerequisites and troubleshooting
+  - Improved flexibility for different deployment scenarios
+
 ## [0.4.0] - 2025-01-22
 
 ### Added

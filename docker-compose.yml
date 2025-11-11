@@ -1,23 +1,15 @@
 version: "3.9"
 
 services:
-  ollama:
-    image: ollama/ollama:latest
-    restart: unless-stopped
-    ports:
-      - "11434:11434"
-    volumes:
-      - ollama:/root/.ollama
-
   tatlock:
     build: .
     restart: unless-stopped
-    depends_on:
-      - ollama
     environment:
       HOSTNAME: 0.0.0.0
       PORT: 8000
-      OLLAMA_HOST: http://ollama:11434
+      # Ollama host - defaults to host.docker.internal for Docker Desktop
+      # For Linux, use host network mode or set to your host IP (e.g., http://172.17.0.1:11434)
+      OLLAMA_HOST: ${OLLAMA_HOST:-http://host.docker.internal:11434}
       STARLETTE_SECRET: ${STARLETTE_SECRET:-}
       DEBUG_MODE: "false"
       # Admin user configuration (optional - defaults will be used if not set)
@@ -35,6 +27,5 @@ services:
       - tatlock_logs:/app/logs
 
 volumes:
-  ollama:
   tatlock_hippocampus:
   tatlock_logs:

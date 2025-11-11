@@ -5,7 +5,7 @@ ENV PYTHONUNBUFFERED=1 \
     PYTHONPATH=/app \
     HOSTNAME=0.0.0.0 \
     PORT=8000 \
-    OLLAMA_HOST=http://ollama:11434
+    OLLAMA_HOST=http://host.docker.internal:11434
 
 WORKDIR /app
 
