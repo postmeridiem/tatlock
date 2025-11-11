@@ -63,6 +63,28 @@ Tatlock is a modular, brain-inspired conversational AI platform with built-in au
 
    **Default Admin Credentials**: `admin` / `admin123` (change after first login)
 
+### 🐳 Docker Installation
+
+Tatlock can also be run using Docker and Docker Compose. This method provides containerized deployment with automatic hardware classification, model selection, and database initialization.
+
+**Quick Start:**
+
+```bash
+git clone https://github.com/postmeridiem/tatlock.git
+cd tatlock
+docker compose up -d
+```
+
+The Docker setup automatically:
+- Detects hardware and selects the optimal Ollama model
+- Initializes databases and creates the admin user
+- Downloads the recommended model
+- Starts both Tatlock and Ollama services
+
+**Access**: `http://localhost:8000/login` (default credentials: `admin` / `admin123`)
+
+For detailed Docker installation instructions, configuration options, and troubleshooting, see **[Docker Installation Guide](docker-installation.md)**.
+
 ## 🧠 Architecture Overview
 
 Tatlock is organized into modules inspired by brain regions:

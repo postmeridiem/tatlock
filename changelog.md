@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2025-01-22
+
+### Added
+
+- **Docker Support**: Complete Docker and Docker Compose deployment option
+  - Added `Dockerfile` for containerized Tatlock deployment
+  - Added `docker-compose.yml` with Ollama service integration
+  - Created `docker-init.py` initialization script that mirrors install script logic
+  - Automatic hardware classification and model selection in containers
+  - Persistent volume support for databases and logs
+  - Environment variable configuration for admin user and server settings
+  - Comprehensive Docker installation guide (`docker-installation.md`)
+  - Support for custom model selection and skip model download option
+  - Idempotent initialization (safe to restart containers)
+
 ## [0.3.26] - 2025-01-21
 
 ### Added

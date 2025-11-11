@@ -1,0 +1,16 @@
+.git
+.gitignore
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.db-journal
+.env
+.venv/
+logs/
+hippocampus/longterm/
+hippocampus/shortterm/
+ide_screenshots/
+tatlock.log
+*.sqlite3
+*.log
