@@ -1,0 +1,40 @@
+version: "3.9"
+
+services:
+  ollama:
+    image: ollama/ollama:latest
+    restart: unless-stopped
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama:/root/.ollama
+
+  tatlock:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      - ollama
+    environment:
+      HOSTNAME: 0.0.0.0
+      PORT: 8000
+      OLLAMA_HOST: http://ollama:11434
+      STARLETTE_SECRET: ${STARLETTE_SECRET:-}
+      DEBUG_MODE: "false"
+      # Admin user configuration (optional - defaults will be used if not set)
+      ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-admin123}
+      ADMIN_FIRST_NAME: ${ADMIN_FIRST_NAME:-Administrator}
+      ADMIN_LAST_NAME: ${ADMIN_LAST_NAME:-User}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@tatlock.local}
+      # Skip model download on startup (set to "true" to skip)
+      SKIP_MODEL_DOWNLOAD: ${SKIP_MODEL_DOWNLOAD:-false}
+    ports:
+      - "8000:8000"
+    volumes:
+      - tatlock_hippocampus:/app/hippocampus
+      - tatlock_logs:/app/logs
+
+volumes:
+  ollama:
+  tatlock_hippocampus:
+  tatlock_logs:
